@@ -1,2 +1,2 @@
 # isaac-toolkit
-Automated Customization Toolkit of Instruction Set Architectures (ISAs)
+Automated Customization Toolkit for Instruction Set Architectures (ISAs)
