@@ -51,7 +51,7 @@ def handle(args):
         G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=rel._properties)
     print("G", G, dir(G))
     attrs = {}  # TODO
-    artifact = GraphArtifact("memgraph_mir_cfdf", G, attrs=attrs)
+    artifact = GraphArtifact("memgraph_mir_cdfg", G, attrs=attrs)
     print("artifact", artifact, dir(artifact), artifact.flags)
     sess.artifacts.append(artifact)
     sess.save()

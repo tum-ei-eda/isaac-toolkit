@@ -111,4 +111,4 @@ class GraphArtifact(PythonArtifact):
         return self.data
 
     def summary(self):
-        return str(self.data)
+        return f"{self.name}: {self.data}"

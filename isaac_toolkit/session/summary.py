@@ -17,8 +17,10 @@ def get_summary(sess):
     return f"""Summary of ISAAC session {sess.directory}
 
 Config:
+```
 ---
 {config_text}
+```
 
 Inputs:
 {inputs_text}

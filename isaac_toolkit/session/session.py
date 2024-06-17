@@ -47,7 +47,7 @@ def load_artifacts(base):
             # TODO: move to artifact.py
             import pickle
             with open(dest, "rb") as f:
-                df = pickle.load(f)
+                graph = pickle.load(f)
             artifact_ = GraphArtifact(name, graph, flags=flags, attrs=attrs)
         elif flags_ & ArtifactFlag.TABLE:
             import pandas as pd
