@@ -1,0 +1,9 @@
+pyyaml
+pandas
+black~=24.4.2
+dacite
+networkx<3.0.0,>=2.5.1
+gqlalchemy
+pygraphviz
+neo4j>=5.8.0
+matplotlib
