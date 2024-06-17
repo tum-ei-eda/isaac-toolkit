@@ -35,7 +35,7 @@ def algo(G):
         fanout_org[topo.index(node)] = od
         is_input = G.nodes[node].get("label") == "Const"  # TODO: add to db
         load_instrs = ["LB", "LBU", "LH", "LHU", "LW"]
-        is_load = G.nodes[node].get("label") in load_instrs # TODO: add to db
+        is_load = G.nodes[node].get("label") in load_instrs  # TODO: add to db
         is_invalid = is_input or is_load
         if is_invalid:
             invalid[topo.index(node)] = True
@@ -50,6 +50,7 @@ def algo(G):
             continue
         max_miso = [False] * len(topo)
         max_miso[topo.index(node)] = True
+
         def generate_max_miso(node, count):
             ins = G.in_edges(node)
             print("ins", ins)
@@ -62,6 +63,7 @@ def algo(G):
                     processed[topo.index(src)] = True
                     count = generate_max_miso(src, count + 1)
             return count
+
         size = generate_max_miso(node, 1)
         # size = generate_max_miso(node, G, max_miso, 1, invalid, fanout, processed)
         print("size", size)
@@ -69,6 +71,7 @@ def algo(G):
             max_misos.append(max_miso)
     print("max_misos", max_misos, len(max_misos))
     from itertools import compress
+
     max_misos_ = [list(compress(topo, max_miso)) for max_miso in max_misos]
     print("max_misos_", max_misos_)
     # max_misos__ = [nx.subgraph_view(G, filter_node=lambda node: max_miso[topo.index(node)]) for max_miso in max_misos]

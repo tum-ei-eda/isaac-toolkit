@@ -11,8 +11,6 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
 
 
-
-
 def handle(args):
     assert args.session is not None
     session_dir = Path(args.session)
@@ -48,7 +46,9 @@ def handle(args):
     for rel in rels:
         label = rel.type
         # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
-        G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=rel._properties)
+        G.add_edge(
+            rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=rel._properties
+        )
     print("G", G, dir(G))
     attrs = {}  # TODO
     artifact = GraphArtifact("memgraph_mir_cdfg", G, attrs=attrs)
