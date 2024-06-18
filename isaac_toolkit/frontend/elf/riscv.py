@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, FileArtifact
+from isaac_toolkit.session.artifact import ArtifactFlag, ElfArtifact
 
 
 def handle(args):
@@ -14,9 +14,12 @@ def handle(args):
     input_file = Path(args.file)
     assert input_file.is_file()
     name = input_file.name
-    attrs = {}  # TODO
-    artifact = FileArtifact(name, input_file, flags=ArtifactFlag.INPUT | ArtifactFlag.ELF, attrs=attrs)
-    sess.artifacts.append(artifact)
+    attrs = {
+        "target": "riscv",  # TODO: 32/64?
+        "by": "isaac_toolkit.frontend.elf.riscv",
+    }
+    artifact = ElfArtifact(name, input_file, attrs=attrs)
+    sess.add_artifact(artifact)
     sess.save()
 
 

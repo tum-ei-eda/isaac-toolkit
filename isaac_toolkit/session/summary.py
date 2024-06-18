@@ -3,17 +3,15 @@ import argparse
 from pathlib import Path
 
 from . import Session
+from .artifact import ArtifactFlag, filter_artifacts
 
 
 def get_summary(sess):
     config_text = sess.config.to_yaml()
-    print("sess", sess)
-    print("inputs", sess.inputs)
-    inputs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.inputs)
-    outputs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.outputs)
-    temps_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.temps)
-    tables_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.tables)
-    graphs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.graphs)
+    # inputs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.inputs)
+    # outputs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.outputs)
+    # temps_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.temps)
+    artifacts_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.artifacts)
     return f"""Summary of ISAAC session {sess.directory}
 
 Config:
@@ -22,20 +20,8 @@ Config:
 {config_text}
 ```
 
-Inputs:
-{inputs_text}
-
-Outputs:
-{outputs_text}
-
-Temps:
-{temps_text}
-
-Tables:
-{tables_text}
-
-Graphs:
-{graphs_text}
+Artifacts:
+{artifacts_text}
 """
 
 

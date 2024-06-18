@@ -16,6 +16,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    override = args.force
     memgraph_config = sess.config.memgraph
     hostname = memgraph_config.hostname
     port = memgraph_config.port
@@ -50,10 +51,16 @@ def handle(args):
             rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=rel._properties
         )
     print("G", G, dir(G))
-    attrs = {}  # TODO
+    attrs = {
+        "kind": "cdfg",
+        "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
+        # "mod_name": ""
+        # "func_name": ""
+        # "bb_name": ""
+    }
     artifact = GraphArtifact("memgraph_mir_cdfg", G, attrs=attrs)
     print("artifact", artifact, dir(artifact), artifact.flags)
-    sess.artifacts.append(artifact)
+    sess.add_artifact(artifact, overrride=override)
     sess.save()
 
 
@@ -63,6 +70,7 @@ def get_parser():
         "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--force", "-f", action="store_true")
     # TODO: allow overriding memgraph config?
     return parser
 

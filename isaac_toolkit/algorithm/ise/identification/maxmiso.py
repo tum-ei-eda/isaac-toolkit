@@ -11,7 +11,7 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact, filter_artifacts
 
 
-def algo(G):
+def maxmiso_algo(G):
     print("algo")
     print("G", G, dir(G))
     if G.number_of_nodes() == 0:
@@ -79,53 +79,72 @@ def algo(G):
     # max_misos__ = [nx.subgraph_view(G, filter_node=lambda node: node in max_miso) for max_miso in max_misos_]
     max_misos__ = [G.subgraph(max_miso) for max_miso in max_misos_]
     print("max_misos__", max_misos__)
-    for i, mig in enumerate(max_misos__):
-        print("i,mig", i, mig)
-        write_dot(mig, f"maxmiso{i}.dot")
-        labeldict = {node: mig.nodes[node]["label"] for node in mig.nodes}
-        print("labeldict", labeldict)
-        nx.draw(mig, labels=labeldict, with_labels=True)
-        plt.savefig(f"maxmiso{i}.png")
-        plt.close()
+    # for i, mig in enumerate(max_misos__):
+    #     print("i,mig", i, mig)
+    #     write_dot(mig, f"maxmiso{i}.dot")
+    #     labeldict = {node: mig.nodes[node]["label"] for node in mig.nodes}
+    #     print("labeldict", labeldict)
+    #     nx.draw(mig, labels=labeldict, with_labels=True)
+    #     plt.savefig(f"maxmiso{i}.png")
+    #     plt.close()
     labeldict = {node: G.nodes[node]["label"] for node in G.nodes}
     print("labeldict", labeldict)
-    nx.draw(G, labels=labeldict, with_labels=True)
-    plt.savefig(f"full.png")
-    plt.close()
+    # nx.draw(G, labels=labeldict, with_labels=True)
+    # plt.savefig(f"full.png")
+    # plt.close()
 
     print("invalid", invalid)
     print("fanout", fanout)
     print("processed", processed)
     print("fanout_org", fanout_org)
+    return max_misos__
 
 
 def handle(args):
     assert args.session is not None
     session_dir = Path(args.session)
+    override = args.override
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
     graphs = sess.graphs
     print("graphs", graphs)
-    cdfg = filter_artifacts(graphs, lambda x: x.name == "memgraph_mir_cdfg")
+    cdfg = filter_artifacts(graphs, lambda x: x.name == args.graph_name)
     print("cdfg", cdfg)
     assert len(cdfg) == 1
     cdfg = cdfg[0]
     graph = cdfg.graph
     print("graph", graph)
 
-    # attrs = {}  # TODO
-    # artifact = GraphArtifact("memgraph_mir_cfdf", G, attrs=attrs)
-    # print("artifact", artifact, dir(artifact), artifact.flags)
-    # sess.artifacts.append(artifact)
-    # sess.save()
+    def filter_graph(G, func_name, bb_name):
+        view = nx.subgraph_view(G, filter_node=lambda node: G.nodes[node]["properties"].get("basic_block") == bb_name and "%bb" not in G.nodes[node].get("label"))
+        G_ = G.subgraph([node for node in view.nodes])
+        # G__ = nx.subgraph_view(G_, filter_edge=lambda n1, n2: G_[n1][n2]["type"] == "DFG")
+        return G_
+    graph = filter_graph(graph, func_name="???", bb_name="%bb.7")
+    result = maxmiso_algo(graph)
+    print("result", result)
+    for i, maxmiso in enumerate(result):
+        attrs = {
+            "kind": "maxmiso",
+            "mod_name": "moduleA",
+            "func_name": "???",
+            "bb_name": "%bb.7",
+            "by": "isaac_toolkit.algorithm.ise.identification.maxmiso",
+        }
+        artifact = GraphArtifact(f"moduleA/???/%bb.7/maxmiso/{i}", nx.Graph(maxmiso), attrs=attrs)
+        print("artifact", artifact)
+        sess.add_artifact(artifact, override=overrride)
+    sess.save()
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
+    parser.add_argument("graph_name", default="memgraph_mir_cdfg")
     parser.add_argument(
         "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--force", "-f", action="store_true")
     # TODO: allow overriding memgraph config?
     return parser
 
