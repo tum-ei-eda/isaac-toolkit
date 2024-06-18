@@ -16,62 +16,26 @@ logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
 
 
-def collect_bbs(trace_df):
+def collect_operands(trace_df):
     print("trace_df", trace_df)
-    first_pc = None
-    # TODO: make this generic!
-    branch_instrs = ["jalr", "jal", "beq", "bne", "blt", "bge", "bltu", "bgeu", "ecall"]
-    bbs = []
-    prev_pc = None
-    prev_instr = None
-    for row in trace_df.iterrows():
-        pc = row["pc"]
-        instr = row["instr"]
-        sz = 4  # TODO: generalize
-        if prev_pc:
-            step = pc - prev_pc
-            if step in [2, 4]:
-                assert step == sz
-            else:
-                # is_jump = True
-                if first_pc is None:
-                    pass
-                else:
-                    assert False, f"Sub basic block not found at: pc = {prev_pc:x} -> {pc:x}"
-                    func = None
-                    bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
-                    first_pc = pc
-                    bbs.append(bb)
+    instrs_operands = defaultdict(list)
+    for row in trace_df.itertuples(index=False):
+        # print("row", row)
+        pc = row.pc
+        instr = row.instr
+        instr = instr.strip()  # TODO: fix in frontend
+        operands = row.operands
+        instr_operands = instrs_operands[instr].append(operands)
+    # print("instrs_operands", instrs_operands)
+    operands_data = []
+    operand_names = set()
+    for instr, instr_operands in instrs_operands.items():
+        for operands in instr_operands:
+            operand_names |= set(operands.keys())
+            operands_data.append({"instr": instr, **operands})
+    operands_df = pd.DataFrame(operands_data)
 
-        # At the first pc of a basic block
-        if first_pc is None:
-            first_pc = pc
-
-        if instr in branch_instrs:
-            # func = self.find_func_name(pc)
-            func = None
-            bb = BasicBlock(first_pc=first_pc, last_pc=pc, end_instr=instr, func=func)
-            # self.func_set.add(func)
-            bbs.append(bb)
-            # if bb.get_freq() == 1:
-            #     self.func_BB_dict[bb.func].append(bb)
-
-            # Hard coded where mlonmcu_exit() calls exit() explicitly
-            # Note that in mlonmcu main() does never return
-            # if pc == int("0xe0", 0):
-            #     break
-            first_pc = None
-        prev_pc = pc
-        prev_instr = instr
-        prev_size = sz
-    if first_pc is not None:
-        func = None
-        bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
-        bbs.append(bb)
-    print("bbs", bbs)
-    input("zzz")
-
-    return None
+    return operands_df
 
 
 def handle(args):
@@ -87,16 +51,35 @@ def handle(args):
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
 
-    pc2bb = collect_bbs(trace_artifact.df)
+    operands_df = collect_operands(trace_artifact.df)
+    print("operands_df", operands_df)
+    for operand_name in operand_names:
+        print(f"ALL & {operand_name}")
+        counts = operands_df[operand_name].value_counts()
+        print("counts", counts)
+    for instr_name, instr_df in operands_df.groupby("instr"):
+        for operand_name in operand_names:
+            if operand_name not in instr_df.columns:
+                continue
+            print(f"{instr_name} & {operand_name}")
+            counts = instr_df[operand_name].value_counts()
+            print("counts", counts)
 
     attrs = {
         "trace": trace_artifact.name,
-        "kind": "mapping",
+        "kind": "table",
+        "by": __name__,
+    }
+    attrs2 = {
+        "trace": trace_artifact.name,
+        "kind": "histogram",
         "by": __name__,
     }
 
-    pc2bb_artifact = TableArtifact(f"pc2bb", footprint_df, attrs=attrs)
-    sess.add_artifact(pc2bb_artifact, override=override)
+    operands_artifact = TableArtifact(f"instr_operands", operands_df, attrs=attrs)
+    operands_hist_artifact = TableArtifact(f"instr_operands_hist", operands_hist_df, attrs=attrs2)
+    sess.add_artifact(operands_artifact, override=override)
+    sess.add_artifact(operands_host_artifact, override=override)
     sess.save()
 
 

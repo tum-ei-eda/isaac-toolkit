@@ -69,15 +69,12 @@ def collect_bbs(trace_df):
     bbs = []
     prev_pc = None
     prev_instr = None
-    instrs_operands = defaultdict(list)
     for row in trace_df.itertuples(index=False):
         # print("row", row)
         pc = row.pc
         instr = row.instr
         instr = instr.strip()  # TODO: fix in frontend
         sz = 4  # TODO: generalize
-        operands = row.operands
-        instr_operands = instrs_operands[instr].append(operands)
 
         if prev_pc:
             step = pc - prev_pc
@@ -134,29 +131,6 @@ def collect_bbs(trace_df):
     bbs_df["weight"] = bbs_df["freq"] * bbs_df["size"]
     bbs_df["rel_weight"] = bbs_df["weight"] / sum(bbs_df["weight"])
     print("bbs_df", bbs_df)
-    input("zzz1")
-    # print("instrs_operands", instrs_operands)
-    operands_data = []
-    operand_names = set()
-    for instr, instr_operands in instrs_operands.items():
-        for operands in instr_operands:
-            operand_names |= set(operands.keys())
-            operands_data.append({"instr": instr, **operands})
-    operands_df = pd.DataFrame(operands_data)
-    print("operands_df", operands_df)
-    for operand_name in operand_names:
-        print(f"ALL & {operand_name}")
-        counts = operands_df[operand_name].value_counts()
-        print("counts", counts)
-    for instr_name, instr_df in operands_df.groupby("instr"):
-        for operand_name in operand_names:
-            if operand_name not in instr_df.columns:
-                continue
-            print(f"{instr_name} & {operand_name}")
-            counts = instr_df[operand_name].value_counts()
-            print("counts", counts)
-
-    input("zzz2")
 
     return bbs_df
 
@@ -182,7 +156,7 @@ def handle(args):
         "by": __name__,
     }
 
-    pc2bb_artifact = TableArtifact(f"pc2bb", footprint_df, attrs=attrs)
+    pc2bb_artifact = TableArtifact(f"pc2bb", pc2bb, attrs=attrs)
     sess.add_artifact(pc2bb_artifact, override=override)
     sess.save()
 
