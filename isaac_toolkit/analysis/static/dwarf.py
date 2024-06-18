@@ -21,13 +21,12 @@ def parse_dwarf(elf_path):
     srcFile_func_dict = defaultdict(set)
     # the mapping between program counter and source line
     pc_to_source_line_mapping = defaultdict(list)
-    with open(elf_path, 'rb') as f:
+    with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
         #### ###
         #### from elftools.elf.sections import SymbolTableSection
         #### # print('  %s sections' % elffile.num_sections())
         #### section = elffile.get_section_by_name('.symtab')
-
 
         #### assert section, "Symbol Table not found!"
         #### # print('  Section name: %s, type: %s' %(section.name, section['sh_type']))
@@ -70,15 +69,15 @@ def parse_dwarf(elf_path):
 
         # mapping function symbol to pc range
         for section in elffile.iter_sections():
-            if section.name == '.symtab':
+            if section.name == ".symtab":
                 symbol_table = section
                 break
 
         for symbol in symbol_table.iter_symbols():
-            symbol_type = symbol['st_info']['type']
+            symbol_type = symbol["st_info"]["type"]
             if symbol_type == "STT_FUNC":
-                start_pc = symbol['st_value']
-                end_pc = start_pc + symbol['st_size'] - 1
+                start_pc = symbol["st_value"]
+                end_pc = start_pc + symbol["st_size"] - 1
                 range = (start_pc, end_pc)
                 mapping[symbol.name] = range
             elif symbol.name in hard_coded_mapping:
@@ -114,31 +113,33 @@ def parse_dwarf(elf_path):
             directory = lp_header["include_directory"][dir_index]
             return posixpath.join(directory, file_entry.name).decode()
 
-
         for CU in dwarfinfo.iter_CUs():
             line_program = dwarfinfo.line_program_for_CU(CU)
             if line_program is None:
-                logger.warning('DWARF info is missing a line program for this CU')
+                logger.warning("DWARF info is missing a line program for this CU")
                 continue
 
             for DIE in CU.iter_DIEs():
-                if DIE.tag == 'DW_TAG_subprogram' and 'DW_AT_decl_file' in DIE.attributes \
-                    and "DW_AT_low_pc" in DIE.attributes and "DW_AT_high_pc" in DIE.attributes:
-                    func_name = DIE.attributes['DW_AT_name'].value.decode()
-                    file_index = DIE.attributes['DW_AT_decl_file'].value
+                if (
+                    DIE.tag == "DW_TAG_subprogram"
+                    and "DW_AT_decl_file" in DIE.attributes
+                    and "DW_AT_low_pc" in DIE.attributes
+                    and "DW_AT_high_pc" in DIE.attributes
+                ):
+                    func_name = DIE.attributes["DW_AT_name"].value.decode()
+                    file_index = DIE.attributes["DW_AT_decl_file"].value
 
                     filename = lpe_filename(line_program, file_index)
                     if func_name not in srcFile_func_dict[filename]:
                         srcFile_func_dict[filename].add(func_name)
 
-
         for CU in dwarfinfo.iter_CUs():
             line_program = dwarfinfo.line_program_for_CU(CU)
             if line_program is None:
-                logger.warning('  DWARF info is missing a line program for this CU')
+                logger.warning("  DWARF info is missing a line program for this CU")
                 continue
 
-            CU_name = CU.get_top_DIE().attributes['DW_AT_name'].value.decode('utf-8')
+            CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
 
             for entry in line_program.get_entries():
                 if entry.state:
@@ -147,9 +148,8 @@ def parse_dwarf(elf_path):
                     pc_to_source_line_mapping[CU_name].append((pc, line))
 
             if CU_name in pc_to_source_line_mapping:
-                pc_to_source_line_mapping[CU_name].sort(key=lambda x : x[0])
+                pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
     return mapping, srcFile_func_dict, pc_to_source_line_mapping
-
 
 
 def handle(args):

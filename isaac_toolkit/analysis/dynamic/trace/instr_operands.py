@@ -71,8 +71,6 @@ def collect_bbs(trace_df):
     print("bbs", bbs)
     input("zzz")
 
-
-
     return None
 
 

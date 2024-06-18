@@ -61,7 +61,6 @@ class BasicBlock(object):
         return self._freq
 
 
-
 def collect_bbs(trace_df):
     print("trace_df", trace_df)
     first_pc = None
@@ -157,10 +156,7 @@ def collect_bbs(trace_df):
             counts = instr_df[operand_name].value_counts()
             print("counts", counts)
 
-
     input("zzz2")
-
-
 
     return bbs_df
 

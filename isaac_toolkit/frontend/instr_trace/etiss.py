@@ -25,6 +25,7 @@ def handle(args):
     df[instr] = df["instr"].apply(lambda x: x.strip())
     df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
     df["bytecode"] = df["bytecode"].apply(lambda x: int(x, 2))
+
     def convert(x):
         ret = {}
         for y in x:
@@ -35,6 +36,7 @@ def handle(args):
             assert k not in ret
             ret[k] = int(v)
         return ret
+
     df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
     df.drop(columns=["rest"], inplace=True)
     print("df", df)

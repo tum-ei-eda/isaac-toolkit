@@ -116,10 +116,15 @@ def handle(args):
     print("graph", graph)
 
     def filter_graph(G, func_name, bb_name):
-        view = nx.subgraph_view(G, filter_node=lambda node: G.nodes[node]["properties"].get("basic_block") == bb_name and "%bb" not in G.nodes[node].get("label"))
+        view = nx.subgraph_view(
+            G,
+            filter_node=lambda node: G.nodes[node]["properties"].get("basic_block") == bb_name
+            and "%bb" not in G.nodes[node].get("label"),
+        )
         G_ = G.subgraph([node for node in view.nodes])
         # G__ = nx.subgraph_view(G_, filter_edge=lambda n1, n2: G_[n1][n2]["type"] == "DFG")
         return G_
+
     graph = filter_graph(graph, func_name="???", bb_name="%bb.7")
     result = maxmiso_algo(graph)
     print("result", result)

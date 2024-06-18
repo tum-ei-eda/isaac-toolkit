@@ -25,6 +25,7 @@ def handle(args):
     }
     # TODO: check for validity
     import pickle
+
     with open(input_file, "rb") as f:
         model = pickle.load(f)
     artifact = M2ISARArtifact(name, model, attrs=attrs)
