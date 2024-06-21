@@ -1,11 +1,12 @@
 
 # TODO:
+#export RISCV=...
+#export LLVM=...
 #export MLONMCU_HOME=...
 ISAAC_SESSION=$(pwd)/sess
 
 # Run MLonMCU command
-python3 -m mlonmcu.cli.main flow run toycar --target etiss --backend tvmaotplus --feature-gen muriscvnnbyoc -c run.export_optional=1  -f log_instrs -c log_instrs.to_file=1 -c session.executor=process_pool -c runs_per_stage=0 -v
-# TODO: mlif.debug_symbols=1
+python3 -m mlonmcu.cli.main flow run toycar --target etiss --backend tvmaotplus --feature-gen muriscvnnbyoc -c run.export_optional=1  -f log_instrs -c log_instrs.to_file=1 -c session.executor=process_pool -c runs_per_stage=0 -c etiss.compressed=0 -c etiss.atomic=0 -c etiss.fpu=none -c riscv_gcc.install_dir=$RISCV -c llvm.install_dir=$LLVM -c mlif.debug_symbols=1 -v
 
 # Create ISAAC session
 python3 -m isaac_toolkit.session.create --session $ISAAC_SESSION --force

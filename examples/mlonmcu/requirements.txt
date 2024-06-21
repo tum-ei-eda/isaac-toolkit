@@ -1,0 +1,4 @@
+mlonmcu @ git+https://github.com/tum-ei-eda/mlonmcu@main
+decorator
+scipy
+tflite
