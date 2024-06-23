@@ -34,12 +34,13 @@ def parse_elf(elf_path):
         if isinstance(section, SymbolTableSection):
             num_symbols = section.num_symbols()
             # print("  It's a symbol section with %s symbols" % num_symbols)
-            start_symbol = section.get_symbol_by_name("_start")
-            assert len(start_symbol) == 1
-            start_symbol = start_symbol[0]
-            # print("start_symbol", start_symbol, start_symbol.entry, start_symbol.name)
-            start_addr = start_symbol.entry["st_value"]
-            # print("start_addr", start_addr)
+            ### TODO: extract somewhere else
+            ### start_symbol = section.get_symbol_by_name("_start")
+            ### assert len(start_symbol) == 1
+            ### start_symbol = start_symbol[0]
+            ### # print("start_symbol", start_symbol, start_symbol.entry, start_symbol.name)
+            ### start_addr = start_symbol.entry["st_value"]
+            ### # print("start_addr", start_addr)
             total_footprint = 0
             func_footprint = {}
             for i, sym in enumerate(section.iter_symbols()):
