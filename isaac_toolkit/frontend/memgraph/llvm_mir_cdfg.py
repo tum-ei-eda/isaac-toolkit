@@ -11,6 +11,124 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
 
 
+def get_cfg_artifacts(driver):
+    query = """
+    MATCH (n)-[r:CFG]->(c) RETURN *
+    """
+
+    results = driver.session().run(query)
+    print("results", results)
+
+    G = nx.MultiDiGraph()
+
+    nodes = list(results.graph()._nodes.values())
+    print("nodes", nodes, len(nodes))
+    module_func_nodes = {}
+    for node in nodes:
+        props = node._properties
+        module_name = props["module_name"]
+        func_name = props["func_name"]
+        if module_name not in module_func_nodes:
+            module_func_nodes[module_name] = {}
+        if func_name not in module_func_nodes[module_name]:
+            module_func_nodes[module_name][func_name] = set()
+        module_func_nodes[module_name][func_name].add(node.id)
+        if len(node._labels) > 0:
+            label = list(node._labels)[0]
+        else:
+            label = props.get("op_type", "unknown")
+        name = node._properties.get("name", "?")
+        G.add_node(node.id, xlabel=label, label=name, properties=node._properties)
+
+    rels = list(results.graph()._relationships.values())
+    for rel in rels:
+        props = rel._properties
+        label = rel.type
+        # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
+        G.add_edge(
+            rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props
+        )
+    print("G", G, dir(G))
+    print("mfn", module_func_nodes)
+    ret = []
+    for module_name, func_nodes in module_func_nodes.items():
+        for func_name, nodes in func_nodes.items():
+            G_ = G.subgraph(nodes)
+            attrs = {
+                "kind": "cfg",
+                "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
+                "module_name": module_name,
+                "func_name": func_name,
+            }
+            artifact = GraphArtifact(f"{module_name}/{func_name}/llvm_cfg", G, attrs=attrs)
+            print("artifact", artifact, dir(artifact), artifact.flags)
+            ret.append(artifact)
+
+    print("ret", ret)
+    return ret
+
+
+def get_dfg_artifacts(driver):
+    query = """
+    MATCH (n)-[r:DFG]->(c) RETURN *
+    """
+
+    results = driver.session().run(query)
+    print("results", results)
+
+    G = nx.MultiDiGraph()
+
+    nodes = list(results.graph()._nodes.values())
+    print("nodes", nodes, len(nodes))
+    module_func_bb_nodes = {}
+    for node in nodes:
+        props = node._properties
+        module_name = props["module_name"]
+        func_name = props["func_name"]
+        bb_name = props["basic_block"]
+        if module_name not in module_func_bb_nodes:
+            module_func_bb_nodes[module_name] = {}
+        if func_name not in module_func_bb_nodes[module_name]:
+            module_func_bb_nodes[module_name][func_name] = {}
+        if bb_name not in module_func_bb_nodes[module_name][func_name]:
+            module_func_bb_nodes[module_name][func_name][bb_name] = set()
+        module_func_bb_nodes[module_name][func_name][bb_name].add(node.id)
+        if len(node._labels) > 0:
+            label = list(node._labels)[0]
+        else:
+            label = props.get("op_type", "unknown")
+        name = node._properties.get("name", "?")
+        G.add_node(node.id, xlabel=label, label=name, properties=node._properties)
+
+    rels = list(results.graph()._relationships.values())
+    for rel in rels:
+        props = rel._properties
+        label = rel.type
+        # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
+        G.add_edge(
+            rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props
+        )
+    print("G", G, dir(G))
+    print("mfbn", module_func_bb_nodes)
+    ret = []
+    for module_name, func_bb_nodes in module_func_bb_nodes.items():
+        for func_name, bb_nodes in func_bb_nodes.items():
+            for bb_name, nodes in bb_nodes.items():
+                G_ = G.subgraph(nodes)
+                attrs = {
+                    "kind": "dfg",
+                    "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
+                    "module_name": module_name,
+                    "func_name": func_name,
+                    "bb_name": bb_name,
+                }
+                artifact = GraphArtifact(f"{module_name}/{func_name}/{bb_name}/llvm_dfg", G, attrs=attrs)
+                print("artifact", artifact, dir(artifact), artifact.flags)
+                ret.append(artifact)
+
+    print("ret", ret)
+    return ret
+
 def handle(args):
     assert args.session is not None
     session_dir = Path(args.session)
@@ -26,41 +144,14 @@ def handle(args):
 
     driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
 
-    query = """
-    MATCH (n)-[r]->(c) RETURN *
-    """
-
-    results = driver.session().run(query)
-
-    G = nx.MultiDiGraph()
-
-    nodes = list(results.graph()._nodes.values())
-    for node in nodes:
-        if len(node._labels) > 0:
-            label = list(node._labels)[0]
-        else:
-            label = "?!"
-        name = node._properties.get("name", "?")
-        G.add_node(node.id, xlabel=label, label=name, properties=node._properties)
-
-    rels = list(results.graph()._relationships.values())
-    for rel in rels:
-        label = rel.type
-        # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
-        G.add_edge(
-            rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=rel._properties
-        )
-    print("G", G, dir(G))
-    attrs = {
-        "kind": "cdfg",
-        "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
-        # "mod_name": ""
-        # "func_name": ""
-        # "bb_name": ""
-    }
-    artifact = GraphArtifact("memgraph_mir_cdfg", G, attrs=attrs)
-    print("artifact", artifact, dir(artifact), artifact.flags)
-    sess.add_artifact(artifact, overrride=override)
+    cfgs = get_cfg_artifacts(driver)
+    print("cfgs", cfgs)
+    for cfg in cfgs:
+        sess.add_artifact(cfg, override=override)
+    dfgs = get_dfg_artifacts(driver)
+    print("dfgs", dfgs)
+    for dfg in dfgs:
+        sess.add_artifact(dfg, override=override)
     sess.save()
 
 
