@@ -22,7 +22,7 @@ def handle(args):
     df["pc"] = df["pc"].apply(lambda x: int(x, 0))
     # TODO: normalize instr names
     df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
-    df[instr] = df["instr"].apply(lambda x: x.strip())
+    df["instr"] = df["instr"].apply(lambda x: x.strip())
     df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
     df["bytecode"] = df["bytecode"].apply(lambda x: int(x, 2))
 
