@@ -73,8 +73,8 @@ def load_artifacts(base):
             raise RuntimeError(f"Unhandled case!")
         artifacts_.append(artifact_)
     # TODO: check for duplicates
-    print("artifacts", artifacts)
-    print("artifacts_", artifacts_)
+    # print("artifacts", artifacts)
+    # print("artifacts_", artifacts_)
     return artifacts_
 
 
@@ -153,7 +153,7 @@ class Session:
         logger.info("Saving artifacts...")
         artifacts_ = []
         for artifact in self.artifacts:
-            print("a", artifact)
+            # print("a", artifact)
             dest_dir = None
             dest_file = artifact.name
             if isinstance(artifact, ElfArtifact):
