@@ -144,7 +144,7 @@ class InstrTraceArtifact(TableArtifact):
 class GraphArtifact(PythonArtifact):
 
     def __init__(self, name: str, graph: nx.Graph, flags: ArtifactFlag = None, attrs: Optional[Dict[str, Any]] = None):
-        super().__init__(name, data=graph, flags=flags)
+        super().__init__(name, data=graph, flags=flags, attrs=attrs)
 
     @property
     def flags(self):
