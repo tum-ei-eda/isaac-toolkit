@@ -153,31 +153,32 @@ class Session:
         logger.info("Saving artifacts...")
         artifacts_ = []
         for artifact in self.artifacts:
-            # print("a", artifact)
             dest_dir = None
             dest_file = artifact.name
             if isinstance(artifact, ElfArtifact):
                 dest_dir = self.directory / "elf"
             elif isinstance(artifact, InstrTraceArtifact):
                 dest_dir = self.directory / "instr_trace"
-                dest_file = f"{artifact.name}.pkl"
+                dest_file = f"{dest_file}.pkl"
             elif isinstance(artifact, SourceArtifact):
                 dest_dir = self.directory / "source"
             elif isinstance(artifact, GraphArtifact):
                 # assert not artifact.is_input and not artifact.is_output
                 dest_dir = self.directory / "graph"
-                dest_file = f"{artifact.name}.pkl"
+                dest_file = f"{dest_file}.pkl"
             elif isinstance(artifact, TableArtifact):
                 # assert not artifact.is_input and not artifact.is_output
                 dest_dir = self.directory / "table"
-                dest_file = f"{artifact.name}.pkl"
+                dest_file = f"{dest_file}.pkl"
             elif isinstance(artifact, M2ISARArtifact):
                 # assert not artifact.is_input and not artifact.is_output
                 dest_dir = self.directory / "model"
-                dest_file = f"{artifact.name}.m2isarmodel"
+                dest_file = f"{dest_file}.m2isarmodel"
             if dest_dir is None:
                 dest_dir = self.directory / "misc"
             assert dest_file is not None
+            assert len(dest_file) > 0
+            assert dest_file[0] != "/"
             dest = dest_dir / dest_file
             dest.parent.mkdir(parents=True, exist_ok=True)
             artifact.save(dest)
