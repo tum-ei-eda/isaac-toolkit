@@ -11,6 +11,14 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
 
 
+def legalize_str(x):
+    print("legalize_str", x, type(x))
+    legalized = x.replace("/", "_")
+    # print("legalized", legalized)
+    # input("!!")
+    return legalized
+
+
 def get_cfg_artifacts(driver):
     query = """
     MATCH (n)-[r:CFG]->(c) RETURN *
@@ -60,7 +68,7 @@ def get_cfg_artifacts(driver):
                 "module_name": module_name,
                 "func_name": func_name,
             }
-            artifact = GraphArtifact(f"{module_name}/{func_name}/llvm_cfg", G, attrs=attrs)
+            artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G, attrs=attrs)
             print("artifact", artifact, dir(artifact), artifact.flags)
             ret.append(artifact)
 
@@ -122,11 +130,12 @@ def get_dfg_artifacts(driver):
                     "func_name": func_name,
                     "bb_name": bb_name,
                 }
-                artifact = GraphArtifact(f"{module_name}/{func_name}/{bb_name}/llvm_dfg", G, attrs=attrs)
+                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G, attrs=attrs)
                 print("artifact", artifact, dir(artifact), artifact.flags)
+                # input("!")
                 ret.append(artifact)
 
-    print("ret", ret)
+    # print("ret", ret)
     return ret
 
 def handle(args):
