@@ -104,6 +104,7 @@ def parse_dwarf(elf_path):
             # File and directory indices are 1-indexed.
             file_entry = file_entries[file_index] if line_program.header.version >= 5 else file_entries[file_index - 1]
             dir_index = file_entry["dir_index"] if line_program.header.version >= 5 else file_entry["dir_index"] - 1
+            assert dir_index >= 0
 
             # A dir_index of 0 indicates that no absolute directory was recorded during
             # compilation; return just the basename.
