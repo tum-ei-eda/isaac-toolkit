@@ -123,12 +123,13 @@ def collect_bbs(trace_df):
         freq = bb.get_freq()
         last_size = 4  # TODO: do not hardcode
         size = end - start + 4
-        bb_data = {"bb": (start, end), "freq": freq, "size": size}
+        num = size // 4  # TODO
+        bb_data = {"bb": (start, end), "freq": freq, "size": size, "num_instrs": num}
         bbs_data.append(bb_data)
 
     bbs_df = pd.DataFrame(bbs_data)
     bbs_df.sort_values("freq", inplace=True, ascending=False)
-    bbs_df["weight"] = bbs_df["freq"] * bbs_df["size"]
+    bbs_df["weight"] = bbs_df["freq"] * bbs_df["num_instrs"]
     bbs_df["rel_weight"] = bbs_df["weight"] / sum(bbs_df["weight"])
     print("bbs_df", bbs_df)
 
