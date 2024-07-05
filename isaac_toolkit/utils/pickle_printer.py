@@ -10,7 +10,7 @@ def main():
     with open(file, "rb") as f:
         data = pickle.load(f)
     print("Unpickled Data:")
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", None, "max_colwidth", 150):
         print(data)
 
 if __name__ == "__main__":
