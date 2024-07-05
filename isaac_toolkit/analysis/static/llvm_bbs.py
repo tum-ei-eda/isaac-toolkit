@@ -150,19 +150,45 @@ def handle(args):
     # print("elf_artifacts", elf_artifacts)
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
+    trace_pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")  # TODO: optional or different pass
+    assert len(trace_pc2bb_artifacts) == 1
+    trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
+    trace_pc2bb_df = trace_pc2bb_artifact.df
 
     llvm_bbs = parse_elf(elf_artifact.path)
     print("llvm_bbs", llvm_bbs)
     df_data = []
     for func_name, func_data in llvm_bbs.items():
+        print("fn", func_name)
         for bb_name, bb_data in func_data.items():
+            print("bn", bb_name)
             bb_name = f"%bb.{bb_name}"
             start, end, sz = bb_data
             new = {"func_name": func_name, "bb_name": bb_name, "pcs": (start, end), "size": sz}
+            trace_pc2bb_df[["start", "end"]] = trace_pc2bb_df["bb"].apply(pd.Series)
+            # matches = trace_pc2bb_df.where(lambda x: x["start"] >= start and x["end"] <= end)
+            matches = trace_pc2bb_df.where(lambda x: x["start"] >= start).dropna()
+            matches = matches.where(lambda x: x["end"] <= end).dropna()
+            if len(matches) > 0:
+                print("matches", matches)
+                weights = matches["weight"].sum()
+                rel_weights = matches["rel_weight"].sum()
+                print("weights", weights)
+                print("rel_weights", rel_weights)
+                # input("p")
+                new["num_trace_bbs"] = len(matches)
+                new["weight"] = weights
+                new["rel_weight"] = rel_weights
+            else:
+                print("not found")
+            # if (start, end) in trace_pc2bb_df["bb"]:
+            #     input("yes")
             df_data.append(new)
     # pc2locs_df = pd.DataFrame(pc2locs.items(), columns=["pc", "locs"])
     llvm_bbs_df = pd.DataFrame(df_data)
-    print("llvm_bbs_df", llvm_bbs_df)
+    llvm_bbs_df.sort_values("rel_weight", inplace=True, ascending=False)
+    # print("llvm_bbs_df", llvm_bbs_df)
+    # print("trace_pc2bb_df", trace_pc2bb_df)
 
     attrs = {
         "elf_file": elf_artifact.name,
