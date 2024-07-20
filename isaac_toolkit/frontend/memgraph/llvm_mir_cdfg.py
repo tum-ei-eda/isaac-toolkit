@@ -12,25 +12,26 @@ from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
 
 
 def legalize_str(x):
-    print("legalize_str", x, type(x))
+    # print("legalize_str", x, type(x))
     legalized = x.replace("/", "_")
     # print("legalized", legalized)
     # input("!!")
     return legalized
 
 
-def get_cfg_artifacts(driver):
-    query = """
+def get_cfg_artifacts(driver, label: str = "default"):
+    query = f"""
     MATCH (n)-[r:CFG]->(c) RETURN *
+    WHERE n.session = "{label}"
     """
 
     results = driver.session().run(query)
-    print("results", results)
+    # print("results", results)
 
     G = nx.MultiDiGraph()
 
     nodes = list(results.graph()._nodes.values())
-    print("nodes", nodes, len(nodes))
+    # print("nodes", nodes, len(nodes))
     module_func_nodes = {}
     for node in nodes:
         props = node._properties
@@ -56,8 +57,8 @@ def get_cfg_artifacts(driver):
         G.add_edge(
             rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props
         )
-    print("G", G, dir(G))
-    print("mfn", module_func_nodes)
+    # print("G", G, dir(G))
+    # print("mfn", module_func_nodes)
     ret = []
     for module_name, func_nodes in module_func_nodes.items():
         for func_name, nodes in func_nodes.items():
@@ -69,25 +70,26 @@ def get_cfg_artifacts(driver):
                 "func_name": func_name,
             }
             artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G, attrs=attrs)
-            print("artifact", artifact, dir(artifact), artifact.flags)
+            # print("artifact", artifact, dir(artifact), artifact.flags)
             ret.append(artifact)
 
-    print("ret", ret)
+    # print("ret", ret)
     return ret
 
 
-def get_dfg_artifacts(driver):
+def get_dfg_artifacts(driver, label: str = "default"):
     query = """
     MATCH (n)-[r:DFG]->(c) RETURN *
+    WHERE n.session = "{label}"
     """
 
     results = driver.session().run(query)
-    print("results", results)
+    # print("results", results)
 
     G = nx.MultiDiGraph()
 
     nodes = list(results.graph()._nodes.values())
-    print("nodes", nodes, len(nodes))
+    # print("nodes", nodes, len(nodes))
     module_func_bb_nodes = {}
     for node in nodes:
         props = node._properties
@@ -116,13 +118,13 @@ def get_dfg_artifacts(driver):
         G.add_edge(
             rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props
         )
-    print("G", G, dir(G))
-    print("mfbn", module_func_bb_nodes)
+    # print("G", G, dir(G))
+    # print("mfbn", module_func_bb_nodes)
     ret = []
     for module_name, func_bb_nodes in module_func_bb_nodes.items():
         for func_name, bb_nodes in func_bb_nodes.items():
             for bb_name, nodes in bb_nodes.items():
-                G_ = G.subgraph(nodes)
+                G_ = G.subgraph(nodes).copy()
                 attrs = {
                     "kind": "dfg",
                     "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
@@ -173,6 +175,7 @@ def get_parser():
         "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--label", default="default", required=True)
     parser.add_argument("--force", "-f", action="store_true")
     # TODO: allow overriding memgraph config?
     return parser
