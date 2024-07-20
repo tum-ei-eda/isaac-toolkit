@@ -67,14 +67,14 @@ def parse_elf(elf_path):
             unknown_count = 0
             with io.BytesIO(data) as reader:
                 while True:
-                    print("reader", reader)
-                    print("dir(reader)", dir(reader))
+                    # print("reader", reader)
+                    # print("dir(reader)", dir(reader))
                     version = int.from_bytes(reader.read(1), byteorder="little")
                     print("version", version)
                     # assert version == 2
                     if version != 2:
                         print("!")
-                        print(reader.read(100))
+                        # print(reader.read(100))
                         break
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     print("features", features)
@@ -96,19 +96,19 @@ def parse_elf(elf_path):
                         tmp = [None] * num_bbs
                     cur = func_addr
                     for i in range(num_bbs):
-                        print("i", i)
+                        # print("i", i)
                         bb_id = int.from_bytes(reader.read(1), byteorder="little")
-                        print("bb_id", bb_id)
+                        # print("bb_id", bb_id)
                         if not GISEL:
                             assert bb_id < num_bbs
                         start_offset = leb128.u.decode_reader(reader)[0]
-                        print("start_offset", start_offset)
+                        # print("start_offset", start_offset)
                         assert start_offset >= 0
                         end_offset = leb128.u.decode_reader(reader)[0]
-                        print("end_offset", end_offset)
+                        # print("end_offset", end_offset)
                         assert end_offset >= 0
                         metadata = int.from_bytes(reader.read(1), byteorder="little")
-                        print("metadata", metadata)
+                        # print("metadata", metadata)
                         # TODO: decode metadata (is_return, is_call, ...)
                         # rest = reader.read(1000)
                         # print("rest", rest)
@@ -116,9 +116,9 @@ def parse_elf(elf_path):
                         sz = end_offset - start_offset
                         start = cur
                         end = cur + sz
-                        print("sz", sz)
-                        print("start", start)
-                        print("end", end)
+                        # print("sz", sz)
+                        # print("start", start)
+                        # print("end", end)
                         cur += sz
                         if GISEL:
                             tmp[str(bb_id)] = (start, end, sz)
@@ -126,13 +126,17 @@ def parse_elf(elf_path):
                             tmp[bb_id] = (start, end, sz)
                     print("tmp", tmp)
                     ret[func_name] = tmp
+                    # input("w")
             return ret
         llvm_bb_addr_map = decode_map(llvm_bb_addr_map_raw, addr_to_func)
         print("llvm_bb_addr_map", llvm_bb_addr_map)
         for func_name in func_to_addrs.keys():
             print(f"{func_name}:")
             bbs = llvm_bb_addr_map.get(func_name, None)
-            PRINT_MISSING = False
+            print("bbs", bbs)
+            # input("ww")
+            # PRINT_MISSING = False
+            PRINT_MISSING = True
             if bbs is None:
                 if PRINT_MISSING:
                     print("> no bb addr info found")
