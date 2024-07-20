@@ -20,6 +20,11 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False):
     df["instr"] = df["instr"].apply(lambda x: x.strip())
     df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
     df["bytecode"] = df["bytecode"].apply(lambda x: int(x, 2))
+    MEM_OPTIMIZED = True
+    if MEM_OPTIMIZED:
+        df["instr"] = df["instr"].astype("category")
+        df["pc"] = pd.to_numeric(df["pc"])
+        df["bytecode"] = pd.to_numeric(df["bytecode"]).memory_usage(deep=True)
 
     def convert(x):
         ret = {}
@@ -33,8 +38,8 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False):
         return ret
 
     df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
+    # df.drop(columns=["operands"], inplace=True)
     df.drop(columns=["rest"], inplace=True)
-    print("df", df)
 
     attrs = {
         "simulator": "etiss",
