@@ -16,8 +16,37 @@ logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
 
 
+# def find_sub_bbs(bbs, first_pc, last_pc):
+#     ret = set()
+#     for bb_ in bbs:
+#         if bb_.first_pc >= first_pc and bb_.last_pc <= last_pc:
+#             ret.add(bb_)
+#     return ret
+#
+# def find_super_bbs(bbs, first_pc, last_pc):
+#     ret = set()
+#     for bb_ in bbs:
+#         if bb_.first_pc <= first_pc and bb_.last_pc >= last_pc:
+#             ret.add(bb_)
+#     return ret
+#
+# def get_diff_range(bb, first_pc, last_pc):
+#     if bb.last_pc == last_pc:
+#         first_pc = first_pc
+#         last_pc = bb.first_pc - 4  # TODO: this breaks for sz=2
+#     else:
+#         raise NotImplementedError
+#     return (first_pc, last_pc)
+
+
 class BasicBlock(object):
     _instances = {}
+    # _children = defaultdict(list)
+    # _parents = defauktdict(set)
+
+    @staticmethod
+    def get_instances():
+        return list(BasicBlock._instances.values())
 
     def __new__(cls, first_pc: int, last_pc: int, end_instr: str, func: str):
         # print("__new__", first_pc, last_pc, end_instr, func)
@@ -25,9 +54,47 @@ class BasicBlock(object):
         key = (first_pc, last_pc, end_instr, func)
         # print("key", key)
         instance = cls._instances.get(key)
+        # children = cls._children.get(key)
         # print("instance", instance)
+        # print("children", children)
         if instance is None:
+            # if children is not None:
+            #     assert len(children) > 1
+            #     for x in children:
+            #         x._freq += 1
+            #     return children[0]
+            # sub_bbs = find_sub_bbs(cls.get_instances(), first_pc, last_pc)
+            # new_children = []
+            # if len(sub_bbs) > 0:
+            #     print("sub_bbs", sub_bbs)
+            #     assert len(sub_bbs) == 1
+            #     sub_bb = list(sub_bbs)[0]
+            #     new_children.append(sub_bb)
+            #     sub_bb._freq += 1
+            #     diff_range = get_diff_range(sub_bb, first_pc, last_pc)
+            #     print("diff_range", diff_range)
+            #     # new_bb = BasicBlock(first_pc=diff_range[0], last_pc=diff_range[1], end_instr="?", func=None)
+            #     # new_bb._freq += sub_bb._freq
+            #     first_pc = diff_range[0]
+            #     last_pc = diff_range[1]
+            #     end_instr = "?"
+            #     func = None
+            #     # print("new_bb", new_bb)
+            #     input("SUB")
+            #     pass
+            # super_bbs = find_sub_bbs(cls.get_instances(), first_pc, last_pc)
+            # if len(super_bbs) > 0:
+            #     print("super_bbs", super_bbs)
+            #     assert len(super_bbs) == 1
+            #     input("SUPER")
+            #     pass
             instance = super().__new__(cls)
+            # new_children.append(instance)
+            # if len(new_children) > 1:
+            #     for x in new_children:
+            #         cls._children[key].append(x)
+            #     for x in new_children[:-1]:
+            #         cls._parents[key].append(instance)
             cls._instances[key] = instance
             instance.__initialized = False
             instance._freq = 0
@@ -62,11 +129,12 @@ class BasicBlock(object):
 
 
 def collect_bbs(trace_df):
-    print("trace_df", trace_df)
+    print("trace_df", len(trace_df))
+    # input("{}{}{}{}")
     first_pc = None
     # TODO: make this generic!
     branch_instrs = ["jalr", "jal", "beq", "bne", "blt", "bge", "bltu", "bgeu", "ecall"]
-    bbs = []
+    # bbs = []
     prev_pc = None
     prev_instr = None
     for row in trace_df.itertuples(index=False):
@@ -87,12 +155,13 @@ def collect_bbs(trace_df):
                 else:
                     # assert False, f"Sub basic block not found at: pc = {prev_pc:x} -> {pc:x}"
                     logger.warning("Sub basic block not found at: pc = %x -> %x", prev_pc, pc)
+                    input("OOPS")
                     if False:
                         func = None
                         bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
                         first_pc = pc
-                        if bb.get_freq() == 1:
-                            bbs.append(bb)
+                        # if bb.get_freq() == 1:
+                        #     bbs.append(bb)
 
         # At the first pc of a basic block
         if first_pc is None:
@@ -103,17 +172,31 @@ def collect_bbs(trace_df):
             func = None
             bb = BasicBlock(first_pc=first_pc, last_pc=pc, end_instr=instr, func=func)
             # self.func_set.add(func)
-            if bb.get_freq() == 1:
-                bbs.append(bb)
+            # if bb.get_freq() == 1:
+            #     # sub_bbs = find_overlapping_bbs(bb, bbs)
+            #     # print("sub_bbs", sub_bbs)
+            #     # if len(sub_bbs) > 0:
+            #     #     assert len(sub_bbs) == 1
+            #     #     for sub_bb in sub_bbs:
+            #     #         sub_bb._freq += bb._freq
+            #     #         diff_range = get_diff_range(bb, sub_bb)
+            #     #         print("diff_range", diff_range)
+            #     #         new_bb = BasicBlock(first_pc=diff_range[0], last_pc=diff_range[1], end_instr="?", func=None)
+            #     #         new_bb._freq = bb._freq
+            #     #         BasicBlock.instances
+            #     #         print("new_bb", new_bb)
+            #     #     input("OVERLAP")
+            #     bbs.append(bb)
             first_pc = None
         prev_pc = pc
         prev_instr = instr
         prev_size = sz
     if first_pc is not None:
         func = None
-        bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
-        if bb.get_freq() == 1:
-            bbs.append(bb)
+        # bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
+        # if bb.get_freq() == 1:
+        #     bbs.append(bb)
+    bbs = BasicBlock.get_instances()
     # print("bbs", bbs)
     bbs_data = []
     for bb in bbs:
