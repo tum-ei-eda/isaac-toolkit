@@ -24,6 +24,9 @@ def parse_elf(elf_path):
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
         section = elffile.get_section_by_name('.symtab')
+        xlen = elffile.elfclass
+        assert xlen is not None
+        addr_bytes = int(xlen / 8)
 
         if not section:
             pass
@@ -75,7 +78,7 @@ def parse_elf(elf_path):
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     print("features", features)
                     assert features == 0
-                    func_addr = int.from_bytes(reader.read(4), byteorder="little")
+                    func_addr = int.from_bytes(reader.read(addr_bytes), byteorder="little")
                     print("func_addr", func_addr)
                     func_name = addr_to_func.get(func_addr, None)
                     print("func_name", func_name)
