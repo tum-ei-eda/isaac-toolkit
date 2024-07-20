@@ -127,10 +127,16 @@ def parse_dwarf(elf_path):
                     and "DW_AT_low_pc" in DIE.attributes
                     and "DW_AT_high_pc" in DIE.attributes
                 ):
-                    func_name = DIE.attributes["DW_AT_name"].value.decode()
-                    file_index = DIE.attributes["DW_AT_decl_file"].value
+                    if "DW_AT_name" in DIE.attributes:
+                        func_name = DIE.attributes["DW_AT_name"].value.decode()
+                    else:
+                        func_name = "???"
+                    if "DW_AT_decl_file" in DIE.attributes:
+                        file_index = DIE.attributes["DW_AT_decl_file"].value
+                        filename = lpe_filename(line_program, file_index)
+                    else:
+                        file_name = "???"
 
-                    filename = lpe_filename(line_program, file_index)
                     if func_name not in srcFile_func_dict[filename]:
                         srcFile_func_dict[filename].add(func_name)
 
