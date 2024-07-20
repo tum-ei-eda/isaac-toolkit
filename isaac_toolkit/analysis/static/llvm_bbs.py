@@ -64,6 +64,7 @@ def parse_elf(elf_path):
         print("llvm_bb_addr_map_raw", llvm_bb_addr_map_raw)
         def decode_map(data, addr_to_func):
             ret = {}
+            unknown_count = 0
             with io.BytesIO(data) as reader:
                 while True:
                     print("reader", reader)
@@ -82,7 +83,10 @@ def parse_elf(elf_path):
                     print("func_addr", func_addr)
                     func_name = addr_to_func.get(func_addr, None)
                     print("func_name", func_name)
-                    assert func_name is not None
+                    # assert func_name is not None
+                    if func_name is None:
+                        func_name = f"unknown_func_{unknown_count}"
+                        unknown_count += 1
                     num_bbs = int.from_bytes(reader.read(1), byteorder="little")
                     print("num_bbs", num_bbs)
                     assert num_bbs > 0
