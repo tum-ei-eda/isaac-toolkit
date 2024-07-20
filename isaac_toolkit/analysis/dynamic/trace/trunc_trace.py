@@ -1,0 +1,134 @@
+import sys
+import logging
+import argparse
+import posixpath
+from pathlib import Path
+from typing import Optional
+from collections import defaultdict
+
+import pandas as pd
+from elftools.elf.elffile import ELFFile
+
+from isaac_toolkit.session import Session
+from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts, InstrTraceArtifact
+
+
+logging.basicConfig(level=logging.DEBUG)  # TODO
+logger = logging.getLogger(__name__)
+
+
+
+
+def trunc_trace(sess: Session, start_pc: Optional[int] = None, end_pc: Optional[str] = None, start_func: Optional[str] = None, end_func: Optional[str] = None, force: bool = False):
+    artifacts = sess.artifacts
+    # print("artifacts", artifacts)
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    # print("elf_artifacts", elf_artifacts)
+    assert len(trace_artifacts) == 1
+    trace_artifact = trace_artifacts[0]
+    trace_df = trace_artifact.df
+    assert force
+
+    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
+    if len(func2pc_artifacts) > 0:
+        assert len(func2pc_artifacts) == 1
+        func2pc_artifact = func2pc_artifacts[0]
+        func2pc_df = func2pc_artifact.df
+    else:
+        func2pc_df = None
+
+    if start_pc is not None:
+        assert start_func is None
+    if end_pc is not None:
+        assert end_func is None
+
+    # TODO: allow start at 0 and/or end at -1
+
+    def lookup_func_pc(func2pc_df: pd.DataFrame, func_name: str):
+        assert func2pc_df is not None
+        match_df = func2pc_df[func2pc_df["func"] == func_name]
+        print("match_df", match_df)
+        assert len(match_df) > 0
+        assert len(match_df) == 1
+        pc_range = match_df["pc_range"].values[0]
+        print("pc_range", pc_range)
+        start_pc = pc_range[0]
+        assert start_pc > 0
+        return start_pc
+
+
+    if start_pc is None:
+        assert start_func is not None
+        start_pc = lookup_func_pc(func2pc_df, start_func)
+    if end_pc is None:
+        assert end_func is not None
+        end_pc = lookup_func_pc(func2pc_df, end_func)
+
+    print("start_pc", start_pc)
+    print("end_pc", end_pc)
+    # TODO: handle multiple calls to start/end func
+    def do_trunc(df, start, end):
+        print("df", len(df))
+        start_rows = df[df["pc"] == start]
+        start_pos = start_rows.index[0]
+        # print("temp1", temp1)
+        # print("temp1.", temp1.iloc[0])
+        # print("temp1.i", temp1.iloc[0].index)
+        # print("temp1.i2", temp1.index[0])
+        end_rows = df[df["pc"] == end]
+        end_pos = end_rows.index[0]
+        # print("temp2", temp2)
+        # print("temp2.", temp2.iloc[0])
+        # print("temp2.i", temp2.iloc[0].index)
+        # print("temp2.i2", temp2.index[0])
+        return df.iloc[start_pos:end_pos]
+    trunc_df = do_trunc(trace_df, start_pc, end_pc)
+    print("trunc_df", len(trunc_df))
+
+    # attrs = {
+    #     "trace": trace_artifact.name,
+    #     "kind": "mapping",
+    #     "by": __name__,
+    # }
+    attrs = trace_artifact.attrs.copy()
+    attrs["truncated"] = True
+    artifact = InstrTraceArtifact(trace_artifact.name, trunc_df, attrs=attrs)
+    # input("555")
+
+    # pc2bb_artifact = TableArtifact(f"pc2bb", pc2bb, attrs=attrs)
+    # sess.add_artifact(pc2bb_artifact, override=force)
+    sess.add_artifact(artifact, override=force)
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    analyze_basic_blocks(sess, start_pc=args.start_pc, end_pc=args.end_pc, start_func=args.start_func, end_func=args.end_func, force=args.force)
+    sess.save()
+
+
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+    )  # TODO: move to defaults
+    parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--start-pc", type=int, default=None)
+    parser.add_argument("--end-pc", type=int, default=None)
+    parser.add_argument("--start-func", type=str, default=None)
+    parser.add_argument("--end-func", type=str, default=None)
+    # TODO: allow overriding memgraph config?
+    return parser
+
+
+def main(argv):
+    parser = get_parser()
+    args = parser.parse_args(argv)
+    handle(args)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
