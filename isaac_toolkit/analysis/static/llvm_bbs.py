@@ -26,18 +26,19 @@ def parse_elf(elf_path):
         section = elffile.get_section_by_name('.symtab')
 
         if not section:
-            print('  No symbol table found. Perhaps this ELF has been stripped?')  # TODO: make err?
+            pass
+            # print('  No symbol table found. Perhaps this ELF has been stripped?')  # TODO: make err?
 
         if isinstance(section, SymbolTableSection):
             num_symbols = section.num_symbols()
-            print("  It's a symbol section with %s symbols" % num_symbols)
+            # print("  It's a symbol section with %s symbols" % num_symbols)
             for i in range(num_symbols):
                 sym = section.get_symbol(i)
                 if sym["st_info"]["type"] != "STT_FUNC":
                     continue
-                print(i, sym.entry, sym.name)
+                # print(i, sym.entry, sym.name)
                 name = sym.name
-                print("name", name)
+                # print("name", name)
                 # assert name not in func_to_addr, f"Conflict! {name} already in map: {func_to_addr}"
                 func_to_addrs[name].append((sym["st_value"], sym["st_size"]))
         print("func_to_addrs", func_to_addrs)
@@ -47,7 +48,7 @@ def parse_elf(elf_path):
         for func_name, funcs in func_to_addrs.items():
             for func in funcs:
                 func_addr, func_sz = func
-                print(func_name, ":", func_sz,  hex(func_addr), "-", hex(func_addr + func_sz))
+                # print(func_name, ":", func_sz,  hex(func_addr), "-", hex(func_addr + func_sz))
                 if func_addr in addr_to_func:
                     if addr_to_func[func_addr] != func_name:
                        aliases[func_name].append(addr_to_func[func_addr])
