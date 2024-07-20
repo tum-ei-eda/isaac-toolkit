@@ -48,7 +48,7 @@ class Artifact:
         return f"{type(self).__name__}({self.name}, attrs={self.attrs})"
 
     def summary(self):
-        return str(self)
+        return f"{self.name}: {self}"
 
     # @property
     # def is_input(self):
