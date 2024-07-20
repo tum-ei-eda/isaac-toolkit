@@ -10,12 +10,7 @@ from isaac_toolkit.session.artifact import ArtifactFlag, InstrTraceArtifact
 # TODO: logger
 
 
-def handle(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-    sess = Session.from_dir(session_dir)
-    input_file = Path(args.file)
+def load_instr_trace(sess: Session, input_file: Path, force: bool = False):
     assert input_file.is_file()
     name = input_file.name
     df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
@@ -47,7 +42,16 @@ def handle(args):
         "by": "isaac_toolkit.frontend.instr_trace.etiss",
     }
     artifact = InstrTraceArtifact(name, df, attrs=attrs)
-    sess.add_artifact(artifact)
+    sess.add_artifact(artifact, override=force)
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    input_file = Path(args.file)
+    load_instr_trace(sess, input_file, force=args.force)
     sess.save()
 
 
@@ -58,6 +62,7 @@ def get_parser():
         "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--force", "-f", action="store_true")
     return parser
 
 

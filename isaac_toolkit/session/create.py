@@ -8,11 +8,7 @@ from . import Session
 logger = logging.getLogger("session")
 
 
-def handle_create(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    force = args.force
-    interactive = not force
+def create(session_dir: Path, force: bool = False, interactive: bool = False):
     if session_dir.is_dir():
         logger.info("Re-initializing existing session: %s", session_dir)
         if interactive:
@@ -21,7 +17,15 @@ def handle_create(args):
     else:
         logger.info("Initializing new session: %s", session_dir)
         sess = Session.create(session_dir)
-    logger.info("Done.")
+    return sess
+
+
+def handle_create(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    force = args.force
+    interactive = not force
+    create(session_dir, force=force, interactive=interactive)
 
 
 def get_parser():

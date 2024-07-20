@@ -131,19 +131,15 @@ def get_dfg_artifacts(driver):
                     "bb_name": bb_name,
                 }
                 artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G, attrs=attrs)
-                print("artifact", artifact, dir(artifact), artifact.flags)
+                # print("artifact", artifact, dir(artifact), artifact.flags)
                 # input("!")
                 ret.append(artifact)
 
     # print("ret", ret)
     return ret
 
-def handle(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-    sess = Session.from_dir(session_dir)
-    override = args.force
+
+def load_cdfg(sess: Session, label: str = "default", force: bool = False):
     memgraph_config = sess.config.memgraph
     hostname = memgraph_config.hostname
     port = memgraph_config.port
@@ -153,14 +149,21 @@ def handle(args):
 
     driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
 
-    cfgs = get_cfg_artifacts(driver)
-    print("cfgs", cfgs)
+    cfgs = get_cfg_artifacts(driver, label=label)
+    # print("cfgs", cfgs)
     for cfg in cfgs:
-        sess.add_artifact(cfg, override=override)
-    dfgs = get_dfg_artifacts(driver)
-    print("dfgs", dfgs)
+        sess.add_artifact(cfg, override=force)
+    dfgs = get_dfg_artifacts(driver, label=label)
+    # print("dfgs", dfgs)
     for dfg in dfgs:
-        sess.add_artifact(dfg, override=override)
+        sess.add_artifact(dfg, override=force)
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    load_cdfg(sess, label=args.label, force=args.force)
     sess.save()
 
 

@@ -153,12 +153,7 @@ def parse_dwarf(elf_path):
     return mapping, srcFile_func_dict, pc_to_source_line_mapping
 
 
-def handle(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-    sess = Session.from_dir(session_dir)
-    override = args.force
+def analyze_dwarf(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -198,9 +193,17 @@ def handle(args):
     # print("artifact1", func2pc_artifact)
     # print("artifact2", file2funcs_artifact)
     # print("artifact3", pc2locs_artifact)
-    sess.add_artifact(func2pc_artifact, override=override)
-    sess.add_artifact(file2funcs_artifact, override=override)
-    sess.add_artifact(pc2locs_artifact, override=override)
+    sess.add_artifact(func2pc_artifact, override=force)
+    sess.add_artifact(file2funcs_artifact, override=force)
+    sess.add_artifact(pc2locs_artifact, override=force)
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    analyze_dwarf(sess, force=args.force)
     sess.save()
 
 
@@ -211,7 +214,6 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
-    # TODO: allow overriding memgraph config?
     return parser
 
 

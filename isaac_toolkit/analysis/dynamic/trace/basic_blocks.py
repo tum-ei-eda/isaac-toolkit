@@ -136,12 +136,7 @@ def collect_bbs(trace_df):
     return bbs_df
 
 
-def handle(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-    sess = Session.from_dir(session_dir)
-    override = args.force
+def analyze_basic_blocks(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
@@ -150,6 +145,36 @@ def handle(args):
     trace_artifact = trace_artifacts[0]
 
     pc2bb = collect_bbs(trace_artifact.df)
+    print("pc2bb", pc2bb)
+    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
+    if len(func2pc_artifacts) > 0:
+        assert len(func2pc_artifacts) == 1
+        func2pc_artifact = func2pc_artifacts[0]
+        func2pc_df = func2pc_artifact.df.copy()
+        func2pc_df[["start", "end"]] = func2pc_df["pc_range"].apply(pd.Series)
+        print("func2pc_df", func2pc_df)
+        def helper(x):
+            print("x", x)
+            # print("!", func2pc_df["start"] >= x[0] & func2pc_df["end"] <= x[1])
+            matches = func2pc_df[func2pc_df["start"] <= x[0]]
+            matches = matches[matches["end"] >= x[1]]
+            print("matches", matches)
+            if len(matches) == 0:
+                return None
+            print("len(matches)", len(matches))
+            # assert len(matches) == 1
+            # match_ = matches.iloc[0]
+            # func = match_["func"]
+            # TODO: assert that alias!
+            funcs = set(matches["func"].values)
+            # return func
+            return funcs
+        ANNOTATE_FUNC = True
+        if ANNOTATE_FUNC:
+            pc2bb["func_name"] = pc2bb["bb"].apply(helper)  # .astype("category")
+        pc2bb[["start", "end"]] = pc2bb["bb"].apply(pd.Series)
+        del pc2bb["bb"]
+        print("pc2bb", pc2bb)
 
     attrs = {
         "trace": trace_artifact.name,
@@ -158,7 +183,15 @@ def handle(args):
     }
 
     pc2bb_artifact = TableArtifact(f"pc2bb", pc2bb, attrs=attrs)
-    sess.add_artifact(pc2bb_artifact, override=override)
+    sess.add_artifact(pc2bb_artifact, override=force)
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    analyze_basic_blocks(sess, force=args.force)
     sess.save()
 
 

@@ -66,12 +66,7 @@ def parse_elf(elf_path):
         return footprint_df
 
 
-def handle(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-    sess = Session.from_dir(session_dir)
-    override = args.force
+def analyze_mem_footprint(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -88,7 +83,15 @@ def handle(args):
     }
 
     artifact = TableArtifact(f"mem_footprint", footprint_df, attrs=attrs)
-    sess.add_artifact(artifact, override=override)
+    sess.add_artifact(artifact, override=force)
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    analyze_mem_footprint(sess, force=args.force)
     sess.save()
 
 

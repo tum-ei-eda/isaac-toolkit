@@ -138,12 +138,7 @@ def parse_elf(elf_path):
     return llvm_bb_addr_map
 
 
-def handle(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-    sess = Session.from_dir(session_dir)
-    override = args.force
+def analyze_llvm_bbs(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -197,8 +192,16 @@ def handle(args):
     }
 
     llvm_bbs_artifact = TableArtifact(f"llvm_bbs", llvm_bbs_df, attrs=attrs)
-    print("llvm_bbs_artifact", llvm_bbs_artifact)
-    sess.add_artifact(llvm_bbs_artifact, override=override)
+    # print("llvm_bbs_artifact", llvm_bbs_artifact)
+    sess.add_artifact(llvm_bbs_artifact, override=force)
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    analyze_llvm_bbs(sess, force=args.force)
     sess.save()
 
 

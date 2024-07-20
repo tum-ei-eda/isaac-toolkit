@@ -38,12 +38,7 @@ def collect_operands(trace_df):
     return operands_df
 
 
-def handle(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-    sess = Session.from_dir(session_dir)
-    override = args.force
+def analyze_instr_operands(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
@@ -78,9 +73,18 @@ def handle(args):
     }
 
     operands_artifact = TableArtifact(f"instr_operands", operands_df, attrs=attrs)
-    operands_hist_artifact = TableArtifact(f"instr_operands_hist", operands_hist_df, attrs=attrs2)
-    sess.add_artifact(operands_artifact, override=override)
-    sess.add_artifact(operands_host_artifact, override=override)
+    # TODO:
+    # operands_hist_artifact = TableArtifact(f"instr_operands_hist", operands_hist_df, attrs=attrs2)
+    sess.add_artifact(operands_artifact, override=force)
+    # sess.add_artifact(operands_hist_artifact, override=force)
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    analyze_instr_operands(sess, force=args.force)
     sess.save()
 
 
