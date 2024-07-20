@@ -10,3 +10,5 @@ neo4j>=5.8.0
 matplotlib
 m2isar @ git+https://github.com/tum-ei-eda/M2-ISA-R.git@custom_insns
 leb128
+fastparquet
+pyarrow
