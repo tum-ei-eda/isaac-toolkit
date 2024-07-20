@@ -175,73 +175,81 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
             bb_name = f"%bb.{bb_name}"
             start, end, sz = bb_data
             new = {"func_name": func_name, "bb_name": bb_name, "pcs": (start, end), "size": sz}
-            if trace_pc2bb_df is not None:
-                # trace_pc2bb_df[["start", "end"]] = trace_pc2bb_df["bb"].apply(pd.Series)
-                # matches = trace_pc2bb_df.where(lambda x: x["start"] >= start and x["end"] <= end)
-                matches = trace_pc2bb_df.where(lambda x: x["start"] >= start).dropna()
-                matches = matches.where(lambda x: x["end"] <= end).dropna()
-                if len(matches) > 0:
-                    weights = matches["weight"].sum()
-                    rel_weights = matches["rel_weight"].sum()
-                    new["num_trace_bbs"] = len(matches)
-                    new["weight"] = weights
-                    new["rel_weight"] = rel_weights
-                else:
-                    print("not found")
-                    # if start == 85388:
-                    if True:
-                        matches2 = trace_pc2bb_df.where(lambda x: x["start"] == start).dropna()
-                        print("matches2", matches2)
-                        matches2 = matches2.where(lambda x: x["end"] > end).dropna()
-                        print("matches2_", matches2)
-                        if len(matches2) > 0:
-                            assert len(matches2) == 1
-                            idx = matches2.index[0]
-                            row = matches2.iloc[0]
-                            start_ = row["start"]
-                            end_ = row["end"]
-                            size_ = row["size"]
-                            freq_ = row["freq"]
-                            weight_ = row["weight"]
-                            rel_weight_ = row["rel_weight"]
-                            num_instrs_ = row["num_instrs"]
-                            print("idx", idx)
-                            print("row", row)
-                            print("start_", start_)
-                            print("end_", end_)
-                            print("size_", size_)
-                            print("freq_", freq_)
-                            print("weight_", weight_)
-                            print("rel_weight_", rel_weight_)
-                            print("num_instrs", num_instrs_)
-                            default_enc_size = 4  # TODO: do not hardcode
-                            trace_pc2bb_df.loc[idx, "end"] = end
-                            trace_pc2bb_df.loc[idx, "size"] = sz
-                            trace_pc2bb_df.loc[idx, "weight"] = weight_ * (sz / size_)
-                            trace_pc2bb_df.loc[idx, "rel_weight"] = rel_weight_ * (sz / size_)
-                            trace_pc2bb_df.loc[idx, "num_instrs"] = sz / default_enc_size
-                            # new2 = {"start": end + default_enc_size, "end": end_, "freq": freq_, "size": size_ - sz, "weight": weight_ * (1 - sz / size_), "rel_weight": rel_weight_ * (1 - sz / size_), "num_instrs": (size_ - sz) / default_enc_size}
-                            new2 = {"start": end, "end": end_, "freq": freq_, "size": size_ - sz, "weight": weight_ * (1 - sz / size_), "rel_weight": rel_weight_ * (1 - sz / size_), "num_instrs": (size_ - sz) / default_enc_size}
-                            trace_pc2bb_df = pd.concat([trace_pc2bb_df, pd.DataFrame([new2])])
-                            # TODO: export as updated artifact?
-                            new["num_trace_bbs"] = 1
-                            new["weight"] = weight_ * (sz / size_)
-                            new["rel_weight"] = rel_weight_ * (sz / size_)
-                            print("new", new)
-                            print("new2", new2)
+            # if trace_pc2bb_df is not None:
+            #     print("trace_pc2bb_df", trace_pc2bb_df)
+            #     # trace_pc2bb_df[["start", "end"]] = trace_pc2bb_df["bb"].apply(pd.Series)
+            #     # matches = trace_pc2bb_df.where(lambda x: x["start"] >= start and x["end"] <= end)
+            #     matches = trace_pc2bb_df.where(lambda x: x["start"] >= start).dropna()
+            #     matches = matches.where(lambda x: x["end"] <= end).dropna()
+            #     if len(matches) > 0:
+            #         print("matches", matches)
+            #         weights = matches["weight"].sum()
+            #         rel_weights = matches["rel_weight"].sum()
+            #         # print("weights", weights)
+            #         # print("rel_weights", rel_weights)
+            #         # input("p")
+            #         new["num_trace_bbs"] = len(matches)
+            #         new["weight"] = weights
+            #         new["rel_weight"] = rel_weights
+            #     else:
+            #         print("not found")
+            #         print("start", start)
+            #         print("end", end)
+            #         print("sz", sz)
+            #         # if start == 85388:
+            #         if True:
+            #             matches2 = trace_pc2bb_df.where(lambda x: x["start"] == start).dropna()
+            #             print("matches2", matches2)
+            #             matches2 = matches2.where(lambda x: x["end"] > end).dropna()
+            #             print("matches2_", matches2)
+            #             if len(matches2) > 0:
+            #                 assert len(matches2) == 1
+            #                 idx = matches2.index[0]
+            #                 row = matches2.iloc[0]
+            #                 start_ = row["start"]
+            #                 end_ = row["end"]
+            #                 size_ = row["size"]
+            #                 freq_ = row["freq"]
+            #                 weight_ = row["weight"]
+            #                 rel_weight_ = row["rel_weight"]
+            #                 num_instrs_ = row["num_instrs"]
+            #                 print("idx", idx)
+            #                 print("row", row)
+            #                 print("start_", start_)
+            #                 print("end_", end_)
+            #                 print("size_", size_)
+            #                 print("freq_", freq_)
+            #                 print("weight_", weight_)
+            #                 print("rel_weight_", rel_weight_)
+            #                 print("num_instrs", num_instrs_)
+            #                 default_enc_size = 4  # TODO: do not hardcode
+            #                 trace_pc2bb_df.loc[idx, "end"] = end
+            #                 trace_pc2bb_df.loc[idx, "size"] = sz
+            #                 trace_pc2bb_df.loc[idx, "weight"] = weight_ * (sz / size_)
+            #                 trace_pc2bb_df.loc[idx, "rel_weight"] = rel_weight_ * (sz / size_)
+            #                 trace_pc2bb_df.loc[idx, "num_instrs"] = sz / default_enc_size
+            #                 # new2 = {"start": end + default_enc_size, "end": end_, "freq": freq_, "size": size_ - sz, "weight": weight_ * (1 - sz / size_), "rel_weight": rel_weight_ * (1 - sz / size_), "num_instrs": (size_ - sz) / default_enc_size}
+            #                 new2 = {"start": end, "end": end_, "freq": freq_, "size": size_ - sz, "weight": weight_ * (1 - sz / size_), "rel_weight": rel_weight_ * (1 - sz / size_), "num_instrs": (size_ - sz) / default_enc_size}
+            #                 trace_pc2bb_df = pd.concat([trace_pc2bb_df, pd.DataFrame([new2])])
+            #                 # TODO: export as updated artifact?
+            #                 new["num_trace_bbs"] = 1
+            #                 new["weight"] = weight_ * (sz / size_)
+            #                 new["rel_weight"] = rel_weight_ * (sz / size_)
+            #                 print("new", new)
+            #                 print("new2", new2)
 
-                            # input("ooo")
-                        else:
-                            matches3 = trace_pc2bb_df.where(lambda x: x["start"] <= start).dropna()
-                            print("matches3", matches3)
-                            matches3 = matches2.where(lambda x: x["end"] >= end).dropna()
-                            print("matches3_", matches3)
-                            if func_name == "tvmgen_default_fused_nn_contrib_conv2d_NCHWc" and bb_name == "%bb.33":
-                                input("lll")
-                            if len(matches3) > 0:
-                                input("uuu")
-                        # if llvm bbs is shorter than trace bbs, we may have untaken backwards branches in the trace
-                        # to split the trace bf into multiple ones, do a reverse search
+            #                 # input("ooo")
+            #             else:
+            #                 matches3 = trace_pc2bb_df.where(lambda x: x["start"] <= start).dropna()
+            #                 print("matches3", matches3)
+            #                 matches3 = matches2.where(lambda x: x["end"] >= end).dropna()
+            #                 print("matches3_", matches3)
+            #                 if func_name == "tvmgen_default_fused_nn_contrib_conv2d_NCHWc" and bb_name == "%bb.33":
+            #                     input("lll")
+            #                 if len(matches3) > 0:
+            #                     input("uuu")
+            #             # if llvm bbs is shorter than trace bbs, we may have untaken backwards branches in the trace
+            #             # to split the trace bf into multiple ones, do a reverse search
             # if (start, end) in trace_pc2bb_df["bb"]:
             #     input("yes")
             df_data.append(new)
