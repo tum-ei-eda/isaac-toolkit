@@ -109,7 +109,7 @@ class BasicBlock(object):
             self.end_instr = end_instr
             self.__initialized = True
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"start:{hex(self.first_pc)}, end:{hex(self.last_pc)}, end_instr:{self.end_instr}, func:{self.func}\n"
 
     def __eq__(self, other) -> bool:
