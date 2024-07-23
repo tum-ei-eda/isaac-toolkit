@@ -2,7 +2,7 @@ import sys
 import argparse
 from pathlib import Path
 
-from neo4j import GraphDatabase
+from neo4j import GraphDatabase, Query
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
@@ -17,8 +17,10 @@ def anonotate_helper(
     rel_weight: float,
     label: str = "default",
     check: bool = True,
+    timeout: float = 120,
 ):
-    bb_query = f"""
+    bb_query = Query(
+        f"""
     MATCH (a:BB)
     WHERE a.func_name = "{func_name}"
     AND a.name = "{bb_name}"
@@ -27,14 +29,17 @@ def anonotate_helper(
     SET a.bb_instrs = {num_instrs}
     SET a.bb_rel_weight = {rel_weight}
     // RETURN *
-    """
+    """,
+        timeout=timeout,
+    )
 
     results = driver.session().run(bb_query)
     # print("results", results)
     # print("results.df", results.df)
     # input("<>")
 
-    instrs_query = f"""
+    instrs_query = Query(
+        f"""
     MATCH (a:INSTR)
     WHERE a.func_name = "{func_name}"
     AND a.basic_block = "{bb_name}"
@@ -44,14 +49,16 @@ def anonotate_helper(
     SET a.instr_freq = {freq}
     SET a.instr_rel_weight = {rel_weight / num_instrs}
     RETURN COUNT(a)
-    """
+    """,
+        timeout=timeout,
+    )
 
     results = driver.session().run(instrs_query)
     # print("results", results, dir(results))
-    df = results.to_df()
-    count = df.iloc[0, 0]
     if check:
         pass
+        # df = results.to_df()
+        # count = df.iloc[0, 0]
         # print("count", count)
         # print("num_instrs", num_instrs)
         # assert count <= (num_instrs * 1.05 + 5)
