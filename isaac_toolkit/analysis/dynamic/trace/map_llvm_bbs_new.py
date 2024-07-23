@@ -28,7 +28,9 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
     trace_artifact = trace_artifacts[0]
     # print("trace_artifact", trace_artifact)
     trace_df = trace_artifact.df
-    llvm_bbs_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs")  # TODO: optional or different pass
+    llvm_bbs_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs"
+    )  # TODO: optional or different pass
     assert len(llvm_bbs_artifacts) == 1
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
     llvm_bbs_df = llvm_bbs_artifact.df.copy()
@@ -42,6 +44,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         size = row["size"]
         # num_instrs = row["num_instrs"]
         num_instrs = size // 4  # TODO: more generic
+
         def get_bb_freq_weight(df, start, end, num_instrs):
             # print("get_bb_freq", start, end, num_instrs)
             matches = df.where(lambda x: x["pc"] >= start).dropna()
@@ -56,6 +59,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
             bb_weight = bb_count * num_instrs
             # print("bb_weight", bb_weight)
             return bb_count, bb_weight
+
         freq, weight = get_bb_freq_weight(trace_df, start, end, num_instrs)
         llvm_bbs_df.loc[index, "freq"] = freq
         llvm_bbs_df.loc[index, "weight"] = weight
@@ -63,12 +67,12 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         total_weight += weight
     trace_length = len(trace_df)
     coverage = total_weight / trace_length
-    print("trace_length", trace_length)
-    print("total_weight", total_weight)
-    print("coverage", coverage)
+    # print("trace_length", trace_length)
+    # print("total_weight", total_weight)
+    # print("coverage", coverage)
     llvm_bbs_df.sort_values("freq", inplace=True, ascending=False)
     llvm_bbs_df["rel_weight"] = llvm_bbs_df["weight"] / trace_length
-    input(">")
+    # input(">")
 
     attrs = {
         "elf_file": elf_artifact.name,
