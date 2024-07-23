@@ -11,14 +11,12 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
 
 
-
-
 def handle(args):
     assert args.session is not None
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    override = args.force
+    # override = args.force
     memgraph_config = sess.config.memgraph
     hostname = memgraph_config.hostname
     port = memgraph_config.port
@@ -27,12 +25,19 @@ def handle(args):
     # TODO: database?
 
     driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
-    query = """
-    MATCH (n) DETACH DELETE n;
-    """
+    try:
+        query = """
+        MATCH (n) DETACH DELETE n;
+        """
 
-    results = driver.session().run(query)
-    print("results")
+        session = driver.session()
+        try:
+            _ = session.run(query)
+            # print("results")
+        finally:
+            session.close()
+    finally:
+        driver.close()
 
 
 def get_parser():
@@ -41,7 +46,6 @@ def get_parser():
         "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
-    parser.add_argument("--force", "-f", action="store_true")
     # TODO: allow overriding memgraph config?
     return parser
 

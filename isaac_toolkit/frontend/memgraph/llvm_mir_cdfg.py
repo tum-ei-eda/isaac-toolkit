@@ -2,7 +2,7 @@ import sys
 import argparse
 from pathlib import Path
 
-from neo4j import GraphDatabase
+from neo4j import GraphDatabase, Query
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot
 import matplotlib.pyplot as plt
@@ -19,123 +19,133 @@ def legalize_str(x):
 
 
 def get_cfg_artifacts(driver, label: str = "default"):
-    query = f"""
+    query = Query(
+        f"""
     MATCH (n)-[r:CFG]->(c)
     WHERE n.session = "{label}"
     RETURN *
     """
+    )
 
-    results = driver.session().run(query)
-    # print("results", results)
+    session = driver.session()
+    try:
+        results = session.run(query)
+    finally:
+        session.close()
+        # print("results", results)
 
-    G = nx.MultiDiGraph()
+        G = nx.MultiDiGraph()
 
-    nodes = list(results.graph()._nodes.values())
-    # print("nodes", nodes, len(nodes))
-    module_func_nodes = {}
-    for node in nodes:
-        props = node._properties
-        module_name = props["module_name"]
-        func_name = props["func_name"]
-        if module_name not in module_func_nodes:
-            module_func_nodes[module_name] = {}
-        if func_name not in module_func_nodes[module_name]:
-            module_func_nodes[module_name][func_name] = set()
-        module_func_nodes[module_name][func_name].add(node.id)
-        if len(node._labels) > 0:
-            label = list(node._labels)[0]
-        else:
-            label = props.get("op_type", "unknown")
-        name = node._properties.get("name", "?")
-        G.add_node(node.id, xlabel=label, label=name, properties=node._properties)
+        nodes = list(results.graph()._nodes.values())
+        # print("nodes", nodes, len(nodes))
+        module_func_nodes = {}
+        for node in nodes:
+            props = node._properties
+            module_name = props["module_name"]
+            func_name = props["func_name"]
+            if module_name not in module_func_nodes:
+                module_func_nodes[module_name] = {}
+            if func_name not in module_func_nodes[module_name]:
+                module_func_nodes[module_name][func_name] = set()
+            module_func_nodes[module_name][func_name].add(node.id)
+            if len(node._labels) > 0:
+                label = list(node._labels)[0]
+            else:
+                label = props.get("op_type", "unknown")
+            name = node._properties.get("name", "?")
+            G.add_node(node.id, xlabel=label, label=name, properties=node._properties)
 
-    rels = list(results.graph()._relationships.values())
-    for rel in rels:
-        props = rel._properties
-        label = rel.type
-        # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
-        G.add_edge(
-            rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props
-        )
-    # print("G", G, dir(G))
-    # print("mfn", module_func_nodes)
-    ret = []
-    for module_name, func_nodes in module_func_nodes.items():
-        for func_name, nodes in func_nodes.items():
-            G_ = G.subgraph(nodes).copy()
-            attrs = {
-                "kind": "cfg",
-                "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
-                "module_name": module_name,
-                "func_name": func_name,
-            }
-            artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
-            # print("artifact", artifact, dir(artifact), artifact.flags)
-            ret.append(artifact)
+        rels = list(results.graph()._relationships.values())
+        for rel in rels:
+            props = rel._properties
+            label = rel.type
+            # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
+            G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props)
+        # print("G", G, dir(G))
+        # print("mfn", module_func_nodes)
+        ret = []
+        for module_name, func_nodes in module_func_nodes.items():
+            for func_name, nodes in func_nodes.items():
+                G_ = G.subgraph(nodes).copy()
+                attrs = {
+                    "kind": "cfg",
+                    "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
+                    "module_name": module_name,
+                    "func_name": func_name,
+                }
+                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
+                # print("artifact", artifact, dir(artifact), artifact.flags)
+                ret.append(artifact)
 
     # print("ret", ret)
     return ret
 
 
 def get_dfg_artifacts(driver, label: str = "default"):
-    query = f"""
+    query = Query(
+        f"""
     MATCH (n)-[r:DFG]->(c)
     WHERE n.session = "{label}"
     RETURN *
     """
+    )
 
-    results = driver.session().run(query)
-    # print("results", results)
+    session = driver.session()
+    try:
+        results = session.run(query)
+        # print("results", results)
 
-    G = nx.MultiDiGraph()
+        G = nx.MultiDiGraph()
 
-    nodes = list(results.graph()._nodes.values())
-    # print("nodes", nodes, len(nodes))
-    module_func_bb_nodes = {}
-    for node in nodes:
-        props = node._properties
-        module_name = props["module_name"]
-        func_name = props["func_name"]
-        bb_name = props["basic_block"]
-        if module_name not in module_func_bb_nodes:
-            module_func_bb_nodes[module_name] = {}
-        if func_name not in module_func_bb_nodes[module_name]:
-            module_func_bb_nodes[module_name][func_name] = {}
-        if bb_name not in module_func_bb_nodes[module_name][func_name]:
-            module_func_bb_nodes[module_name][func_name][bb_name] = set()
-        module_func_bb_nodes[module_name][func_name][bb_name].add(node.id)
-        if len(node._labels) > 0:
-            label = list(node._labels)[0]
-        else:
-            label = props.get("op_type", "unknown")
-        name = node._properties.get("name", "?")
-        G.add_node(node.id, xlabel=label, label=name, properties=node._properties)
+        nodes = list(results.graph()._nodes.values())
+        # print("nodes", nodes, len(nodes))
+        module_func_bb_nodes = {}
+        for node in nodes:
+            props = node._properties
+            module_name = props["module_name"]
+            func_name = props["func_name"]
+            bb_name = props["basic_block"]
+            if module_name not in module_func_bb_nodes:
+                module_func_bb_nodes[module_name] = {}
+            if func_name not in module_func_bb_nodes[module_name]:
+                module_func_bb_nodes[module_name][func_name] = {}
+            if bb_name not in module_func_bb_nodes[module_name][func_name]:
+                module_func_bb_nodes[module_name][func_name][bb_name] = set()
+            module_func_bb_nodes[module_name][func_name][bb_name].add(node.id)
+            if len(node._labels) > 0:
+                label = list(node._labels)[0]
+            else:
+                label = props.get("op_type", "unknown")
+            name = node._properties.get("name", "?")
+            G.add_node(node.id, xlabel=label, label=name, properties=node._properties)
 
-    rels = list(results.graph()._relationships.values())
-    for rel in rels:
-        props = rel._properties
-        label = rel.type
-        # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
-        G.add_edge(
-            rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props
-        )
-    # print("G", G, dir(G))
-    # print("mfbn", module_func_bb_nodes)
-    ret = []
-    for module_name, func_bb_nodes in module_func_bb_nodes.items():
-        for func_name, bb_nodes in func_bb_nodes.items():
-            for bb_name, nodes in bb_nodes.items():
-                G_ = G.subgraph(nodes).copy()
-                attrs = {
-                    "kind": "dfg",
-                    "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
-                    "module_name": module_name,
-                    "func_name": func_name,
-                    "bb_name": bb_name,
-                }
-                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G_, attrs=attrs)
-                # print("artifact", artifact, dir(artifact), artifact.flags)
-                ret.append(artifact)
+        rels = list(results.graph()._relationships.values())
+        for rel in rels:
+            props = rel._properties
+            label = rel.type
+            # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
+            G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props)
+        # print("G", G, dir(G))
+        # print("mfbn", module_func_bb_nodes)
+        ret = []
+        for module_name, func_bb_nodes in module_func_bb_nodes.items():
+            for func_name, bb_nodes in func_bb_nodes.items():
+                for bb_name, nodes in bb_nodes.items():
+                    G_ = G.subgraph(nodes).copy()
+                    attrs = {
+                        "kind": "dfg",
+                        "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
+                        "module_name": module_name,
+                        "func_name": func_name,
+                        "bb_name": bb_name,
+                    }
+                    artifact = GraphArtifact(
+                        f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G_, attrs=attrs
+                    )
+                    # print("artifact", artifact, dir(artifact), artifact.flags)
+                    ret.append(artifact)
+    finally:
+        session.close()
 
     # print("ret", ret)
     return ret
@@ -150,15 +160,18 @@ def load_cdfg(sess: Session, label: str = "default", force: bool = False):
     # TODO: database?
 
     driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
+    try:
+        cfgs = get_cfg_artifacts(driver, label=label)
+        print("cfgs", cfgs)
+        for cfg in cfgs:
+            sess.add_artifact(cfg, override=force)
+        dfgs = get_dfg_artifacts(driver, label=label)
+        print("dfgs", dfgs)
+        for dfg in dfgs:
+            sess.add_artifact(dfg, override=force)
+    finally:
+        driver.close()
 
-    cfgs = get_cfg_artifacts(driver, label=label)
-    print("cfgs", cfgs)
-    for cfg in cfgs:
-        sess.add_artifact(cfg, override=force)
-    dfgs = get_dfg_artifacts(driver, label=label)
-    print("dfgs", dfgs)
-    for dfg in dfgs:
-        sess.add_artifact(dfg, override=force)
 
 def handle(args):
     assert args.session is not None

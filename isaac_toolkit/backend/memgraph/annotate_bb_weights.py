@@ -33,10 +33,14 @@ def anonotate_helper(
         timeout=timeout,
     )
 
-    results = driver.session().run(bb_query)
-    # print("results", results)
-    # print("results.df", results.df)
-    # input("<>")
+    session = driver.session()
+    try:
+        results = session.run(bb_query)
+        # print("results", results)
+        # print("results.df", results.df)
+        # input("<>")
+    finally:
+        session.close()
 
     instrs_query = Query(
         f"""
@@ -53,16 +57,20 @@ def anonotate_helper(
         timeout=timeout,
     )
 
-    results = driver.session().run(instrs_query)
-    # print("results", results, dir(results))
-    if check:
-        pass
-        # df = results.to_df()
-        # count = df.iloc[0, 0]
-        # print("count", count)
-        # print("num_instrs", num_instrs)
-        # assert count <= (num_instrs * 1.05 + 5)
-    # input("<>")
+    session = driver.session()
+    try:
+        results = session.run(instrs_query)
+        # print("results", results, dir(results))
+        if check:
+            pass
+            # df = results.to_df()
+            # count = df.iloc[0, 0]
+            # print("count", count)
+            # print("num_instrs", num_instrs)
+            # assert count <= (num_instrs * 1.05 + 5)
+        # input("<>")
+    finally:
+        session.close()
 
 
 def annotate_bb_weights(sess: Session, label: str = "default", force: bool = False):
@@ -73,25 +81,28 @@ def annotate_bb_weights(sess: Session, label: str = "default", force: bool = Fal
     password = memgraph_config.password
 
     driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
+    try:
 
-    artifacts = sess.artifacts
-    llvm_bbs_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs_new"
-    )  # TODO: optional or different pass
-    assert len(llvm_bbs_artifacts) == 1
-    llvm_bbs_artifact = llvm_bbs_artifacts[0]
-    llvm_bbs_df = llvm_bbs_artifact.df
-    # print("llvm_bbs_df", llvm_bbs_df, llvm_bbs_df.columns)
-    # input("?")
-    for index, row in llvm_bbs_df.iterrows():
-        # print("index", index)
-        # print("row", row)
-        func_name = row["func_name"]
-        bb_name = row["bb_name"]
-        num_instrs = row["num_instrs"]
-        freq = row["freq"]
-        rel_weight = row["rel_weight"]
-        anonotate_helper(driver, func_name, bb_name, num_instrs, freq, rel_weight, label=label, check=True)
+        artifacts = sess.artifacts
+        llvm_bbs_artifacts = filter_artifacts(
+            artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs_new"
+        )  # TODO: optional or different pass
+        assert len(llvm_bbs_artifacts) == 1
+        llvm_bbs_artifact = llvm_bbs_artifacts[0]
+        llvm_bbs_df = llvm_bbs_artifact.df
+        # print("llvm_bbs_df", llvm_bbs_df, llvm_bbs_df.columns)
+        # input("?")
+        for index, row in llvm_bbs_df.iterrows():
+            # print("index", index)
+            # print("row", row)
+            func_name = row["func_name"]
+            bb_name = row["bb_name"]
+            num_instrs = row["num_instrs"]
+            freq = row["freq"]
+            rel_weight = row["rel_weight"]
+            anonotate_helper(driver, func_name, bb_name, num_instrs, freq, rel_weight, label=label, check=True)
+    finally:
+        driver.close()
 
 
 def handle(args):
