@@ -21,8 +21,9 @@ def legalize_str(x):
 
 def get_cfg_artifacts(driver, label: str = "default"):
     query = f"""
-    MATCH (n)-[r:CFG]->(c) RETURN *
+    MATCH (n)-[r:CFG]->(c)
     WHERE n.session = "{label}"
+    RETURN *
     """
 
     results = driver.session().run(query)
@@ -78,9 +79,10 @@ def get_cfg_artifacts(driver, label: str = "default"):
 
 
 def get_dfg_artifacts(driver, label: str = "default"):
-    query = """
-    MATCH (n)-[r:DFG]->(c) RETURN *
+    query = f"""
+    MATCH (n)-[r:DFG]->(c)
     WHERE n.session = "{label}"
+    RETURN *
     """
 
     results = driver.session().run(query)
