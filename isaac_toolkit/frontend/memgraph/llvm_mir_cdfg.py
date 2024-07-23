@@ -152,11 +152,11 @@ def load_cdfg(sess: Session, label: str = "default", force: bool = False):
     driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
 
     cfgs = get_cfg_artifacts(driver, label=label)
-    # print("cfgs", cfgs)
+    print("cfgs", cfgs)
     for cfg in cfgs:
         sess.add_artifact(cfg, override=force)
     dfgs = get_dfg_artifacts(driver, label=label)
-    # print("dfgs", dfgs)
+    print("dfgs", dfgs)
     for dfg in dfgs:
         sess.add_artifact(dfg, override=force)
 

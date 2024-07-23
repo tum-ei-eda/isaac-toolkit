@@ -47,11 +47,11 @@ def trunc_trace(sess: Session, start_pc: Optional[int] = None, end_pc: Optional[
     def lookup_func_pc(func2pc_df: pd.DataFrame, func_name: str):
         assert func2pc_df is not None
         match_df = func2pc_df[func2pc_df["func"] == func_name]
-        print("match_df", match_df)
+        # print("match_df", match_df)
         assert len(match_df) > 0
         assert len(match_df) == 1
         pc_range = match_df["pc_range"].values[0]
-        print("pc_range", pc_range)
+        # print("pc_range", pc_range)
         start_pc = pc_range[0]
         assert start_pc > 0
         return start_pc
@@ -64,11 +64,11 @@ def trunc_trace(sess: Session, start_pc: Optional[int] = None, end_pc: Optional[
         assert end_func is not None
         end_pc = lookup_func_pc(func2pc_df, end_func)
 
-    print("start_pc", start_pc)
-    print("end_pc", end_pc)
+    # print("start_pc", start_pc)
+    # print("end_pc", end_pc)
     # TODO: handle multiple calls to start/end func
     def do_trunc(df, start, end):
-        print("df", len(df))
+        # print("df", len(df))
         start_rows = df[df["pc"] == start]
         start_pos = start_rows.index[0]
         # print("temp1", temp1)
@@ -83,7 +83,7 @@ def trunc_trace(sess: Session, start_pc: Optional[int] = None, end_pc: Optional[
         # print("temp2.i2", temp2.index[0])
         return df.iloc[start_pos:end_pos]
     trunc_df = do_trunc(trace_df, start_pc, end_pc)
-    print("trunc_df", len(trunc_df))
+    # print("trunc_df", len(trunc_df))
 
     # attrs = {
     #     "trace": trace_artifact.name,

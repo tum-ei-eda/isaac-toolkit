@@ -29,41 +29,41 @@ def map_llvm_bbs(sess: Session, force: bool = False):
     assert len(trace_pc2bb_artifacts) == 1
     trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
     trace_pc2bb_df = trace_pc2bb_artifact.df
-    print("trace_pc2bb_df", trace_pc2bb_df)
+    # print("trace_pc2bb_df", trace_pc2bb_df)
     llvm_bbs_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs")  # TODO: optional or different pass
     assert len(llvm_bbs_artifacts) == 1
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
     llvm_bbs_df = llvm_bbs_artifact.df.copy()
     llvm_bbs_df[["start", "end"]] = llvm_bbs_df["pcs"].apply(pd.Series)
-    print("llvm_bbs_df", llvm_bbs_df)
+    # print("llvm_bbs_df", llvm_bbs_df)
     for index, row in llvm_bbs_df.sort_values("start").iterrows():
         start = row["start"]
         end = row["end"]
         def find_matching_bb(pc):
-            print("find_matching_bb", pc)
+            # print("find_matching_bb", pc)
             matches = trace_pc2bb_df.where(lambda x: x["start"] < pc).dropna()
-            print("m1", matches)
+            # print("m1", matches)
             matches = matches.where(lambda x: pc < x["end"]).dropna()
-            print("m2", matches)
-            print("matches", matches)
+            # print("m2", matches)
+            # print("matches", matches)
             if len(matches) == 0:
                 return None
             assert len(matches) == 1
             return matches.iloc[0]
         matching_row_start = [find_matching_bb(start)]
         def split_trace_bb(idx, row, start=None, end=None):
-            print("split_trace_bb", idx, row, start, end)
+            # print("split_trace_bb", idx, row, start, end)
             # idx = row.index[0]
             if start is not None:
-                print(f"SPLIT {row.index} @ {start} (start)")
+                # print(f"SPLIT {row.index} @ {start} (start)")
                 pass
                 orig_start = row["start"]
-                input(">")
+                # input(">")
             if end is not None:
                 pass
-                print(f"SPLIT {row.index} @ {end} (end)")
-                input(">")
-        print("matching_row_start", matching_row_start)
+                # print(f"SPLIT {row.index} @ {end} (end)")
+                # input(">")
+        # print("matching_row_start", matching_row_start)
         for row in matching_row_start:
             if row is None:
                 continue
@@ -71,57 +71,57 @@ def map_llvm_bbs(sess: Session, force: bool = False):
             #     continue
             split_trace_bb(index, row, start=start)
         matching_row_end = [find_matching_bb(end)]
-        print("matching_row_end", matching_row_end)
+        # print("matching_row_end", matching_row_end)
         for row in matching_row_end:
             if row is None:
                 continue
             # if row["end"] == end:
             #     continue
             split_trace_bb(index, row, end=end)
-    input("!")
+    # input("!")
     def helper(x):
-        print("x", x)
+        # print("x", x)
         ret = set()
         func_names = x["func_name"]
         start = x["start"]
         end = x["end"]
         for func_name in func_names:
             func_matches = llvm_bbs_df[llvm_bbs_df["func_name"] == func_name]
-            print("func_matches", func_matches)
+            # print("func_matches", func_matches)
             start_matches = func_matches.where(lambda x: x["start"] <= start).dropna()
-            print("start_matches", start_matches)
+            # print("start_matches", start_matches)
             end_matches = start_matches.where(lambda x: x["end"] >= end).dropna()
-            print("end_matches", end_matches)
+            # print("end_matches", end_matches)
             for bb_name in end_matches["bb_name"]:
                 ret.add(bb_name)
         # input("b")
         # x["test"] = 42
         return ret
     trace_pc2bb_df["llvm_bbs"] = trace_pc2bb_df[["func_name", "start", "end"]].apply(lambda x: helper(x), axis=1)
-    print("trace_pc2bb_df new", trace_pc2bb_df)
+    # print("trace_pc2bb_df new", trace_pc2bb_df)
     remain = trace_pc2bb_df[trace_pc2bb_df["llvm_bbs"].map(len) == 0]
-    print("remain", remain)
+    # print("remain", remain)
     def helper2(x):
-        print("x", x)
+        # print("x", x)
         ret = set()
         func_names = x["func_name"]
         start = x["start"]
         end = x["end"]
         for func_name in func_names:
             func_matches = llvm_bbs_df[llvm_bbs_df["func_name"] == func_name]
-            print("func_matches", func_matches)
+            # print("func_matches", func_matches)
             start_matches = func_matches.where(lambda x: x["start"] <= start).dropna()
-            print("start_matches", start_matches)
+            # print("start_matches", start_matches)
             end_matches = start_matches.where(lambda x: x["end"] >= end).dropna()
-            print("end_matches", end_matches)
+            # print("end_matches", end_matches)
             for bb_name in end_matches["bb_name"]:
                 ret.add(bb_name)
-        input("b")
+        # input("b")
         # x["test"] = 42
         return ret
     remain["llvm_bbs"] = remain[["func_name", "start", "end"]].apply(lambda x: helper2(x), axis=1)
-    print("remain new", remain)
-    input("a1")
+    # print("remain new", remain)
+    # input("a1")
 
     attrs = {
         "elf_file": elf_artifact.name,
@@ -130,7 +130,7 @@ def map_llvm_bbs(sess: Session, force: bool = False):
     }
 
     artifact = TableArtifact(f"pc2bb_llvm", trace_pc2bb_df, attrs=attrs)
-    print("artifact", artifact)
+    # print("artifact", artifact)
     sess.add_artifact(artifact, override=force)
 
 

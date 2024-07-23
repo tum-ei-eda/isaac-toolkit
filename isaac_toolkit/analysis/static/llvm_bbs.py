@@ -23,7 +23,7 @@ def parse_elf(elf_path):
     func_to_addrs = defaultdict(list)
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
-        section = elffile.get_section_by_name('.symtab')
+        section = elffile.get_section_by_name(".symtab")
         xlen = elffile.elfclass
         assert xlen is not None
         addr_bytes = int(xlen / 8)
@@ -44,7 +44,8 @@ def parse_elf(elf_path):
                 # print("name", name)
                 # assert name not in func_to_addr, f"Conflict! {name} already in map: {func_to_addr}"
                 func_to_addrs[name].append((sym["st_value"], sym["st_size"]))
-        print("func_to_addrs", func_to_addrs)
+        # print("func_to_addrs", func_to_addrs)
+        # input("q")
 
         addr_to_func = {}
         aliases = defaultdict(list)
@@ -54,14 +55,17 @@ def parse_elf(elf_path):
                 # print(func_name, ":", func_sz,  hex(func_addr), "-", hex(func_addr + func_sz))
                 if func_addr in addr_to_func:
                     if addr_to_func[func_addr] != func_name:
-                       aliases[func_name].append(addr_to_func[func_addr])
+                        aliases[func_name].append(addr_to_func[func_addr])
                 else:
                     addr_to_func[func_addr] = func_name
-        print("addr_to_func", addr_to_func)
+        # print("addr_to_func", addr_to_func)
+        # input("qq")
         llvm_bb_addr_map_raw = elffile.get_section_by_name(".llvm_bb_addr_map")
         assert llvm_bb_addr_map_raw is not None, "Missing: .llvm_bb_addr_map"
         llvm_bb_addr_map_raw = llvm_bb_addr_map_raw.data()
-        print("llvm_bb_addr_map_raw", llvm_bb_addr_map_raw)
+
+        # print("llvm_bb_addr_map_raw", llvm_bb_addr_map_raw)
+        # input("qqq")
         def decode_map(data, addr_to_func):
             ret = {}
             unknown_count = 0
@@ -70,26 +74,26 @@ def parse_elf(elf_path):
                     # print("reader", reader)
                     # print("dir(reader)", dir(reader))
                     version = int.from_bytes(reader.read(1), byteorder="little")
-                    print("version", version)
+                    # print("version", version)
                     # assert version == 2
                     if version != 2:
-                        print("!")
+                        # print("!")
                         # print(reader.read(100))
                         break
                     features = int.from_bytes(reader.read(1), byteorder="little")
-                    print("features", features)
+                    # print("features", features)
                     assert features == 0
                     func_addr = int.from_bytes(reader.read(addr_bytes), byteorder="little")
-                    print("func_addr", func_addr)
+                    # print("func_addr", func_addr)
                     func_name = addr_to_func.get(func_addr, None)
-                    print("func_name", func_name)
+                    # print("func_name", func_name)
                     # assert func_name is not None
                     if func_name is None:
                         func_name = f"unknown_func_{unknown_count}"
                         unknown_count += 1
                     num_bbs = int.from_bytes(reader.read(1), byteorder="little")
-                    print("num_bbs", num_bbs)
-                    assert num_bbs > 0
+                    # print("num_bbs", num_bbs)
+                    # assert num_bbs > 0
                     if GISEL:
                         tmp = {}
                     else:
@@ -124,16 +128,17 @@ def parse_elf(elf_path):
                             tmp[str(bb_id)] = (start, end, sz)
                         else:
                             tmp[bb_id] = (start, end, sz)
-                    print("tmp", tmp)
+                    # print("tmp", tmp)
                     ret[func_name] = tmp
                     # input("w")
             return ret
+
         llvm_bb_addr_map = decode_map(llvm_bb_addr_map_raw, addr_to_func)
-        print("llvm_bb_addr_map", llvm_bb_addr_map)
+        # print("llvm_bb_addr_map", llvm_bb_addr_map)
         for func_name in func_to_addrs.keys():
             print(f"{func_name}:")
             bbs = llvm_bb_addr_map.get(func_name, None)
-            print("bbs", bbs)
+            # print("bbs", bbs)
             # input("ww")
             # PRINT_MISSING = False
             PRINT_MISSING = True
@@ -157,7 +162,9 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
     # print("elf_artifacts", elf_artifacts)
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
-    trace_pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")  # TODO: optional or different pass
+    trace_pc2bb_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
+    )  # TODO: optional or different pass
     if len(trace_pc2bb_artifacts) > 0:
         assert len(trace_pc2bb_artifacts) == 1
         trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
@@ -166,12 +173,12 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
         trace_pc2bb_df = None
 
     llvm_bbs = parse_elf(elf_artifact.path)
-    print("llvm_bbs", llvm_bbs)
+    # print("llvm_bbs", llvm_bbs)
     df_data = []
     for func_name, func_data in llvm_bbs.items():
-        print("fn", func_name)
+        # print("fn", func_name)
         for bb_name, bb_data in func_data.items():
-            print("bn", bb_name)
+            # print("bn", bb_name)
             bb_name = f"%bb.{bb_name}"
             start, end, sz = bb_data
             new = {"func_name": func_name, "bb_name": bb_name, "pcs": (start, end), "size": sz}

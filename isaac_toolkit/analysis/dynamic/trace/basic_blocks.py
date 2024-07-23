@@ -129,7 +129,7 @@ class BasicBlock(object):
 
 
 def collect_bbs(trace_df):
-    print("trace_df", len(trace_df))
+    # print("trace_df", len(trace_df))
     # input("{}{}{}{}")
     first_pc = None
     # TODO: make this generic!
@@ -214,7 +214,7 @@ def collect_bbs(trace_df):
     bbs_df.sort_values("freq", inplace=True, ascending=False)
     bbs_df["weight"] = bbs_df["freq"] * bbs_df["num_instrs"]
     bbs_df["rel_weight"] = bbs_df["weight"] / sum(bbs_df["weight"])
-    print("bbs_df", bbs_df)
+    # print("bbs_df", bbs_df)
 
     return bbs_df
 
@@ -228,23 +228,24 @@ def analyze_basic_blocks(sess: Session, force: bool = False):
     trace_artifact = trace_artifacts[0]
 
     pc2bb = collect_bbs(trace_artifact.df)
-    print("pc2bb", pc2bb)
+    # print("pc2bb", pc2bb)
     func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
     if len(func2pc_artifacts) > 0:
         assert len(func2pc_artifacts) == 1
         func2pc_artifact = func2pc_artifacts[0]
         func2pc_df = func2pc_artifact.df.copy()
         func2pc_df[["start", "end"]] = func2pc_df["pc_range"].apply(pd.Series)
-        print("func2pc_df", func2pc_df)
+
+        # print("func2pc_df", func2pc_df)
         def helper(x):
-            print("x", x)
+            # print("x", x)
             # print("!", func2pc_df["start"] >= x[0] & func2pc_df["end"] <= x[1])
             matches = func2pc_df[func2pc_df["start"] <= x[0]]
             matches = matches[matches["end"] >= x[1]]
-            print("matches", matches)
+            # print("matches", matches)
             if len(matches) == 0:
                 return None
-            print("len(matches)", len(matches))
+            # print("len(matches)", len(matches))
             # assert len(matches) == 1
             # match_ = matches.iloc[0]
             # func = match_["func"]
@@ -252,12 +253,13 @@ def analyze_basic_blocks(sess: Session, force: bool = False):
             funcs = set(matches["func"].values)
             # return func
             return funcs
+
         ANNOTATE_FUNC = True
         if ANNOTATE_FUNC:
             pc2bb["func_name"] = pc2bb["bb"].apply(helper)  # .astype("category")
         pc2bb[["start", "end"]] = pc2bb["bb"].apply(pd.Series)
         del pc2bb["bb"]
-        print("pc2bb", pc2bb)
+        # print("pc2bb", pc2bb)
 
     attrs = {
         "trace": trace_artifact.name,

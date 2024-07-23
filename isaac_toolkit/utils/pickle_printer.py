@@ -19,6 +19,7 @@ def print_memory_footprint(df):
 
 def main():
     assert len(sys.argv) == 2, "Unexpected number of arguments"
+    # TODO: argparse
     file = sys.argv[1]
     with open(file, "rb") as f:
         data = pickle.load(f)
