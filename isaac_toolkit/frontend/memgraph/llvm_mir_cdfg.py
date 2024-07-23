@@ -63,14 +63,14 @@ def get_cfg_artifacts(driver, label: str = "default"):
     ret = []
     for module_name, func_nodes in module_func_nodes.items():
         for func_name, nodes in func_nodes.items():
-            G_ = G.subgraph(nodes)
+            G_ = G.subgraph(nodes).copy()
             attrs = {
                 "kind": "cfg",
                 "by": "isaac_toolkit.frontend.memgraph.llvm_mir_cdfg",
                 "module_name": module_name,
                 "func_name": func_name,
             }
-            artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G, attrs=attrs)
+            artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
             # print("artifact", artifact, dir(artifact), artifact.flags)
             ret.append(artifact)
 
@@ -134,7 +134,7 @@ def get_dfg_artifacts(driver, label: str = "default"):
                     "func_name": func_name,
                     "bb_name": bb_name,
                 }
-                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G, attrs=attrs)
+                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G_, attrs=attrs)
                 # print("artifact", artifact, dir(artifact), artifact.flags)
                 # input("!")
                 ret.append(artifact)
