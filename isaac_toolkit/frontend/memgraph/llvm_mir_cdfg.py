@@ -15,7 +15,6 @@ def legalize_str(x):
     # print("legalize_str", x, type(x))
     legalized = x.replace("/", "_")
     # print("legalized", legalized)
-    # input("!!")
     return legalized
 
 
@@ -136,7 +135,6 @@ def get_dfg_artifacts(driver, label: str = "default"):
                 }
                 artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G_, attrs=attrs)
                 # print("artifact", artifact, dir(artifact), artifact.flags)
-                # input("!")
                 ret.append(artifact)
 
     # print("ret", ret)
