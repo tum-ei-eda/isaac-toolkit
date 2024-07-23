@@ -37,7 +37,9 @@ def choose_bbs(sess: Session, threshold: float = 0.9, min_weight: float = 0.01, 
             continue
         func_name = row["func_name"]
         bb_name = row["bb_name"]
-        choice = {"func_name": func_name, "bb_name": bb_name, "rel_weight": rel_weight}
+        num_instrs = row["num_instrs"]
+        freq = row["freq"]
+        choice = {"func_name": func_name, "bb_name": bb_name, "rel_weight": rel_weight, "num_instrs": num_instrs, "freq": freq}
         choices.append(choice)
         sum_weights += rel_weight
         if sum_weights >= threshold:
