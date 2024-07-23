@@ -59,6 +59,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         freq, weight = get_bb_freq_weight(trace_df, start, end, num_instrs)
         llvm_bbs_df.loc[index, "freq"] = freq
         llvm_bbs_df.loc[index, "weight"] = weight
+        llvm_bbs_df.loc[index, "num_instrs"] = num_instrs
         total_weight += weight
     trace_length = len(trace_df)
     coverage = total_weight / trace_length
