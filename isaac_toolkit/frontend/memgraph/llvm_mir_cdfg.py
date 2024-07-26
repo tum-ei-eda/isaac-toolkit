@@ -30,8 +30,6 @@ def get_cfg_artifacts(driver, label: str = "default"):
     session = driver.session()
     try:
         results = session.run(query)
-    finally:
-        session.close()
         # print("results", results)
 
         G = nx.MultiDiGraph()
@@ -76,6 +74,8 @@ def get_cfg_artifacts(driver, label: str = "default"):
                 artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
                 # print("artifact", artifact, dir(artifact), artifact.flags)
                 ret.append(artifact)
+    finally:
+        session.close()
 
     # print("ret", ret)
     return ret
