@@ -262,7 +262,7 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
             df_data.append(new)
     # pc2locs_df = pd.DataFrame(pc2locs.items(), columns=["pc", "locs"])
     llvm_bbs_df = pd.DataFrame(df_data)
-    llvm_bbs_df.sort_values("rel_weight", inplace=True, ascending=False)
+    # llvm_bbs_df.sort_values("rel_weight", inplace=True, ascending=False)
 
     attrs = {
         "elf_file": elf_artifact.name,
