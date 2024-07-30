@@ -24,6 +24,7 @@ def query_candidates_from_db(
     sess: Session,
     workdir: Optional[Union[str, Path]] = None,
     label: Optional[str] = None,
+    stage: int = 8,
     force: bool = False,
 ):
     artifacts = sess.artifacts
@@ -79,6 +80,7 @@ def query_candidates_from_db(
             *["--session", label],
             *["--function", func_name],
             *["--basic-block", bb_name],
+            *["--stage", str(stage)],
             *["--output-dir", out_dir],
             *["--ignore-const-inputs"],
             *(["--limit-results", str(LIMIT_RESULTS)] if LIMIT_RESULTS is not None else []),
