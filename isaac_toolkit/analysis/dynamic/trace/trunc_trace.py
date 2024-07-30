@@ -76,6 +76,9 @@ def trunc_trace(sess: Session, start_pc: Optional[int] = None, end_pc: Optional[
         # print("temp1.i", temp1.iloc[0].index)
         # print("temp1.i2", temp1.index[0])
         end_rows = df[df["pc"] == end]
+        if len(end_rows) == 0:
+            # TODO: warning?
+            return df
         end_pos = end_rows.index[0]
         # print("temp2", temp2)
         # print("temp2.", temp2.iloc[0])
