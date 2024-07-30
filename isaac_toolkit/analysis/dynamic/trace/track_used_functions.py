@@ -20,32 +20,32 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
     df = footprint_df.copy()
     df["Used"] = False
     func2pc_df[["start", "end"]] = func2pc_df["pc_range"].apply(pd.Series)
-    print("footprint_df", footprint_df)
+    # print("footprint_df", footprint_df)
     for index, row in footprint_df.iterrows():
-        print("index", index)
-        print("row", row)
+        # print("index", index)
+        # print("row", row)
         func_name = row["func"]
         matches = func2pc_df.where(lambda x: x["func"] == func_name).dropna()
-        print("matches", matches)
+        # print("matches", matches)
         assert len(matches) == 1
         pc_range = matches["pc_range"].values[0]
-        print("pc_range", pc_range)
+        # print("pc_range", pc_range)
         start_pc, end_pc = pc_range
         if end_pc < 0:
             continue
         matches = trace_df.where(lambda x: x["pc"] >= start_pc).dropna()
         matches = matches.where(lambda x: x["pc"] < end_pc).dropna()
         if len(matches) > 0:
-            print("matches", matches)
+            # print("matches", matches)
             df.loc[index, "Used"] = True
     bytes_before = df["bytes"].sum()
     df = df[df["Used"]]
     bytes_after = df["bytes"].sum()
     df["eff_rel_bytes"] = df["bytes"] / bytes_after
-    rel = bytes_after / bytes_before
-    print("bytes", bytes_before, bytes_after, rel)
-    print("df", df)
-    input("*")
+    # rel = bytes_after / bytes_before
+    # print("bytes", bytes_before, bytes_after, rel)
+    # print("df", df)
+    # input("*")
     return df
 
 
@@ -58,13 +58,17 @@ def track_unused_functions(sess: Session, force: bool = False):
     func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
     assert len(func2pc_artifacts) == 1
     func2pc_artifact = func2pc_artifacts[0]
-    mem_footprint_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "mem_footprint")
+    mem_footprint_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "mem_footprint"
+    )
     assert len(mem_footprint_artifacts) == 1
     mem_footprint_artifact = mem_footprint_artifacts[0]
 
-    effective_footprint_df = get_effective_footprint_df(trace_artifact.df, func2pc_artifact.df, mem_footprint_artifact.df)
-    print("effective_footprint_df", effective_footprint_df)
-    input("@")
+    effective_footprint_df = get_effective_footprint_df(
+        trace_artifact.df, func2pc_artifact.df, mem_footprint_artifact.df
+    )
+    # print("effective_footprint_df", effective_footprint_df)
+    # input("@")
 
     attrs = {
         "trace": trace_artifact.name,
@@ -105,4 +109,3 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-
