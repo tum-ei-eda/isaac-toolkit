@@ -70,7 +70,7 @@ def query_candidates_from_db(
         MIN_PATH_LENGTH = 1
         MAX_PATH_LENGTH = 3
         MAX_PATH_WIDTH = 1
-        INSTR_PREDICATES = 7  # ALL?
+        INSTR_PREDICATES = 511  # ALL?
         IGNORE_NAMES = None
         IGNORE_OP_TYPES = None
         XLEN = 64  # TODO: do not hardcode

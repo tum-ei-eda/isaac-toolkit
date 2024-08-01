@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def collect_operands(trace_df):
-    print("trace_df", trace_df)
+    # print("trace_df", trace_df)
     instrs_operands = defaultdict(list)
     for row in trace_df.itertuples(index=False):
         # print("row", row)
@@ -47,19 +47,19 @@ def analyze_instr_operands(sess: Session, force: bool = False):
     trace_artifact = trace_artifacts[0]
 
     operands_df = collect_operands(trace_artifact.df)
-    print("operands_df", operands_df)
+    # print("operands_df", operands_df)
     operand_names = [x for x in operands_df.columns if x != "instr"]
     for operand_name in operand_names:
-        print(f"ALL & {operand_name}")
+        # print(f"ALL & {operand_name}")
         counts = operands_df[operand_name].value_counts()
-        print("counts", counts)
+        # print("counts", counts)
     for instr_name, instr_df in operands_df.groupby("instr"):
         for operand_name in operand_names:
             if operand_name not in instr_df.columns or pd.isna(instr_df[operand_name]).all():
                 continue
-            print(f"{instr_name} & {operand_name}")
+            # print(f"{instr_name} & {operand_name}")
             counts = instr_df[operand_name].value_counts()
-            print("counts", counts)
+            # print("counts", counts)
 
     attrs = {
         "trace": trace_artifact.name,

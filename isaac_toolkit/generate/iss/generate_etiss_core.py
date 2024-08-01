@@ -5,9 +5,10 @@ import argparse
 from typing import Optional, Union, List
 from pathlib import Path
 
-# import m2isar
-# import m2isar.metamodel.arch
-# from m2isar.frontends.coredsl2_set.parser import parse_cdsl2_set
+import m2isar
+import m2isar.metamodel.arch
+
+from m2isar.frontends.coredsl2_set.parser import parse_cdsl2_set
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -106,6 +107,20 @@ def generate_etiss_core(
     with open(combined_index_file, "r") as f:
         index_data = yaml.safe_load(f)
     print("index_data", index_data)
+    generated_sets = []
+    for i, sub_data in enumerate(index_data["candidates"]):
+        print("i", i)
+        print("sub_data", sub_data)
+        sub_artifacts = sub_data["artifacts"]
+        print("sub_artifacts", sub_artifacts)
+        sub_properties = sub_data["properties"]
+        print("sub_properties", sub_properties)
+        sub_name = f"C{i}"
+        sub_file = Path(sub_artifacts["cdsl"])
+        generated_sets.append((sub_name, sub_file))
+        # input(">")
+    print("generated_sets", generated_sets)
+    input(">>")
     # Not uses set() here as we want to preserve the order!
     all_cdsl_sets = []
     compressed = "c" in base_extensions
@@ -149,10 +164,12 @@ def generate_etiss_core(
         memories["PC"] = pc
     functions = {}
     intrinsics = {}
-    generated_sets = []
     contributing_types = all_cdsl_sets
     for set_name, set_file in generated_sets:
-        instr_set = parse_cdsl2_set(set_file)
+        models = parse_cdsl2_set(set_file)
+        instr_sets = list(models.values())
+        assert len(instr_sets) == 1
+        instr_set = instr_sets[0]
         print("instr_set", instr_set)
         instructions.update(instr_set.instructions)
         contributing_types.append(set_name)
