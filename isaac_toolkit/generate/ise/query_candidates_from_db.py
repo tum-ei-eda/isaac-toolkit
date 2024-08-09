@@ -1,20 +1,12 @@
-import io
 import sys
-import leb128
 import logging
 import argparse
-import posixpath
 import subprocess
 from typing import Optional, Union
 from pathlib import Path
-from collections import defaultdict
-
-import pandas as pd
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 
 
 logger = logging.getLogger("llvm_bbs")
@@ -61,11 +53,18 @@ def query_candidates_from_db(
             "tool.main",
         ]
         LIMIT_RESULTS = None
+        # LIMIT_RESULTS = 1000
+        # LIMIT_RESULTS = 500
         MIN_INPUTS = 1
-        MAX_INPUTS = 3
+        # MAX_INPUTS = 3
+        MAX_INPUTS = 4
         MIN_OUTPUTS = 0
         MAX_OUTPUTS = 1
+        MAX_OUTPUTS = 4
         MAX_NODES = None
+        MAX_ENC_FOOTPRINT = 1.0
+        MAX_ENC_WEIGHT = 1.0
+        MIN_ENC_BITS_LEFT = 5
         MIN_NODES = 1
         MIN_PATH_LENGTH = 1
         MAX_PATH_LENGTH = 3
@@ -73,16 +72,23 @@ def query_candidates_from_db(
         INSTR_PREDICATES = 511  # ALL?
         IGNORE_NAMES = None
         IGNORE_OP_TYPES = None
+        ALLOWED_ENC_SIZES = [32]
+        MIN_ISO_WEIGHT = 0.05
+        MAX_LOADS = 1
+        MAX_STORES = 1
+        MAX_MEMS = 1
+        MAX_BRANCHES = 1
         XLEN = 64  # TODO: do not hardcode
         args += [
             *["--progress"],
+            *["--times"],
             *["--log", "info"],
             *["--session", label],
             *["--function", func_name],
             *["--basic-block", bb_name],
             *["--stage", str(stage)],
             *["--output-dir", out_dir],
-            *["--ignore-const-inputs"],
+            # *["--ignore-const-inputs"],
             *(["--limit-results", str(LIMIT_RESULTS)] if LIMIT_RESULTS is not None else []),
             *(["--min-inputs", str(MIN_INPUTS)] if MIN_INPUTS is not None else []),
             *(["--max-inputs", str(MAX_INPUTS)] if MAX_INPUTS is not None else []),
@@ -90,12 +96,21 @@ def query_candidates_from_db(
             *(["--max-outputs", str(MAX_OUTPUTS)] if MAX_OUTPUTS is not None else []),
             *(["--max-nodes", str(MAX_NODES)] if MAX_NODES is not None else []),
             *(["--min-nodes", str(MIN_NODES)] if MIN_NODES is not None else []),
+            *(["--max-loads", str(MAX_LOADS)] if MAX_LOADS is not None else []),
+            *(["--max-loads", str(MAX_STORES)] if MAX_STORES is not None else []),
+            *(["--max-mems", str(MAX_MEMS)] if MAX_MEMS is not None else []),
+            *(["--max-branches", str(MAX_BRANCHES)] if MAX_BRANCHES is not None else []),
+            *(["--max-enc-footprint", str(MAX_ENC_FOOTPRINT)] if MAX_ENC_FOOTPRINT is not None else []),
+            *(["--max-enc-weight", str(MAX_ENC_WEIGHT)] if MAX_ENC_WEIGHT is not None else []),
+            *(["--min-enc-bits-left", str(MIN_ENC_BITS_LEFT)] if MIN_ENC_BITS_LEFT is not None else []),
             *(["--min-path-length", str(MIN_PATH_LENGTH)] if MIN_PATH_LENGTH is not None else []),
             *(["--max-path-length", str(MAX_PATH_LENGTH)] if MAX_PATH_LENGTH is not None else []),
             *(["--max-path-width", str(MAX_PATH_WIDTH)] if MAX_PATH_WIDTH is not None else []),
+            *(["--min-iso-weight", str(MIN_ISO_WEIGHT)] if MIN_ISO_WEIGHT is not None else []),
             *(["--instr-predicates", str(INSTR_PREDICATES)] if INSTR_PREDICATES is not None else []),
             *(["--ignore-names", IGNORE_NAMES] if IGNORE_NAMES is not None else []),
             *(["--ignore-op-types", str(IGNORE_OP_TYPES)] if IGNORE_OP_TYPES is not None else []),
+            *(["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))] if ALLOWED_ENC_SIZES is not None else []),
             *(["--xlen", str(XLEN)] if XLEN is not None else []),
             *["--write-func"],
             # *["--write-func-fmt", WRITE_FUNC_FMT],
@@ -106,7 +121,10 @@ def query_candidates_from_db(
             *["--write-io-sub"],
             # *["--write-io-sub-fmt", WRITE_IO_SUB_FMT],
             # *["--write-io-sub-flt", WRITE_IO_SUB_FLT],
-            *["--write-gen"],
+            *["--write-tree"],
+            # *["--write-tree-fmt", WRITE_TREE_FMT],
+            # *["--write-treee-flt", WRITE_TREE_FLT],
+            # *["--write-gen"],
             # *["--write-gen-fmt", WRITE_GEN_FMT],
             # *["--write-gen-flt", WRITE_GEN_FLT],
             *["--write-pie"],
@@ -138,6 +156,33 @@ def query_candidates_from_db(
         combine_args += ["--venn", venn_diagram_file]
     print("combine_args", combine_args)
     subprocess.run(combine_args, check=True)
+    gen_dir = workdir / "gen"
+    gen_dir.mkdir(exist_ok=True)
+    generate_args = [
+        combined_index_file,
+        "--output",
+        gen_dir,
+        "--split",
+        "--split-files",
+        "--progress",
+        "--inplace",  # TODO use gen/index.yml instead!
+    ]
+    generate_cdsl_args = [
+        "python3",
+        "-m",
+        "tool.gen.cdsl",
+        *generate_args,
+    ]
+    generate_flat_args = [
+        "python3",
+        "-m",
+        "tool.gen.flat",
+        *generate_args,
+    ]
+    print("generate_cdsl_args", generate_cdsl_args)
+    print("generate_flat_args", generate_flat_args)
+    subprocess.run(generate_cdsl_args, check=True)
+    subprocess.run(generate_flat_args, check=True)
 
 
 def handle(args):

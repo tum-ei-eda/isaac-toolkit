@@ -1,14 +1,18 @@
 import sys
 import yaml
 import logging
+import pickle
 import argparse
 from typing import Optional, Union, List
 from pathlib import Path
 
 import m2isar
 import m2isar.metamodel.arch
+from m2isar.metamodel import M2_METAMODEL_VERSION, M2Model
 
 from m2isar.frontends.coredsl2_set.parser import parse_cdsl2_set
+from m2isar.backends.coredsl2_set.writer import gen_cdsl_code
+from m2isar.transforms.encode_instructions.encoder import encode_instructions
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -87,10 +91,35 @@ def get_cdsl_includes(sets: List[str], base_dir: Union[str, Path] = "rv_base", t
     return ret
 
 
+def get_includes_code(includes: List[Union[str, Path]], prefix: str = ""):
+    ret = []
+    for inc in includes:
+        if isinstance(inc, Path):
+            inc = str(inc)
+        if ".core_desc" not in inc:
+            inc = f"{inc}.core_desc"
+        if inc[0] != "/":
+            inc = f"{prefix}{inc}"
+        new = f'import "{inc}"'
+        ret.append(new)
+    return "\n".join(ret)
+
+
+# def generate_base_core
+#     core_name: str = "ISAACCore",
+#     xlen: int = 32,
+#     ignore_etiss: bool = False,
+#     semihosting: bool = True,
+#     base_extensions: List[str] = ["i", "m", "a", "f", "d", "c", "zifencei"],
+#     # etiss_overrides: List[str] = ["tum_csr", "tum_ret", "tum_rva", "tum_semihosting"],
+# ):
+
+
 def generate_etiss_core(
     sess: Session,
     workdir: Optional[Union[str, Path]] = None,
     core_name: str = "ISAACCore",
+    set_name: str = "XIsaac",
     xlen: int = 32,
     ignore_etiss: bool = False,
     semihosting: bool = True,
@@ -99,31 +128,39 @@ def generate_etiss_core(
     auto_encoding: bool = True,
     split: bool = True,  # One set per new instr
     force: bool = False,
+    base_dir: str = "rv_base",
+    tum_dir: str = ".",
 ):
     # artifacts = sess.artifacts
     # TODO: get combined_index.yml from artifacts!
     assert workdir is not None
     combined_index_file = workdir / "combined_index.yml"
+    core_out_model_file = workdir / f"{core_name}.m2isarmodel"
+    set_out_model_file = workdir / f"{set_name}.m2isarmodel"
+    core_out_cdsl_file = workdir / f"{core_name}.core_desc"
+    set_out_cdsl_file = workdir / f"{set_name}.core_desc"
     with open(combined_index_file, "r") as f:
         index_data = yaml.safe_load(f)
-    print("index_data", index_data)
+    # print("index_data", index_data)
     generated_sets = []
     for i, sub_data in enumerate(index_data["candidates"]):
-        print("i", i)
-        print("sub_data", sub_data)
+        # print("i", i)
+        # print("sub_data", sub_data)
         sub_artifacts = sub_data["artifacts"]
-        print("sub_artifacts", sub_artifacts)
-        sub_properties = sub_data["properties"]
-        print("sub_properties", sub_properties)
+        # print("sub_artifacts", sub_artifacts)
+        # sub_properties = sub_data["properties"]
+        # print("sub_properties", sub_properties)
         sub_name = f"C{i}"
         sub_file = Path(sub_artifacts["cdsl"])
         generated_sets.append((sub_name, sub_file))
         # input(">")
-    print("generated_sets", generated_sets)
-    input(">>")
+    # print("generated_sets", generated_sets)
+    # input(">>")
     # Not uses set() here as we want to preserve the order!
     all_cdsl_sets = []
+    instr_classes = {32}
     compressed = "c" in base_extensions
+    instr_classes.add(16)
     for ext in base_extensions:
         if ext == "c":
             continue
@@ -133,14 +170,16 @@ def generate_etiss_core(
                 all_cdsl_sets.append(cdsl_set)
     if not ignore_etiss:
         all_cdsl_sets = apply_etiss_overrides(all_cdsl_sets, semihosting=semihosting)
-    print("all_cdsl_sets", all_cdsl_sets)
-    cdsl_includes = get_cdsl_includes(all_cdsl_sets)
-    print("cdsl_includes", cdsl_includes)
+    # print("all_cdsl_sets", all_cdsl_sets)
+    core_includes = get_cdsl_includes(all_cdsl_sets, base_dir=base_dir, tum_dir=tum_dir)
+    core_includes.add(set_out_cdsl_file)
+    # print("cdsl_includes", cdsl_includes)
+    core_includes_code = get_includes_code(core_includes)
     constants = {}
     memories = {}
-    instructions = {}
+    unencoded_instructions = {}
+    constants["XLEN"] = m2isar.metamodel.arch.Constant("XLEN", value=xlen, attributes={}, size=None, signed=False)
     if ignore_etiss:
-        constants["XLEN"] = m2isar.metamodel.arch.Constant("XLEN", value=32, attributes={}, size=None, signed=False)
         main_reg = m2isar.metamodel.arch.Memory(
             "X",
             m2isar.metamodel.arch.RangeSpec(32),
@@ -165,14 +204,50 @@ def generate_etiss_core(
     functions = {}
     intrinsics = {}
     contributing_types = all_cdsl_sets
-    for set_name, set_file in generated_sets:
-        models = parse_cdsl2_set(set_file)
+    extra_includes = ["/work/git/students/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
+    # print("SSSS")
+    name_idx = 0
+    for set_name_, set_file in generated_sets:
+        # print("set_name_", set_name_)
+        # print("set_file", set_file)
+        # input(">>>")
+        models = parse_cdsl2_set(set_file, extra_includes)
         instr_sets = list(models.values())
-        assert len(instr_sets) == 1
-        instr_set = instr_sets[0]
-        print("instr_set", instr_set)
-        instructions.update(instr_set.instructions)
-        contributing_types.append(set_name)
+        # for instr_set in instr_sets:
+        #     print("instr_set", instr_set)
+        #     print("instr_set.instructions", instr_set.instructions)
+        #     print("instr_set.unencoded_instructions", instr_set.unencoded_instructions)
+        # print("instr_sets", instr_sets)
+        instr_sets = [
+            instr_set
+            for instr_set in instr_sets
+            if len(instr_set.instructions) > 0 or len(instr_set.unencoded_instructions) > 0
+        ]
+        # print("instr_sets", instr_sets)
+        if len(instr_sets) == 1:
+            instr_set = instr_sets[0]
+        else:
+            instr_set = instr_sets[-1]
+        # print("instr_set", instr_set)
+        assert len(instr_set.instructions) == 0
+        assert len(instr_set.unencoded_instructions) > 0
+        # instructions.update(instr_set.instructions)
+        for instr_def in instr_set.unencoded_instructions.values():
+            name = f"CUSTOM{name_idx}"
+            name_idx += 1
+            instr_def.name = name
+            instr_def.mnemonic = name.lower()
+            unencoded_instructions[name] = instr_def
+        # contributing_types.append(set_name_)
+        # break  # TODO
+    unencoded_instructions_ = list(unencoded_instructions.values())
+    encoded_instructions_ = encode_instructions(unencoded_instructions_)
+    encoded_instructions = {(instr_def.code, instr_def.mask): instr_def for instr_def in encoded_instructions_}
+    contributing_types.append(set_name)
+    # print("encoded_instructions", encoded_instructions)
+    instructions = {}
+    instructions.update(encoded_instructions)
+    # input("1")
     generated_core = m2isar.metamodel.arch.CoreDef(
         name=core_name,
         contributing_types=contributing_types,
@@ -181,12 +256,45 @@ def generate_etiss_core(
         memories=memories,
         memory_aliases={},
         functions=functions,
-        instructions=instructions,
-        instr_classes={32},
+        # instructions=instructions,
+        instructions={},
+        unencoded_instructions={},
+        instr_classes=instr_classes,
         intrinsics=intrinsics,
     )
-    print("generated_core", generated_core)
-    input("!!")
+    extension = [f"RV{xlen}I"]  # TODO: add include?
+    set_includes = get_cdsl_includes(extension, base_dir=base_dir, tum_dir=tum_dir)
+    set_includes_code = get_includes_code(set_includes)
+    generated_set = m2isar.metamodel.arch.InstructionSet(
+        name=set_name,
+        extension=extension,
+        constants={},
+        memories={},
+        functions={},
+        instructions=encoded_instructions,
+        unencoded_instructions={},
+    )
+    # print("generated_core", generated_core)
+    # print("generated_set", generated_set)
+    with open(core_out_model_file, "wb") as f:
+        cores = {core_name: generated_core}
+        model_obj = M2Model(M2_METAMODEL_VERSION, cores, {}, {})
+        pickle.dump(model_obj, f)
+    core_cdsl_code = gen_cdsl_code(model_obj, with_includes=False)
+    with open(core_out_cdsl_file, "w") as f:
+        f.write(core_includes_code)
+        f.write("\n\n")
+        f.write(core_cdsl_code)
+    with open(set_out_model_file, "wb") as f:
+        sets = {set_name: generated_set}
+        model_obj = M2Model(M2_METAMODEL_VERSION, {}, sets, {})
+        pickle.dump(model_obj, f)
+    set_cdsl_code = gen_cdsl_code(model_obj, with_includes=False)
+    with open(set_out_cdsl_file, "w") as f:
+        f.write(set_includes_code)
+        f.write("\n\n")
+        f.write(set_cdsl_code)
+    # input("!!")
 
 
 def handle(args):
