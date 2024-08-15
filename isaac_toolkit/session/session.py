@@ -7,7 +7,7 @@ import yaml
 import pandas as pd
 
 from .config import IsaacConfig, DEFAULT_CONFIG
-from .artifact import FileArtifact, ElfArtifact, InstrTraceArtifact, SourceArtifact, TableArtifact, M2ISARArtifact, GraphArtifact, ArtifactFlag, filter_artifacts
+from .artifact import FileArtifact, ElfArtifact, InstrTraceArtifact, SourceArtifact, TableArtifact, M2ISARArtifact, GraphArtifact, ArtifactFlag, PythonArtifact, filter_artifacts
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -67,6 +67,11 @@ def load_artifacts(base):
             with open(dest, "rb") as f:
                 model = pickle.load(f)
             artifact_ = M2ISARArtifact(name, model, flags=flags, attrs=attrs)
+        elif flags_ & ArtifactFlag.PYTHON:
+            import pickle
+            with open(dest, "rb") as f:
+                data = pickle.load(f)
+            artifact_ = PythonArtifact(name, data, flags=flags, attrs=attrs)
         else:
             logger.warning("Unhandled artifact type!")
             artifact_ = FileArtifact(name, dest, flags=flags, attrs=attrs)
@@ -174,6 +179,10 @@ class Session:
                 # assert not artifact.is_input and not artifact.is_output
                 dest_dir = self.directory / "model"
                 dest_file = f"{dest_file}.m2isarmodel"
+            elif isinstance(artifact, PythonArtifact):
+                # assert not artifact.is_input and not artifact.is_output
+                dest_dir = self.directory / "misc"
+                dest_file = f"{dest_file}.pkl"
             if dest_dir is None:
                 dest_dir = self.directory / "misc"
             assert dest_file is not None

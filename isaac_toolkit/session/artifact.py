@@ -21,6 +21,7 @@ class ArtifactFlag(IntFlag):
     INSTR_TRACE = auto()
     SOURCE = auto()
     M2ISAR = auto()
+    PYTHON = auto()
 
 
 def filter_artifacts(artifacts, func):
@@ -93,6 +94,10 @@ class PythonArtifact(Artifact):
     def __init__(self, name: str, data, flags: ArtifactFlag = None, attrs: Optional[Dict[str, Any]] = None):
         super().__init__(name, flags=flags, attrs=attrs)
         self.data = data
+
+    @property
+    def flags(self):
+        return super().flags | ArtifactFlag.PYTHON
 
     def save(self, dest):
         with open(dest, "wb") as f:
