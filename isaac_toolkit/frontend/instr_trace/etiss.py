@@ -19,12 +19,14 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False):
     df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
     df["instr"] = df["instr"].apply(lambda x: x.strip())
     df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
-    df["bytecode"] = df["bytecode"].apply(lambda x: int(x, 2))
+    df["bytecode"] = df["bytecode"].apply(
+        lambda x: int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2))
+    )
     MEM_OPTIMIZED = True
     if MEM_OPTIMIZED:
         df["instr"] = df["instr"].astype("category")
         df["pc"] = pd.to_numeric(df["pc"])
-        df["bytecode"] = pd.to_numeric(df["bytecode"]).memory_usage(deep=True)
+        df["bytecode"] = pd.to_numeric(df["bytecode"])
 
     def convert(x):
         ret = {}
