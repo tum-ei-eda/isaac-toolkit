@@ -2,7 +2,7 @@ import sys
 import logging
 import argparse
 from pathlib import Path
-from collections import defaultdict
+# from collections import defaultdict
 
 import pandas as pd
 
@@ -15,13 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def collect_instructions(trace_df):
-    # print("trace_df", trace_df)
-    instrs = defaultdict(int)
-    for row in trace_df.itertuples(index=False):
-        # print("row", row)
-        instr = row.instr
-        instr = instr.strip()  # TODO: fix in frontend
-        instrs[instr] += 1
+    instrs = trace_df["instr"].value_counts().to_dict()
     instrs_data = []
     for instr_name, instr_count in instrs.items():
         instr_data = {"instr": instr_name, "count": instr_count}
@@ -52,10 +46,7 @@ def create_instr_hist(sess: Session, force: bool = False):
     }
 
     instrs_artifact = TableArtifact("instrs_hist", instrs_df, attrs=attrs)
-    # TODO:
-    # operands_hist_artifact = TableArtifact(f"instr_operands_hist", operands_hist_df, attrs=attrs2)
     sess.add_artifact(instrs_artifact, override=force)
-    # sess.add_artifact(operands_hist_artifact, override=force)
 
 
 def handle(args):
