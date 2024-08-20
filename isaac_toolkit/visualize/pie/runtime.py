@@ -1,28 +1,39 @@
-import io
 import sys
-import leb128
 import logging
 import argparse
-import posixpath
-from typing import Optional
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
 import matplotlib.pyplot as plt
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 
 
-logger = logging.getLogger("llvm_bbs")
+logger = logging.getLogger(__name__)
 
 
 # TODO: share with other pie scripts
-def plot_pie_data(series, y, threshold: float = 0.1):
-    plot = series.plot.pie(y=y)
+def plot_pie_data(series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True):
+
+    def make_autopct(values):
+        def my_autopct(pct):
+            total = sum(values)
+            val = int(round(pct * total / 100.0))
+            return "{p:.2f}%\n({v:d})".format(p=pct, v=val)
+
+        return my_autopct
+
+    plot = series.plot.pie(
+        y=y,
+        autopct="%1.1f%%",
+        # autopct=make_autopct(series[y].values),
+        # legend=legend,
+        title=title,
+        labeldistance=1 if not legend else None,
+    )
+    if legend:
+        plot.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
     return plot
 
 
@@ -48,19 +59,37 @@ def agg_library_runtime(runtime_df, symbol_map_df, by: str = "library", col: str
     return ret
 
 
-def create_pie_plots(sess: Session, threshold: float = 0.05, topk: int = 9, fmt: str = "jpg", force: bool = False):
+def create_runtime_pie_plots(
+    sess: Session, threshold: float = 0.05, topk: int = 9, fmt: str = "jpg", legend: bool = True, force: bool = False
+):
     artifacts = sess.artifacts
     # TODO: allow missing files!
     pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")
     assert len(pc2bb_artifacts) == 1
     pc2bb_artifact = pc2bb_artifacts[0]
     pc2bb_df = pc2bb_artifact.df
+
     symbol_map_artifacts = filter_artifacts(
         artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "symbol_map"
     )
     assert len(symbol_map_artifacts) == 1
     symbol_map_artifact = symbol_map_artifacts[0]
     symbol_map_df = symbol_map_artifact.df
+
+    instrs_hist_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "instrs_hist"
+    )
+    assert len(instrs_hist_artifacts) == 1
+    instrs_hist_artifact = instrs_hist_artifacts[0]
+    instrs_hist_df = instrs_hist_artifact.df
+
+    opcodes_hist_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "opcodes_hist"
+    )
+    assert len(opcodes_hist_artifacts) == 1
+    opcodes_hist_artifact = opcodes_hist_artifacts[0]
+    opcodes_hist_df = opcodes_hist_artifact.df
+
     plots_dir = sess.directory / "plots"
     plots_dir.mkdir(exist_ok=True)
     # TODO: use threshold
@@ -79,10 +108,10 @@ def create_pie_plots(sess: Session, threshold: float = 0.05, topk: int = 9, fmt:
         runtime_df["func_name"] = runtime_df["func_name"].apply(helper)
         runtime_df = runtime_df[["func_name", "rel_weight"]]
         runtime_df = runtime_df.groupby("func_name", as_index=False, dropna=False).sum()
-        print("runtime_df", runtime_df)
-        input(">>>")
         runtime_per_func_data = generate_pie_data(runtime_df, x="func_name", y="rel_weight", topk=topk)
-        runtime_per_func_plot = plot_pie_data(runtime_per_func_data, "rel_weight", threshold=threshold)
+        runtime_per_func_plot = plot_pie_data(
+            runtime_per_func_data, "rel_weight", threshold=threshold, legend=legend, title="Runtime per Func"
+        )
         runtime_per_func_plot_file = plots_dir / f"runtime_per_func.{fmt}"
         if runtime_per_func_plot_file.is_file():
             assert force, "File already exists: {runtime_per_func_plot_file}"
@@ -92,7 +121,9 @@ def create_pie_plots(sess: Session, threshold: float = 0.05, topk: int = 9, fmt:
             # library
             library_runtime_df = agg_library_runtime(runtime_df, symbol_map_df, by="library", col="rel_weight")
             runtime_per_library_data = generate_pie_data(library_runtime_df, x="library", y="rel_weight", topk=topk)
-            runtime_per_library_plot = plot_pie_data(runtime_per_library_data, "rel_weight", threshold=threshold)
+            runtime_per_library_plot = plot_pie_data(
+                runtime_per_library_data, "rel_weight", threshold=threshold, legend=legend, title="Runtime per Library"
+            )
             runtime_per_library_plot_file = plots_dir / f"runtime_per_library.{fmt}"
             if runtime_per_library_plot_file.is_file():
                 assert force, "File already exists: {runtime_per_library_plot_file}"
@@ -101,12 +132,34 @@ def create_pie_plots(sess: Session, threshold: float = 0.05, topk: int = 9, fmt:
             # object
             object_runtime_df = agg_library_runtime(runtime_df, symbol_map_df, by="object", col="rel_weight")
             runtime_per_object_data = generate_pie_data(object_runtime_df, x="object", y="rel_weight", topk=topk)
-            runtime_per_object_plot = plot_pie_data(runtime_per_object_data, "rel_weight", threshold=threshold)
+            runtime_per_object_plot = plot_pie_data(
+                runtime_per_object_data, "rel_weight", threshold=threshold, legend=legend, title="Runtime per Object"
+            )
             runtime_per_object_plot_file = plots_dir / f"runtime_per_object.{fmt}"
             if runtime_per_object_plot_file.is_file():
                 assert force, "File already exists: {runtime_per_object_plot_file}"
             runtime_per_object_plot.get_figure().savefig(runtime_per_object_plot_file, bbox_inches="tight")
             plt.close()
+    if instrs_hist_df is not None:
+        instrs_hist_data = generate_pie_data(instrs_hist_df, x="instr", y="rel_count", topk=topk)
+        instrs_hist_plot = plot_pie_data(
+            instrs_hist_data, "rel_count", threshold=threshold, legend=legend, title="Runtime per Instr"
+        )
+        instrs_hist_plot_file = plots_dir / f"runtime_per_instr.{fmt}"
+        if instrs_hist_plot_file.is_file():
+            assert force, "File already exists: {instrs_hist_plot_file}"
+        instrs_hist_plot.get_figure().savefig(instrs_hist_plot_file, bbox_inches="tight")
+        plt.close()
+    if opcodes_hist_df is not None:
+        opcodes_hist_data = generate_pie_data(opcodes_hist_df, x="opcode", y="rel_count", topk=topk)
+        opcodes_hist_plot = plot_pie_data(
+            opcodes_hist_data, "rel_count", threshold=threshold, legend=legend, title="Runtime per Opcode"
+        )
+        opcodes_hist_plot_file = plots_dir / f"runtime_per_opcode.{fmt}"
+        if opcodes_hist_plot_file.is_file():
+            assert force, "File already exists: {opcodes_hist_plot_file}"
+        opcodes_hist_plot.get_figure().savefig(opcodes_hist_plot_file, bbox_inches="tight")
+        plt.close()
 
     # attrs = {
     #     # "elf_file": elf_artifact.name,
@@ -123,7 +176,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    create_pie_plots(sess, threshold=args.threshold, topk=args.topk, force=args.force)
+    create_runtime_pie_plots(sess, threshold=args.threshold, topk=args.topk, legend=args.legend, force=args.force)
     sess.save()
 
 
@@ -134,6 +187,7 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--legend", action="store_true")
     parser.add_argument("--threshold", type=float, default=0.1)
     parser.add_argument("--topk", type=int, default=9)
     # TODO: !
