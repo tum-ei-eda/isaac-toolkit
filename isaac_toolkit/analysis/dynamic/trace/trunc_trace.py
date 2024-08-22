@@ -17,9 +17,14 @@ logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
 
 
-
-
-def trunc_trace(sess: Session, start_pc: Optional[int] = None, end_pc: Optional[str] = None, start_func: Optional[str] = None, end_func: Optional[str] = None, force: bool = False):
+def trunc_trace(
+    sess: Session,
+    start_pc: Optional[int] = None,
+    end_pc: Optional[str] = None,
+    start_func: Optional[str] = None,
+    end_func: Optional[str] = None,
+    force: bool = False,
+):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
@@ -37,10 +42,10 @@ def trunc_trace(sess: Session, start_pc: Optional[int] = None, end_pc: Optional[
     else:
         func2pc_df = None
 
-    if start_pc is not None:
-        assert start_func is None
-    if end_pc is not None:
-        assert end_func is None
+    # if start_pc is not None:
+    #     assert start_func is None
+    # if end_pc is not None:
+    #     assert end_func is None
 
     # TODO: allow start at 0 and/or end at -1
 
@@ -56,36 +61,51 @@ def trunc_trace(sess: Session, start_pc: Optional[int] = None, end_pc: Optional[
         assert start_pc > 0
         return start_pc
 
-
     if start_pc is None:
-        assert start_func is not None
-        start_pc = lookup_func_pc(func2pc_df, start_func)
+        if start_func is not None:
+            start_pc = lookup_func_pc(func2pc_df, start_func)
     if end_pc is None:
-        assert end_func is not None
-        end_pc = lookup_func_pc(func2pc_df, end_func)
+        if end_func is not None:
+            end_pc = lookup_func_pc(func2pc_df, end_func)
 
     # print("start_pc", start_pc)
     # print("end_pc", end_pc)
     # TODO: handle multiple calls to start/end func
     def do_trunc(df, start, end):
+        # print("do_trunc", len(df), start, end)
         # print("df", len(df))
-        start_rows = df[df["pc"] == start]
+        if start is not None:
+            start_rows = df[df["pc"] == start]
+        else:
+            start_rows = df.iloc[0:0]
+        # print("start_rows", start_rows)
         start_pos = start_rows.index[0]
+        # print("start_pos", start_pos)
         # print("temp1", temp1)
         # print("temp1.", temp1.iloc[0])
         # print("temp1.i", temp1.iloc[0].index)
         # print("temp1.i2", temp1.index[0])
-        end_rows = df[df["pc"] == end]
+        if end is not None:
+            end_rows = df[df["pc"] == end]
+        else:
+            end_rows = df.iloc[-1:-1]
+        # print("end_rows", end_rows)
         if len(end_rows) == 0:
-            # TODO: warning?
-            return df
-        end_pos = end_rows.index[0]
+            end_pos = df.index[-1]
+        else:
+            end_pos = end_rows.index[0]
+        # print("end_pos", end_pos)
         # print("temp2", temp2)
         # print("temp2.", temp2.iloc[0])
         # print("temp2.i", temp2.iloc[0].index)
         # print("temp2.i2", temp2.index[0])
-        return df.iloc[start_pos:end_pos]
+        # print("AAA", df.iloc[start_pos:end_pos])
+        # print("BBB", df.loc[start_pos:end_pos])
+        # return df.iloc[start_pos:end_pos]
+        return df.loc[start_pos:end_pos]
+
     trunc_df = do_trunc(trace_df, start_pc, end_pc)
+    assert len(trunc_df) > 0
     # print("trunc_df", len(trunc_df))
 
     # attrs = {
@@ -108,7 +128,14 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    analyze_basic_blocks(sess, start_pc=args.start_pc, end_pc=args.end_pc, start_func=args.start_func, end_func=args.end_func, force=args.force)
+    trunc_trace(
+        sess,
+        start_pc=args.start_pc,
+        end_pc=args.end_pc,
+        start_func=args.start_func,
+        end_func=args.end_func,
+        force=args.force,
+    )
     sess.save()
 
 

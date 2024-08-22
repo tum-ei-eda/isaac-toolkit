@@ -130,6 +130,7 @@ def generate_etiss_core(
     force: bool = False,
     base_dir: str = "rv_base",
     tum_dir: str = ".",
+    skip_errors: bool = True,
 ):
     # artifacts = sess.artifacts
     # TODO: get combined_index.yml from artifacts!
@@ -139,6 +140,7 @@ def generate_etiss_core(
     set_out_model_file = workdir / f"{set_name}.m2isarmodel"
     core_out_cdsl_file = workdir / f"{core_name}.core_desc"
     set_out_cdsl_file = workdir / f"{set_name}.core_desc"
+    errs_file = workdir / "errs.txt"
     with open(combined_index_file, "r") as f:
         index_data = yaml.safe_load(f)
     # print("index_data", index_data)
@@ -207,11 +209,19 @@ def generate_etiss_core(
     extra_includes = ["/work/git/students/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
     # print("SSSS")
     name_idx = 0
+    errs = {}
     for set_name_, set_file in generated_sets:
         # print("set_name_", set_name_)
         # print("set_file", set_file)
         # input(">>>")
-        models = parse_cdsl2_set(set_file, extra_includes)
+        try:
+            models = parse_cdsl2_set(set_file, extra_includes)
+        except Exception as e:
+            errs[set_name_] = str(e)
+            if skip_errors:
+                logger.exception(e)
+            else:
+                raise e
         instr_sets = list(models.values())
         # for instr_set in instr_sets:
         #     print("instr_set", instr_set)
@@ -242,9 +252,10 @@ def generate_etiss_core(
         # break  # TODO
     unencoded_instructions_ = list(unencoded_instructions.values())
     encoded_instructions_ = encode_instructions(unencoded_instructions_)
+    print("encoded_instructions_", encoded_instructions_, len(encoded_instructions_))
     encoded_instructions = {(instr_def.code, instr_def.mask): instr_def for instr_def in encoded_instructions_}
     contributing_types.append(set_name)
-    # print("encoded_instructions", encoded_instructions)
+    print("encoded_instructions", encoded_instructions, len(encoded_instructions))
     instructions = {}
     instructions.update(encoded_instructions)
     # input("1")
@@ -294,6 +305,9 @@ def generate_etiss_core(
         f.write(set_includes_code)
         f.write("\n\n")
         f.write(set_cdsl_code)
+    with open(errs_file, "w") as f:
+        errs_text = "\n".join([f"{name}: {err}" for name, err in errs.items()])
+        f.write(errs_text)
     # input("!!")
 
 

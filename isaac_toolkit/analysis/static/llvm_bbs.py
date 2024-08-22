@@ -135,23 +135,25 @@ def parse_elf(elf_path):
 
         llvm_bb_addr_map = decode_map(llvm_bb_addr_map_raw, addr_to_func)
         # print("llvm_bb_addr_map", llvm_bb_addr_map)
-        for func_name in func_to_addrs.keys():
-            print(f"{func_name}:")
-            bbs = llvm_bb_addr_map.get(func_name, None)
-            # print("bbs", bbs)
-            # input("ww")
-            # PRINT_MISSING = False
-            PRINT_MISSING = True
-            if bbs is None:
-                if PRINT_MISSING:
-                    print("> no bb addr info found")
-                continue
-            if GISEL:
-                bbs = dict(sorted(bbs.items(), key=lambda x: int(x[0]))).values()
-            for i, bb in enumerate(bbs):
-                start, end, sz = bb
-                print(f"> bb{i}", ":", hex(start), "-", hex(end), f"(len={sz}B)")
-                print()
+        VERBOSE = False
+        if VERBOSE:
+            for func_name in func_to_addrs.keys():
+                print(f"{func_name}:")
+                bbs = llvm_bb_addr_map.get(func_name, None)
+                # print("bbs", bbs)
+                # input("ww")
+                # PRINT_MISSING = False
+                PRINT_MISSING = True
+                if bbs is None:
+                    if PRINT_MISSING:
+                        print("> no bb addr info found")
+                    continue
+                if GISEL:
+                    bbs = dict(sorted(bbs.items(), key=lambda x: int(x[0]))).values()
+                for i, bb in enumerate(bbs):
+                    start, end, sz = bb
+                    print(f"> bb{i}", ":", hex(start), "-", hex(end), f"(len={sz}B)")
+                    print()
     return llvm_bb_addr_map
 
 

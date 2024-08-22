@@ -76,7 +76,7 @@ def query_candidates_from_db(
         MIN_ISO_WEIGHT = 0.05
         MAX_LOADS = 1
         MAX_STORES = 1
-        MAX_MEMS = 1
+        MAX_MEMS = 0  # TODO
         MAX_BRANCHES = 1
         XLEN = 64  # TODO: do not hardcode
         args += [

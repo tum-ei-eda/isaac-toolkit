@@ -81,7 +81,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
     }
 
     artifact = TableArtifact(f"llvm_bbs_new", llvm_bbs_df, attrs=attrs)
-    print("artifact", artifact)
+    # print("artifact", artifact)
     sess.add_artifact(artifact, override=force)
 
 

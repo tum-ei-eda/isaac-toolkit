@@ -1,12 +1,9 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -15,7 +12,7 @@ from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_a
 logger = logging.getLogger("linker_map")
 
 
-def analyze_linker_map(mapFile):
+def analyze_linker_map_helper(mapFile):
     ret = []
     data = mapFile.toJson(humanReadable=False)
     segments = data["segments"]
@@ -35,21 +32,33 @@ def analyze_linker_map(mapFile):
             symbols = file["symbols"]
             for symbol in symbols:
                 symbol_name = symbol["name"]
-                new = {"segment": segment_name, "section": section_type, "symbol": symbol_name, "library": library_short, "library_full": library, "object": obj_short, "object_full": obj}
+                new = {
+                    "segment": segment_name,
+                    "section": section_type,
+                    "symbol": symbol_name,
+                    "library": library_short,
+                    "library_full": library,
+                    "object": obj_short,
+                    "object_full": obj,
+                }
                 ret.append(new)
     return ret
 
 
-def analyze_dwarf(sess: Session, force: bool = False):
+def analyze_linker_map(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    linker_map_artifacts = filter_artifacts(artifacts, lambda x: x.name == "linker.map" and x.flags & ArtifactFlag.PYTHON)
+    linker_map_artifacts = filter_artifacts(
+        artifacts, lambda x: x.name == "linker.map" and x.flags & ArtifactFlag.PYTHON
+    )
     assert len(linker_map_artifacts) == 1
     linker_map_artifact = linker_map_artifacts[0]
     mapFile = linker_map_artifact.data
 
-    symbol_map = analyze_linker_map(mapFile)
-    symbol_map_df = pd.DataFrame(symbol_map, columns=["segment", "section", "symbol", "object", "object_full", "library", "library_full"])
+    symbol_map = analyze_linker_map_helper(mapFile)
+    symbol_map_df = pd.DataFrame(
+        symbol_map, columns=["segment", "section", "symbol", "object", "object_full", "library", "library_full"]
+    )
 
     attrs = {
         "kind": "mapping",
@@ -65,7 +74,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    analyze_dwarf(sess, force=args.force)
+    analyze_linker_map(sess, force=args.force)
     sess.save()
 
 
