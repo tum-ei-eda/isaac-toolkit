@@ -42,11 +42,17 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         start = row["start"]
         end = row["end"]
         size = row["size"]
+        if size == 0:
+            continue
+        assert size > 0, "Encountered basic block with negative size"
         # num_instrs = row["num_instrs"]
         num_instrs = size // 4  # TODO: more generic
 
         def get_bb_freq_weight(df, start, end, num_instrs):
             # print("get_bb_freq", start, end, num_instrs)
+            if num_instrs == 0:
+                return 0, 0.0
+            assert num_instrs > 0
             matches = df.where(lambda x: x["pc"] >= start).dropna()
             # print("m1", matches)
             matches = matches.where(lambda x: x["pc"] < end).dropna()
