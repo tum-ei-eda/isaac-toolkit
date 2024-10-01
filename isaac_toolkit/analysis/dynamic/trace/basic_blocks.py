@@ -133,21 +133,34 @@ def collect_bbs(trace_df):
     # input("{}{}{}{}")
     first_pc = None
     # TODO: make this generic!
-    branch_instrs = ["jalr", "jal", "beq", "bne", "blt", "bge", "bltu", "bgeu", "ecall"]
+    branch_instrs = ["jalr", "jal", "beq", "bne", "blt", "bge", "bltu", "bgeu", "ecall", "cbnez", "cjr", "cj", "cbeqz", "cjalr", "cjal"]
     # bbs = []
     prev_pc = None
+    prev_size = None
     prev_instr = None
     for row in trace_df.itertuples(index=False):
         # print("row", row)
         pc = row.pc
         instr = row.instr
         instr = instr.strip()  # TODO: fix in frontend
-        sz = 4  # TODO: generalize
+        # def detect_compressed(name):
+        #     print("name", name)
+        #     if name[0] == "c":
+        #         return True
+        #     return False
+        # is_compressed = detect_compressed(instr)
+        is_compressed = row.size == 2
+        sz = 2 if is_compressed else 4
+        # print("sz", sz)
 
         if prev_pc:
+            # print("pc", pc)
+            # print("prev_pc", prev_pc)
+            # print("prev_size", prev_size)
             step = pc - prev_pc
-            if step in [2, 4]:
-                assert step == sz
+            # print("step", step)
+            if step in [2, 4] and step == prev_size:
+                pass
             else:
                 # is_jump = True
                 if first_pc is None:
