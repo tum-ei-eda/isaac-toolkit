@@ -19,6 +19,17 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False):
     df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
     df["instr"] = df["instr"].apply(lambda x: x.strip())
     df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
+
+    def detect_size(bytecode):
+        if bytecode[:2] == "0x":
+            return len(bytecode[2:]) / 2
+        elif bytecode[:2] == "0b":
+            return len(bytecode[2:]) / 8
+        else:
+            assert len(set(bytecode)) == 2
+            return len(bytecode) / 8
+
+    df["size"] =  df["bytecode"].apply(detect_size)
     df["bytecode"] = df["bytecode"].apply(
         lambda x: int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2))
     )
