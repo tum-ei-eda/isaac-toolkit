@@ -91,6 +91,7 @@ def parse_elf(elf_path):
                     if func_name is None:
                         func_name = f"unknown_func_{unknown_count}"
                         unknown_count += 1
+                    # TODO: leb128?
                     num_bbs = int.from_bytes(reader.read(1), byteorder="little")
                     # print("num_bbs", num_bbs)
                     # assert num_bbs > 0
@@ -101,8 +102,8 @@ def parse_elf(elf_path):
                     cur = func_addr
                     for i in range(num_bbs):
                         # print("i", i)
-                        bb_id = int.from_bytes(reader.read(1), byteorder="little")
-                        # print("bb_id", bb_id)
+                        # bb_id = int.from_bytes(reader.read(1), byteorder="little")
+                        bb_id = leb128.u.decode_reader(reader)[0]
                         if not GISEL:
                             assert bb_id < num_bbs
                         start_offset = leb128.u.decode_reader(reader)[0]
@@ -111,6 +112,7 @@ def parse_elf(elf_path):
                         end_offset = leb128.u.decode_reader(reader)[0]
                         # print("end_offset", end_offset)
                         assert end_offset >= 0
+                        # TODO: leb128?
                         metadata = int.from_bytes(reader.read(1), byteorder="little")
                         # print("metadata", metadata)
                         # TODO: decode metadata (is_return, is_call, ...)
@@ -118,6 +120,7 @@ def parse_elf(elf_path):
                         # print("rest", rest)
                         cur += start_offset
                         sz = end_offset - start_offset
+                        assert sz >= 0
                         start = cur
                         end = cur + sz
                         # print("sz", sz)
