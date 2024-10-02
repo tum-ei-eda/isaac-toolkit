@@ -3,6 +3,7 @@ import argparse
 from pathlib import Path
 
 from neo4j import GraphDatabase, Query
+import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
@@ -98,6 +99,8 @@ def annotate_bb_weights(sess: Session, label: str = "default", force: bool = Fal
             func_name = row["func_name"]
             bb_name = row["bb_name"]
             num_instrs = row["num_instrs"]
+            if not num_instrs or pd.isna(num_instrs):
+                continue
             freq = row["freq"]
             rel_weight = row["rel_weight"]
             anonotate_helper(driver, func_name, bb_name, num_instrs, freq, rel_weight, label=label, check=True)
