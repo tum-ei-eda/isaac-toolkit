@@ -147,12 +147,18 @@ def query_candidates_from_db(
         print("args", args)
         subprocess.run(args, check=True)
     combined_index_file = workdir / "combined_index.yml"
+    SORT_BY = "IsoWeight"
+    TOPK = 100
     combine_args = [
         "python3",
         "-m",
         "tool.combine_index",
         *index_files,
         "--drop",
+        "--sort-by",
+        SORT_BY,
+        "--topk",
+        TOPK,
         "--out",
         combined_index_file,
     ]
