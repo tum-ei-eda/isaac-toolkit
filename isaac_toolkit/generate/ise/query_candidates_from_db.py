@@ -203,7 +203,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    query_candidates_from_db(sess, force=args.force)
+    query_candidates_from_db(sess, workdir=args.workdir, label=args.label, stage=args.stage, force=args.force)
     sess.save()
 
 
@@ -214,6 +214,9 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--workdir", type=str, default=None)
+    parser.add_argument("--label", type=str, default=None)
+    parser.add_argument("--stage", type=int, default=8)
     # TODO: !
     return parser
 
