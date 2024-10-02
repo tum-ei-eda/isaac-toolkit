@@ -18,6 +18,37 @@ def query_candidates_from_db(
     label: Optional[str] = None,
     stage: int = 8,
     force: bool = False,
+    LIMIT_RESULTS=None,
+    # LIMIT_RESULTS = 1000,
+    # LIMIT_RESULTS = 500,
+    MIN_INPUTS=1,
+    # MAX_INPUTS = 3,
+    MAX_INPUTS=4,
+    MIN_OUTPUTS=0,
+    # MAX_OUTPUTS=1,
+    MAX_OUTPUTS=4,
+    MAX_NODES=int(1e3),
+    MAX_ENC_FOOTPRINT=1.0,
+    MAX_ENC_WEIGHT=1.0,
+    MIN_ENC_BITS_LEFT=5,
+    MIN_NODES=1,
+    MIN_PATH_LENGTH=1,
+    # MAX_PATH_LENGTH = 3,
+    MAX_PATH_LENGTH=5,
+    MAX_PATH_WIDTH=2,
+    # MAX_PATH_WIDTH = 4,
+    INSTR_PREDICATES=511,  # ALL?
+    IGNORE_NAMES=None,
+    IGNORE_OP_TYPES=None,
+    ALLOWED_ENC_SIZES=[32],
+    # MIN_ISO_WEIGHT = 0.05,
+    MIN_ISO_WEIGHT=0.03,
+    MAX_LOADS=1,
+    MAX_STORES=1,
+    MAX_MEMS=0,  # TODO
+    MAX_BRANCHES: Optional[int] = 1,
+    XLEN: Optional[int] = 64,  # TODO: do not hardcode
+    ENABLE_VARIATION_REUSE_IO=False,
 ):
     artifacts = sess.artifacts
     choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
@@ -52,33 +83,6 @@ def query_candidates_from_db(
             "-m",
             "tool.main",
         ]
-        LIMIT_RESULTS = None
-        # LIMIT_RESULTS = 1000
-        # LIMIT_RESULTS = 500
-        MIN_INPUTS = 1
-        # MAX_INPUTS = 3
-        MAX_INPUTS = 4
-        MIN_OUTPUTS = 0
-        MAX_OUTPUTS = 1
-        MAX_OUTPUTS = 4
-        MAX_NODES = None
-        MAX_ENC_FOOTPRINT = 1.0
-        MAX_ENC_WEIGHT = 1.0
-        MIN_ENC_BITS_LEFT = 5
-        MIN_NODES = 1
-        MIN_PATH_LENGTH = 1
-        MAX_PATH_LENGTH = 3
-        MAX_PATH_WIDTH = 1
-        INSTR_PREDICATES = 511  # ALL?
-        IGNORE_NAMES = None
-        IGNORE_OP_TYPES = None
-        ALLOWED_ENC_SIZES = [32]
-        MIN_ISO_WEIGHT = 0.05
-        MAX_LOADS = 1
-        MAX_STORES = 1
-        MAX_MEMS = 0  # TODO
-        MAX_BRANCHES = 1
-        XLEN = 64  # TODO: do not hardcode
         args += [
             *["--progress"],
             *["--times"],
