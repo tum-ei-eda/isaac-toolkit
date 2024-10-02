@@ -31,12 +31,14 @@ def choose_bbs(
     )
     assert len(llvm_bbs_artifacts) == 1
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
-    llvm_bbs_df = llvm_bbs_artifact.df
+    llvm_bbs_df = llvm_bbs_artifact.df.copy()
     # print("llvm_bbs_df", llvm_bbs_df)
     sum_weights = 0.0
     choices = []
     for index, row in llvm_bbs_df.sort_values("rel_weight", ascending=False).iterrows():
         rel_weight = row["rel_weight"]
+        if pd.isna(rel_weight):
+            continue
         if rel_weight < min_weight:
             continue
         func_name = row["func_name"]
