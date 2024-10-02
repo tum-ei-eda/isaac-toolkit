@@ -133,6 +133,9 @@ def generate_etiss_core(
     # artifacts = sess.artifacts
     # TODO: get combined_index.yml from artifacts!
     assert workdir is not None
+    if not isinstance(workdir, Path):
+        workdir = Path(workdir)
+    assert workdir.is_dir()
     combined_index_file = workdir / "combined_index.yml"
     core_out_model_file = workdir / f"{core_name}.m2isarmodel"
     set_out_model_file = workdir / f"{set_name}.m2isarmodel"
