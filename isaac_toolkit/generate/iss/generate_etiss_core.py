@@ -15,7 +15,6 @@ from m2isar.backends.coredsl2_set.writer import gen_cdsl_code
 from m2isar.transforms.encode_instructions.encoder import encode_instructions
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 
 
 logger = logging.getLogger("llvm_bbs")
@@ -106,7 +105,7 @@ def get_includes_code(includes: List[Union[str, Path]], prefix: str = ""):
 
 
 # def generate_base_core
-#     core_name: str = "ISAACCore",
+#     core_name: str = "IsaacCore",
 #     xlen: int = 32,
 #     ignore_etiss: bool = False,
 #     semihosting: bool = True,
@@ -118,13 +117,12 @@ def get_includes_code(includes: List[Union[str, Path]], prefix: str = ""):
 def generate_etiss_core(
     sess: Session,
     workdir: Optional[Union[str, Path]] = None,
-    core_name: str = "ISAACCore",
+    core_name: str = "IsaacCore",
     set_name: str = "XIsaac",
     xlen: int = 32,
     ignore_etiss: bool = False,
     semihosting: bool = True,
     base_extensions: List[str] = ["i", "m", "a", "f", "d", "c", "zifencei"],
-    # etiss_overrides: List[str] = ["tum_csr", "tum_ret", "tum_rva", "tum_semihosting"],
     auto_encoding: bool = True,
     split: bool = True,  # One set per new instr
     force: bool = False,
@@ -316,7 +314,22 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    generate_etiss_core(sess, force=args.force)
+    generate_etiss_core(
+        sess,
+        force=args.force,
+        workdir=args.workdir,
+        core_name=args.core_name,
+        set_name=args.set_name,
+        xlen=args.xlen,
+        ignore_etiss=args.ignore_etiss,
+        semihosting=args.semihosting,
+        base_extensions=args.base_extensions.split(","),
+        auto_encoding=args.auto_encoding,
+        split=args.split,
+        base_dir=args.base_dir,
+        tum_dir=args.tum_dir,
+        skip_errors=args.skip_errors,
+    )
     sess.save()
 
 
@@ -327,7 +340,19 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
-    # TODO: !
+    parser.add_argument("--workdir", type=str, default=None)
+    parser.add_argument("--core-name", type=str, default="IsaacCore")
+    parser.add_argument("--set-name", type=str, default="XIsaac")
+    parser.add_argument("--xlen", type=int, default=32)
+    parser.add_argument("--ignore_etiss", action="store_true")
+    parser.add_argument("--semihosting", action="store_true")
+    parser.add_argument("--base-extensions", type=str, default="i,m,a,f,d,c,zifencei")
+    parser.add_argument("--auto-encoding", action="store_true")
+    parser.add_argument("--split", action="store_true")
+    parser.add_argument("--base-dir", type=str, default="rv_base")
+    parser.add_argument("--tum-dir", type=str, default=".")
+    parser.add_argument("--skip-errors", action="store_true")
+
     return parser
 
 
