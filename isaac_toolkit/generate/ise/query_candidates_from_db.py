@@ -184,10 +184,18 @@ def query_candidates_from_db(
         "tool.gen.flat",
         *generate_args,
     ]
+    generate_fuse_cdsl_args = [
+        "python3",
+        "-m",
+        "tool.gen.fuse_cdsl",
+        *generate_args,
+    ]
     print("generate_cdsl_args", generate_cdsl_args)
     print("generate_flat_args", generate_flat_args)
+    print("generate_fuse_cdsl_args", generate_fuse_cdsl_args)
     subprocess.run(generate_cdsl_args, check=True)
     subprocess.run(generate_flat_args, check=True)
+    subprocess.run(generate_fuse_cdsl_args, check=True)
 
 
 def handle(args):
