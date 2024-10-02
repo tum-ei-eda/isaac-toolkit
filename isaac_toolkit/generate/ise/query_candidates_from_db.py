@@ -42,10 +42,13 @@ def query_candidates_from_db(
     MIN_ISO_WEIGHT=0.03,
     MAX_LOADS=1,
     MAX_STORES=1,
-    MAX_MEMS=0,  # TODO
+    MAX_MEMS: Optional[int] = 0,  # TODO
     MAX_BRANCHES: Optional[int] = 1,
     XLEN: Optional[int] = 64,  # TODO: do not hardcode
     ENABLE_VARIATION_REUSE_IO=False,
+    HALT_ON_ERROR: bool = True,
+    SORT_BY: Optional[str] = "IsoWeight",
+    TOPK: Optional[int] = 100,
 ):
     artifacts = sess.artifacts
     choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
@@ -114,6 +117,7 @@ def query_candidates_from_db(
             *(["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))] if ALLOWED_ENC_SIZES is not None else []),
             *(["--xlen", str(XLEN)] if XLEN is not None else []),
             *(["--enable-variation-reuse-io"] if ENABLE_VARIATION_REUSE_IO else []),  # TODO: use FLT instead?
+            *(["--halt-on-error"] if HALT_ON_ERROR else []),  # TODO: use FLT instead?
             *["--write-func"],
             # *["--write-func-fmt", WRITE_FUNC_FMT],
             # *["--write-func-flt", WRITE_FUNC_FLT],
@@ -144,18 +148,14 @@ def query_candidates_from_db(
         print("args", args)
         subprocess.run(args, check=True)
     combined_index_file = workdir / "combined_index.yml"
-    SORT_BY = "IsoWeight"
-    TOPK = 100
     combine_args = [
         "python3",
         "-m",
         "tool.combine_index",
         *index_files,
         "--drop",
-        "--sort-by",
-        SORT_BY,
-        "--topk",
-        TOPK,
+        *(["--sort-by", SORT_BY] if SORT_BY is not None else []),
+        *(["--topk", str(TOPK)] if TOPK is not None else []),
         "--out",
         combined_index_file,
     ]
