@@ -79,7 +79,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    choose_bbs(threshold=args.threshold, min_weight=args.min_weight, max_num=args.max_num, force=args.force)
+    choose_bbs(sess, threshold=args.threshold, min_weight=args.min_weight, max_num=args.max_num, force=args.force)
     sess.save()
 
 
@@ -90,6 +90,9 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--min-weight", type=float, default=0.01)
+    parser.add_argument("--max-num", type=int, default=None)
+    parser.add_argument("--threshold", type=float, default=0.9)
     # TODO: !
     return parser
 
