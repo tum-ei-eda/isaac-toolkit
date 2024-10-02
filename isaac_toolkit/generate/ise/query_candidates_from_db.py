@@ -116,6 +116,7 @@ def query_candidates_from_db(
             *(["--ignore-op-types", str(IGNORE_OP_TYPES)] if IGNORE_OP_TYPES is not None else []),
             *(["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))] if ALLOWED_ENC_SIZES is not None else []),
             *(["--xlen", str(XLEN)] if XLEN is not None else []),
+            *(["--enable-variation-reuse-io"] if ENABLE_VARIATION_REUSE_IO else []),  # TODO: use FLT instead?
             *["--write-func"],
             # *["--write-func-fmt", WRITE_FUNC_FMT],
             # *["--write-func-flt", WRITE_FUNC_FLT],
