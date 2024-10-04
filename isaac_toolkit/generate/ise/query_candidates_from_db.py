@@ -24,7 +24,9 @@ def query_candidates_from_db(
     MAX_INPUTS: Optional[int] = 4,
     MIN_OUTPUTS: Optional[int] = 0,
     MAX_OUTPUTS: Optional[int] = 4,
+    # TODO: implement topk!
     MAX_NODES: Optional[int] = int(1e3),
+    # MAX_NODES: Optional[int] = int(5),
     MAX_ENC_FOOTPRINT: Optional[float] = 1.0,
     MAX_ENC_WEIGHT: Optional[float] = 1.0,
     MIN_ENC_BITS_LEFT: Optional[int] = 5,
@@ -44,8 +46,10 @@ def query_candidates_from_db(
     MAX_STORES=1,
     MAX_MEMS: Optional[int] = 0,  # TODO
     MAX_BRANCHES: Optional[int] = 1,
-    XLEN: Optional[int] = 64,  # TODO: do not hardcode
+    # XLEN: Optional[int] = 64,  # TODO: do not hardcode
+    XLEN: Optional[int] = 32,  # TODO: do not hardcode
     ENABLE_VARIATION_REUSE_IO=False,
+    # ENABLE_VARIATION_REUSE_IO=True,
     HALT_ON_ERROR: bool = True,
     SORT_BY: Optional[str] = "IsoWeight",
     TOPK: Optional[int] = 100,
@@ -67,6 +71,9 @@ def query_candidates_from_db(
     for index, row in choices_df.iterrows():
         # print("index", index)
         # print("row", row)
+        # if index != 1:
+        #     continue
+        # input(">")
         func_name = row["func_name"]
         bb_name = row["bb_name"]
         print("func_name", func_name)
