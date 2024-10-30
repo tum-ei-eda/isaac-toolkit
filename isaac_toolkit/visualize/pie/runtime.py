@@ -103,7 +103,9 @@ def create_runtime_pie_plots(
             if x is None:
                 return "?"
             if isinstance(x, set):
-                assert len(x) == 1
+                # assert len(x) == 1
+                assert len(x) > 0
+                # Only pick first element if alias exists
                 return list(x)[0]
             return x
 
