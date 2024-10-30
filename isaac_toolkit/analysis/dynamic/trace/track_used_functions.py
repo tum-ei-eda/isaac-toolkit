@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
     df = footprint_df.copy()
+    trace_df_unique = trace_df[["pc"]].drop_duplicates()
     df["Used"] = False
     func2pc_df[["start", "end"]] = func2pc_df["pc_range"].apply(pd.Series)
     # print("footprint_df", footprint_df)
@@ -33,7 +34,7 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
         start_pc, end_pc = pc_range
         if end_pc < 0:
             continue
-        matches = trace_df.where(lambda x: x["pc"] >= start_pc).dropna()
+        matches = trace_df_unique.where(lambda x: x["pc"] >= start_pc).dropna()
         matches = matches.where(lambda x: x["pc"] < end_pc).dropna()
         if len(matches) > 0:
             # print("matches", matches)
@@ -77,7 +78,7 @@ def track_unused_functions(sess: Session, force: bool = False):
         "by": __name__,
     }
 
-    effective_mem_footprint_artifact = TableArtifact(f"effective_mem_footprint", effective_footprint_df, attrs=attrs)
+    effective_mem_footprint_artifact = TableArtifact("effective_mem_footprint", effective_footprint_df, attrs=attrs)
     sess.add_artifact(effective_mem_footprint_artifact, override=force)
 
 
