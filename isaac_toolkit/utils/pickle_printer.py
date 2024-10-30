@@ -1,10 +1,12 @@
 import sys
 import pickle
+import argparse
 
 import pandas as pd
 
 
 # TODO: argparse (--mem, ...)
+
 
 def print_memory_footprint(df):
     print("================")
@@ -17,24 +19,45 @@ def print_memory_footprint(df):
     print("TOTAL:", total)
 
 
-def main():
-    assert len(sys.argv) == 2, "Unexpected number of arguments"
-    # TODO: argparse
-    file = sys.argv[1]
-    with open(file, "rb") as f:
+def handle(args):
+    with open(args.file, "rb") as f:
         data = pickle.load(f)
-    # PRINT = False
-    PRINT = True
-    if PRINT:
+    if not args.skip_print:
         print("Unpickled Data:")
-        with pd.option_context("display.max_rows", None, "display.max_columns", None, "display.width", None, "max_colwidth", 150):
+        with pd.option_context(
+            "display.max_rows",
+            args.max_rows,
+            "display.max_columns",
+            args.max_columns,
+            "display.width",
+            None,
+            "max_colwidth",
+            150,
+        ):
             print(data)
+            print(f"len={len(data)}")
 
-    MEM = True
-    if MEM:
-       print_memory_footprint(data)
+    if args.memory:
+        assert isinstance(data, (pd.DataFrame, pd.Series)), "Memory footprint only available for pandas types"
+        print_memory_footprint(data)
 
+
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file")
+    parser.add_argument("--skip-print", action="store_true")
+    parser.add_argument("--memory", action="store_true")
+    parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument("--max-columns", type=int, default=None)
+    # TODO: allow overriding memgraph config?
+    return parser
+
+
+def main(argv):
+    parser = get_parser()
+    args = parser.parse_args(argv)
+    handle(args)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
