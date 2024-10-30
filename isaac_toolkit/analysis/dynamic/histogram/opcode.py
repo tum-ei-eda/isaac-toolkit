@@ -90,8 +90,10 @@ def decode_opcode(instr_word: Union[str, int]):
 
 
 def collect_opcodes(trace_df):
-    trace_df["opcode"] = trace_df["bytecode"].apply(lambda x: decode_opcode(x))
-    opcodes = trace_df["opcode"].value_counts().to_dict()
+    # avoid modifying original df and copying whole df
+    temp_df = trace_df[["bytecode"]].copy()
+    temp_df["opcode"] = temp_df["bytecode"].apply(lambda x: decode_opcode(x))
+    opcodes = temp_df["opcode"].value_counts().to_dict()
     opcodes_data = []
     for opcode_name, opcode_count in opcodes.items():
         opcode_data = {"opcode": opcode_name, "count": opcode_count}
