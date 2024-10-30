@@ -37,7 +37,9 @@ def plot_pie_data(series, y, threshold: float = 0.1, title: str = "Pie Chart", l
         labeldistance=1 if not legend else None,
     )
     if legend:
-        plot.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
+        # Matplotlibs hides legend labels starting with an '_'...
+        labels = [f" {x}" if str(x).startswith("_") else x for x in series.index]
+        plt.legend(labels, loc="center left", bbox_to_anchor=(1.0, 0.5))
     return plot
 
 
