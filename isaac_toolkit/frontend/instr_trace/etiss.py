@@ -1,58 +1,77 @@
+import time
 import sys
 import pandas as pd
 import argparse
 from pathlib import Path
 
+from tqdm import tqdm
+
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, InstrTraceArtifact
+from isaac_toolkit.session.artifact import InstrTraceArtifact
 
 
 # TODO: logger
 
 
-def load_instr_trace(sess: Session, input_file: Path, force: bool = False):
+def load_instr_trace(sess: Session, input_file: Path, force: bool = False, operands: bool = False):
     assert input_file.is_file()
     name = input_file.name
-    df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
-    df["pc"] = df["pc"].apply(lambda x: int(x, 0))
-    # TODO: normalize instr names
-    df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
-    df["instr"] = df["instr"].apply(lambda x: x.strip())
-    df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
+    # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
+    dfs = []
+    with pd.read_csv(input_file, sep=":", names=["pc", "rest"], chunksize=2**22) as reader:
+        for df in tqdm(reader, disable=False):
+            # print("A", time.time())
+            df["pc"] = df["pc"].apply(lambda x: int(x, 0))
+            df["pc"] = pd.to_numeric(df["pc"])
+            # print("B", time.time())
+            # TODO: normalize instr names
+            df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
+            df["instr"] = df["instr"].astype("category")
+            # print("C", time.time())
+            df["instr"] = df["instr"].apply(lambda x: x.strip())
+            # print("D", time.time())
+            df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
+            # print("E", time.time())
 
-    def detect_size(bytecode):
-        if bytecode[:2] == "0x":
-            return len(bytecode[2:]) / 2
-        elif bytecode[:2] == "0b":
-            return len(bytecode[2:]) / 8
-        else:
-            assert len(set(bytecode)) == 2
-            return len(bytecode) / 8
+            def detect_size(bytecode):
+                if bytecode[:2] == "0x":
+                    return len(bytecode[2:]) // 2
+                elif bytecode[:2] == "0b":
+                    return len(bytecode[2:]) // 8
+                else:
+                    assert len(set(bytecode)) == 2
+                    return len(bytecode) // 8
 
-    df["size"] =  df["bytecode"].apply(detect_size)
-    df["bytecode"] = df["bytecode"].apply(
-        lambda x: int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2))
-    )
-    MEM_OPTIMIZED = True
-    if MEM_OPTIMIZED:
-        df["instr"] = df["instr"].astype("category")
-        df["pc"] = pd.to_numeric(df["pc"])
-        df["bytecode"] = pd.to_numeric(df["bytecode"])
+            df["size"] = df["bytecode"].apply(detect_size)
+            df["size"] = df["size"].astype("category")
+            # print("F", time.time())
+            df["bytecode"] = df["bytecode"].apply(
+                lambda x: int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2))
+            )
+            df["bytecode"] = pd.to_numeric(df["bytecode"])
+            # print("H", time.time())
 
-    def convert(x):
-        ret = {}
-        for y in x:
-            if len(y.strip()) == 0:
-                continue
-            assert "=" in y
-            k, v = y.split("=", 1)
-            assert k not in ret
-            ret[k] = int(v)
-        return ret
+            def convert(x):
+                ret = {}
+                for y in x:
+                    if len(y.strip()) == 0:
+                        continue
+                    assert "=" in y
+                    k, v = y.split("=", 1)
+                    assert k not in ret
+                    ret[k] = int(v)
+                return ret
 
-    df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
-    # df.drop(columns=["operands"], inplace=True)
-    df.drop(columns=["rest"], inplace=True)
+            if operands:
+                df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
+            else:
+                df.drop(columns=["operands"], inplace=True)
+            df.drop(columns=["rest"], inplace=True)
+            # print("I", time.time())
+            dfs.append(df)
+    df = pd.concat(dfs, axis=0)
+    df["instr"] = df["instr"].astype("category")
+    df["size"] = df["size"].astype("category")
 
     attrs = {
         "simulator": "etiss",
@@ -69,7 +88,7 @@ def handle(args):
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
     input_file = Path(args.file)
-    load_instr_trace(sess, input_file, force=args.force)
+    load_instr_trace(sess, input_file, force=args.force, operands=args.operands)
     sess.save()
 
 
@@ -81,6 +100,7 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--operands", action="store_true")
     return parser
 
 
