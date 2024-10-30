@@ -218,7 +218,9 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    create_mem_footprint_pie_plots(sess, threshold=args.threshold, topk=args.topk, legend=args.legend, force=args.force)
+    create_mem_footprint_pie_plots(
+        sess, threshold=args.threshold, topk=args.topk, legend=args.legend, force=args.force, fmt=args.fmt
+    )
     sess.save()
 
 
@@ -231,6 +233,7 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--legend", action="store_true")
     parser.add_argument("--threshold", type=float, default=0.1)
+    parser.add_argument("--fmt", type=str, choices=["jpg", "png", "pdf"], default="jpg")
     parser.add_argument("--topk", type=int, default=9)
     # TODO: !
     return parser
