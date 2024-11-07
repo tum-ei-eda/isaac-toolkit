@@ -61,7 +61,7 @@ def get_cdsl_includes(sets: List[str], base_dir: Union[str, Path] = "rv_base", t
     # Reverse lookup required!
     cdsl_includes = {
         "RISCVBase.core_desc": ["RISCVBase"],
-        "RV32I.core_desc": ["RV32I", "Zicsr", "Zifencei", "RVNMode", "RVSMode", "RVDebug"],
+        # "RV32I.core_desc": ["RV32I", "Zicsr", "Zifencei", "RVNMode", "RVSMode", "RVDebug"],
         "RV64I.core_desc": ["RV64I"],
         "RVA.core_desc": ["RV32A", "RV64A"],
         "RVC.core_desc": ["RV32IC", "RV32FC", "RV32DC", "RV64IC", "RV64FC", "RV64DC", "RV128IC"],
@@ -122,7 +122,7 @@ def generate_etiss_core(
     xlen: int = 32,
     ignore_etiss: bool = False,
     semihosting: bool = True,
-    base_extensions: List[str] = ["i", "m", "a", "f", "d", "c", "zifencei"],
+    base_extensions: List[str] = ["i", "m", "a", "f", "d", "c", "zifencei", "zicsr"],
     auto_encoding: bool = True,
     split: bool = True,  # One set per new instr
     force: bool = False,
@@ -275,7 +275,8 @@ def generate_etiss_core(
         intrinsics=intrinsics,
     )
     extension = [f"RV{xlen}I"]  # TODO: add include?
-    set_includes = get_cdsl_includes(extension, base_dir=base_dir, tum_dir=tum_dir)
+    # set_includes = get_cdsl_includes(extension, base_dir=base_dir, tum_dir=tum_dir)
+    set_includes = []  # TODO: fix duplicate includes
     set_includes_code = get_includes_code(set_includes)
     generated_set = m2isar.metamodel.arch.InstructionSet(
         name=set_name,
