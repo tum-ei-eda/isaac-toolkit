@@ -30,7 +30,7 @@ def query_candidates_from_db(
     MAX_ENC_FOOTPRINT: Optional[float] = 1.0,
     MAX_ENC_WEIGHT: Optional[float] = 1.0,
     MIN_ENC_BITS_LEFT: Optional[int] = 5,
-    MIN_NODES: Optional[int] = 1,
+    MIN_NODES: Optional[Union[int, str]] = "auto",
     MIN_PATH_LENGTH: Optional[int] = 1,
     # MAX_PATH_LENGTH = 3,
     MAX_PATH_LENGTH=5,
@@ -40,8 +40,7 @@ def query_candidates_from_db(
     IGNORE_NAMES=None,
     IGNORE_OP_TYPES=None,
     ALLOWED_ENC_SIZES=[32],
-    # MIN_ISO_WEIGHT = 0.05,
-    MIN_ISO_WEIGHT=0.03,
+    MIN_ISO_WEIGHT=0.05,
     MAX_LOADS=1,
     MAX_STORES=1,
     MAX_MEMS: Optional[int] = 0,  # TODO
@@ -76,6 +75,8 @@ def query_candidates_from_db(
         # input(">")
         func_name = row["func_name"]
         bb_name = row["bb_name"]
+        rel_weight = row["rel_weight"]
+        num_instrs = row["num_instrs"]
         print("func_name", func_name)
         print("bb_name", bb_name)
         out_name = f"{func_name}_{bb_name}_0"
@@ -85,6 +86,33 @@ def query_candidates_from_db(
         index_file = out_dir / "index.yml"
         index_files.append(index_file)
         # TODO: to not hardcode this, call directly via python
+        SCALE_WEIGHT = True
+
+        min_iso_weight = MIN_ISO_WEIGHT
+        if SCALE_WEIGHT:
+            if min_iso_weight is not None:
+                min_iso_weight *= rel_weight
+                # TODO: div by ?
+                min_iso_weight = min(max(0.0, min_iso_weight), 1.0)
+
+        # dynamically determine min_nodes
+        min_nodes = MIN_NODES
+        if isinstance(min_nodes, str):
+            assert min_nodes == "auto"
+            assert num_instrs != 0
+            assert rel_weight > 0.0
+            weight_per_instr = rel_weight / num_instrs
+            assert weight_per_instr > 0.0
+            min_nodes = None
+            if min_iso_weight is not None:
+                required_instrs = min_iso_weight / weight_per_instr
+                # TODO: div by 2 to consider ISOs
+                required_instrs = int(required_instrs + 0.5)  # TODO: round?
+                required_instrs = max(1, required_instrs)
+                if MAX_NODES is not None:
+                    required_instrs = min(required_instrs, MAX_NODES)
+                min_nodes = required_instrs
+
         args = [
             "python3",
             "-m",
@@ -106,7 +134,7 @@ def query_candidates_from_db(
             *(["--min-outputs", str(MIN_OUTPUTS)] if MIN_OUTPUTS is not None else []),
             *(["--max-outputs", str(MAX_OUTPUTS)] if MAX_OUTPUTS is not None else []),
             *(["--max-nodes", str(MAX_NODES)] if MAX_NODES is not None else []),
-            *(["--min-nodes", str(MIN_NODES)] if MIN_NODES is not None else []),
+            *(["--min-nodes", str(min_nodes)] if min_nodes is not None else []),
             *(["--max-loads", str(MAX_LOADS)] if MAX_LOADS is not None else []),
             *(["--max-loads", str(MAX_STORES)] if MAX_STORES is not None else []),
             *(["--max-mems", str(MAX_MEMS)] if MAX_MEMS is not None else []),
@@ -117,7 +145,7 @@ def query_candidates_from_db(
             *(["--min-path-length", str(MIN_PATH_LENGTH)] if MIN_PATH_LENGTH is not None else []),
             *(["--max-path-length", str(MAX_PATH_LENGTH)] if MAX_PATH_LENGTH is not None else []),
             *(["--max-path-width", str(MAX_PATH_WIDTH)] if MAX_PATH_WIDTH is not None else []),
-            *(["--min-iso-weight", str(MIN_ISO_WEIGHT)] if MIN_ISO_WEIGHT is not None else []),
+            *(["--min-iso-weight", str(min_iso_weight)] if min_iso_weight is not None else []),
             *(["--instr-predicates", str(INSTR_PREDICATES)] if INSTR_PREDICATES is not None else []),
             *(["--ignore-names", IGNORE_NAMES] if IGNORE_NAMES is not None else []),
             *(["--ignore-op-types", str(IGNORE_OP_TYPES)] if IGNORE_OP_TYPES is not None else []),
