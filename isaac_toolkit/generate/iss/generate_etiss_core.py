@@ -38,7 +38,7 @@ def get_cdsl_sets(ext: str, xlen: int = 32, compressed: bool = False):
 
 def apply_etiss_overrides(sets: List[str], semihosting: bool = True):
     etiss_overrides = {
-        "zicsr": "tum_csr",
+        "Zicsr": "tum_csr",
         "RV32A": "tum_rva",
         "RV64A": "tum_rva64",
         "RV64M": "tum_rvm",
@@ -67,7 +67,7 @@ def get_cdsl_includes(sets: List[str], base_dir: Union[str, Path] = "rv_base", t
         "RVC.core_desc": ["RV32IC", "RV32FC", "RV32DC", "RV64IC", "RV64FC", "RV64DC", "RV128IC"],
         "RVD.core_desc": ["RV32D", "RV64D"],
         "RVF.core_desc": ["RV32F", "RV64F"],
-        # "RVI.core_desc": ["RV32I", "RV64I", "Zicsr", "Zifencei", "RVNMode", "RVSMode", "RVDebug"],
+        "RVI.core_desc": ["RV32I", "RV64I", "Zicsr", "Zifencei", "RVNMode", "RVSMode", "RVDebug"],
         "RVM.core_desc": ["RV32M", "RV64M"],
         "tum_rvm.core_desc": ["tum_rvm"],
         "tum_rva.core_desc": ["tum_rva", "tum_rva64"],
@@ -141,6 +141,7 @@ def generate_etiss_core(
     set_out_model_file = workdir / f"{set_name}.m2isarmodel"
     core_out_cdsl_file = workdir / f"{core_name}.core_desc"
     set_out_cdsl_file = workdir / f"{set_name}.core_desc"
+    set_hls_out_cdsl_file = workdir / f"{set_name}.hls.core_desc"
     errs_file = workdir / "errs.txt"
     with open(combined_index_file, "r") as f:
         index_data = yaml.safe_load(f)
@@ -175,18 +176,19 @@ def generate_etiss_core(
         all_cdsl_sets = apply_etiss_overrides(all_cdsl_sets, semihosting=semihosting)
     # print("all_cdsl_sets", all_cdsl_sets)
     core_includes = get_cdsl_includes(all_cdsl_sets, base_dir=base_dir, tum_dir=tum_dir)
-    core_includes.add(set_out_cdsl_file)
+    core_includes.add(set_out_cdsl_file.resolve())
     # print("cdsl_includes", cdsl_includes)
     core_includes_code = get_includes_code(core_includes)
     constants = {}
     memories = {}
     unencoded_instructions = {}
     constants["XLEN"] = m2isar.metamodel.arch.Constant("XLEN", value=xlen, attributes={}, size=None, signed=False)
-    if ignore_etiss:
+    # if ignore_etiss:
+    if True:
         main_reg = m2isar.metamodel.arch.Memory(
             "X",
             m2isar.metamodel.arch.RangeSpec(32),
-            size=32,
+            size=xlen,
             attributes={m2isar.metamodel.arch.MemoryAttribute.IS_MAIN_REG: []},
         )
         main_mem = m2isar.metamodel.arch.Memory(
@@ -207,7 +209,8 @@ def generate_etiss_core(
     functions = {}
     intrinsics = {}
     contributing_types = all_cdsl_sets
-    extra_includes = ["/work/git/students/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
+    # extra_includes = ["/work/git/students/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
+    extra_includes = ["/mnt/wd8tb/Data/students_archive/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
     # print("SSSS")
     name_idx = 0
     errs = {}
@@ -275,9 +278,10 @@ def generate_etiss_core(
         intrinsics=intrinsics,
     )
     extension = [f"RV{xlen}I"]  # TODO: add include?
-    # set_includes = get_cdsl_includes(extension, base_dir=base_dir, tum_dir=tum_dir)
-    set_includes = []  # TODO: fix duplicate includes
+    set_includes = get_cdsl_includes(extension, base_dir=base_dir, tum_dir=tum_dir)
     set_includes_code = get_includes_code(set_includes)
+    set_hls_includes = []  # TODO: fix duplicate includes
+    set_hls_includes_code = get_includes_code(set_hls_includes)
     generated_set = m2isar.metamodel.arch.InstructionSet(
         name=set_name,
         extension=extension,
@@ -307,6 +311,13 @@ def generate_etiss_core(
         f.write(set_includes_code)
         f.write("\n\n")
         f.write(set_cdsl_code)
+    model_obj.sets[set_name].memories["X"] = main_reg
+    model_obj.sets[set_name].extension = []
+    set_hls_cdsl_code = gen_cdsl_code(model_obj, with_includes=False, legacy=True)
+    with open(set_hls_out_cdsl_file, "w") as f:
+        f.write(set_hls_includes_code)
+        f.write("\n\n")
+        f.write(set_hls_cdsl_code)
     with open(errs_file, "w") as f:
         errs_text = "\n".join([f"{name}: {err}" for name, err in errs.items()])
         f.write(errs_text)
