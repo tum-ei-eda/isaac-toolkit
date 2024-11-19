@@ -124,8 +124,12 @@ def create_runtime_pie_plots(
         )
         runtime_per_func_plot_file = plots_dir / f"runtime_per_func.{fmt}"
         if runtime_per_func_plot_file.is_file():
-            assert force, "File already exists: {runtime_per_func_plot_file}"
-        runtime_per_func_plot.get_figure().savefig(runtime_per_func_plot_file, bbox_inches="tight")
+            assert force, f"File already exists: {runtime_per_func_plot_file}"
+        runtime_per_func_plot.get_figure().savefig(
+            runtime_per_func_plot_file,
+            bbox_inches="tight",
+            dpi=300,
+        )
         plt.close()
         if symbol_map_df is not None:
             # library
@@ -136,8 +140,12 @@ def create_runtime_pie_plots(
             )
             runtime_per_library_plot_file = plots_dir / f"runtime_per_library.{fmt}"
             if runtime_per_library_plot_file.is_file():
-                assert force, "File already exists: {runtime_per_library_plot_file}"
-            runtime_per_library_plot.get_figure().savefig(runtime_per_library_plot_file, bbox_inches="tight")
+                assert force, f"File already exists: {runtime_per_library_plot_file}"
+            runtime_per_library_plot.get_figure().savefig(
+                runtime_per_library_plot_file,
+                bbox_inches="tight",
+                dpi=300,
+            )
             plt.close()
             # object
             object_runtime_df = agg_library_runtime(runtime_df, symbol_map_df, by="object", col="rel_weight")
@@ -147,8 +155,12 @@ def create_runtime_pie_plots(
             )
             runtime_per_object_plot_file = plots_dir / f"runtime_per_object.{fmt}"
             if runtime_per_object_plot_file.is_file():
-                assert force, "File already exists: {runtime_per_object_plot_file}"
-            runtime_per_object_plot.get_figure().savefig(runtime_per_object_plot_file, bbox_inches="tight")
+                assert force, f"File already exists: {runtime_per_object_plot_file}"
+            runtime_per_object_plot.get_figure().savefig(
+                runtime_per_object_plot_file,
+                bbox_inches="tight",
+                dpi=300,
+            )
             plt.close()
     if instrs_hist_df is not None:
         instrs_hist_data = generate_pie_data(instrs_hist_df, x="instr", y="rel_count", topk=topk)
@@ -157,8 +169,12 @@ def create_runtime_pie_plots(
         )
         instrs_hist_plot_file = plots_dir / f"runtime_per_instr.{fmt}"
         if instrs_hist_plot_file.is_file():
-            assert force, "File already exists: {instrs_hist_plot_file}"
-        instrs_hist_plot.get_figure().savefig(instrs_hist_plot_file, bbox_inches="tight")
+            assert force, f"File already exists: {instrs_hist_plot_file}"
+        instrs_hist_plot.get_figure().savefig(
+            instrs_hist_plot_file,
+            bbox_inches="tight",
+            dpi=300,
+        )
         plt.close()
     if opcodes_hist_df is not None:
         opcodes_hist_data = generate_pie_data(opcodes_hist_df, x="opcode", y="rel_count", topk=topk)
@@ -167,8 +183,12 @@ def create_runtime_pie_plots(
         )
         opcodes_hist_plot_file = plots_dir / f"runtime_per_opcode.{fmt}"
         if opcodes_hist_plot_file.is_file():
-            assert force, "File already exists: {opcodes_hist_plot_file}"
-        opcodes_hist_plot.get_figure().savefig(opcodes_hist_plot_file, bbox_inches="tight")
+            assert force, f"File already exists: {opcodes_hist_plot_file}"
+        opcodes_hist_plot.get_figure().savefig(
+            opcodes_hist_plot_file,
+            bbox_inches="tight",
+            dpi=300,
+        )
         plt.close()
 
     # attrs = {
