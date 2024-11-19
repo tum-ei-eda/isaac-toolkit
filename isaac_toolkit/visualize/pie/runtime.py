@@ -98,6 +98,15 @@ def create_runtime_pie_plots(
         opcodes_hist_artifact = opcodes_hist_artifacts[0]
         opcodes_hist_df = opcodes_hist_artifact.df
 
+    llvm_bbs_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs_new"
+    )
+    llvm_bbs_df = None
+    if len(llvm_bbs_artifacts) > 0:
+        assert len(llvm_bbs_artifacts) == 1
+        llvm_bbs_artifact = llvm_bbs_artifacts[0]
+        llvm_bbs_df = llvm_bbs_artifact.df.copy()
+
     plots_dir = sess.directory / "plots"
     plots_dir.mkdir(exist_ok=True)
     # TODO: use threshold
@@ -131,6 +140,21 @@ def create_runtime_pie_plots(
             dpi=300,
         )
         plt.close()
+        if llvm_bbs_df is not None:
+            llvm_bbs_df["func_bb"] = llvm_bbs_df["func_name"] + "-" + llvm_bbs_df["bb_name"]
+            runtime_per_llvm_bb_data = generate_pie_data(llvm_bbs_df, x="func_bb", y="rel_weight", topk=topk)
+            runtime_per_llvm_bb_plot = plot_pie_data(
+                runtime_per_llvm_bb_data, "rel_weight", threshold=threshold, legend=legend, title="Runtime per LLVM BB"
+            )
+            runtime_per_llvm_bb_plot_file = plots_dir / f"runtime_per_llvm_bb.{fmt}"
+            if runtime_per_llvm_bb_plot_file.is_file():
+                assert force, f"File already exists: {runtime_per_llvm_bb_plot_file}"
+            runtime_per_llvm_bb_plot.get_figure().savefig(
+                runtime_per_llvm_bb_plot_file,
+                bbox_inches="tight",
+                dpi=300,
+            )
+            plt.close()
         if symbol_map_df is not None:
             # library
             library_runtime_df = agg_library_runtime(runtime_df, symbol_map_df, by="library", col="rel_weight")
