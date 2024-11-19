@@ -102,8 +102,12 @@ def create_mem_footprint_pie_plots(
         )
         mem_footprint_per_func_plot_file = plots_dir / f"mem_footprint_per_func.{fmt}"
         if mem_footprint_per_func_plot_file.is_file():
-            assert force, "File already exists: {mem_footprint_per_func_plot_file}"
-        mem_footprint_per_func_plot.get_figure().savefig(mem_footprint_per_func_plot_file, bbox_inches="tight")
+            assert force, f"File already exists: {mem_footprint_per_func_plot_file}"
+        mem_footprint_per_func_plot.get_figure().savefig(
+            mem_footprint_per_func_plot_file,
+            bbox_inches="tight",
+            dpi=300,
+        )
         plt.close()
         # input(">")
         if symbol_map_df is not None:
@@ -121,9 +125,11 @@ def create_mem_footprint_pie_plots(
             )
             mem_footprint_per_library_plot_file = plots_dir / f"mem_footprint_per_library.{fmt}"
             if mem_footprint_per_library_plot_file.is_file():
-                assert force, "File already exists: {mem_footprint_per_library_plot_file}"
+                assert force, f"File already exists: {mem_footprint_per_library_plot_file}"
             mem_footprint_per_library_plot.get_figure().savefig(
-                mem_footprint_per_library_plot_file, bbox_inches="tight"
+                mem_footprint_per_library_plot_file,
+                bbox_inches="tight",
+                dpi=300,
             )
             plt.close()
             # object
@@ -138,8 +144,10 @@ def create_mem_footprint_pie_plots(
             )
             mem_footprint_per_object_plot_file = plots_dir / f"mem_footprint_per_object.{fmt}"
             if mem_footprint_per_object_plot_file.is_file():
-                assert force, "File already exists: {mem_footprint_per_object_plot_file}"
-            mem_footprint_per_object_plot.get_figure().savefig(mem_footprint_per_object_plot_file, bbox_inches="tight")
+                assert force, f"File already exists: {mem_footprint_per_object_plot_file}"
+            mem_footprint_per_object_plot.get_figure().savefig(
+                mem_footprint_per_object_plot_file, bbox_inches="tight", dpi=300
+            )
             plt.close()
     if effective_mem_footprint_df is not None:
         effective_mem_footprint_per_func_data = generate_pie_data(
@@ -154,9 +162,11 @@ def create_mem_footprint_pie_plots(
         )
         effective_mem_footprint_per_func_plot_file = plots_dir / f"effective_mem_footprint_per_func.{fmt}"
         if effective_mem_footprint_per_func_plot_file.is_file():
-            assert force, "File already exists: {effective_mem_footprint_per_func_plot_file}"
+            assert force, f"File already exists: {effective_mem_footprint_per_func_plot_file}"
         effective_mem_footprint_per_func_plot.get_figure().savefig(
-            effective_mem_footprint_per_func_plot_file, bbox_inches="tight"
+            effective_mem_footprint_per_func_plot_file,
+            bbox_inches="tight",
+            dpi=300,
         )
         plt.close()
         if symbol_map_df is not None:
@@ -176,9 +186,11 @@ def create_mem_footprint_pie_plots(
             )
             effective_mem_footprint_per_library_plot_file = plots_dir / f"effective_mem_footprint_per_library.{fmt}"
             if effective_mem_footprint_per_library_plot_file.is_file():
-                assert force, "File already exists: {effective_mem_footprint_per_library_plot_file}"
+                assert force, f"File already exists: {effective_mem_footprint_per_library_plot_file}"
             effective_mem_footprint_per_library_plot.get_figure().savefig(
-                effective_mem_footprint_per_library_plot_file, bbox_inches="tight"
+                effective_mem_footprint_per_library_plot_file,
+                bbox_inches="tight",
+                dpi=300,
             )
             plt.close()
             # object
@@ -197,9 +209,11 @@ def create_mem_footprint_pie_plots(
             )
             effective_mem_footprint_per_object_plot_file = plots_dir / f"effective_mem_footprint_per_object.{fmt}"
             if effective_mem_footprint_per_object_plot_file.is_file():
-                assert force, "File already exists: {effective_mem_footprint_per_object_plot_file}"
+                assert force, f"File already exists: {effective_mem_footprint_per_object_plot_file}"
             effective_mem_footprint_per_object_plot.get_figure().savefig(
-                effective_mem_footprint_per_object_plot_file, bbox_inches="tight"
+                effective_mem_footprint_per_object_plot_file,
+                bbox_inches="tight",
+                dpi=300,
             )
             plt.close()
 
