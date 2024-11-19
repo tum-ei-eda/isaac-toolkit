@@ -184,7 +184,6 @@ def query_candidates_from_db(
             *["--write-queries"],
         ]
         # args += ["--help"]
-        print("args", args)
         subprocess.run(args, check=True)
     combined_index_file = workdir / "combined_index.yml"
     combine_args = [
