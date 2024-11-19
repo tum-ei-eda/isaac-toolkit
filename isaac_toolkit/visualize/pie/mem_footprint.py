@@ -75,18 +75,25 @@ def create_mem_footprint_pie_plots(
     assert len(mem_footprint_artifacts) == 1
     mem_footprint_artifact = mem_footprint_artifacts[0]
     mem_footprint_df = mem_footprint_artifact.df
+
     effective_mem_footprint_artifacts = filter_artifacts(
         artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "effective_mem_footprint"
     )
-    assert len(effective_mem_footprint_artifacts) == 1
-    effective_mem_footprint_artifact = effective_mem_footprint_artifacts[0]
-    effective_mem_footprint_df = effective_mem_footprint_artifact.df
+    effective_mem_footprint_df = None
+    if len(effective_mem_footprint_artifacts) > 0:
+        assert len(effective_mem_footprint_artifacts) == 1
+        effective_mem_footprint_artifact = effective_mem_footprint_artifacts[0]
+        effective_mem_footprint_df = effective_mem_footprint_artifact.df
+
     symbol_map_artifacts = filter_artifacts(
         artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "symbol_map"
     )
-    assert len(symbol_map_artifacts) == 1
-    symbol_map_artifact = symbol_map_artifacts[0]
-    symbol_map_df = symbol_map_artifact.df
+    symbol_map_df = None
+    if len(symbol_map_artifacts) > 0:
+        assert len(symbol_map_artifacts) == 1
+        symbol_map_artifact = symbol_map_artifacts[0]
+        symbol_map_df = symbol_map_artifact.df
+
     plots_dir = sess.directory / "plots"
     plots_dir.mkdir(exist_ok=True)
     # TODO: use threshold
