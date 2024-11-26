@@ -198,9 +198,13 @@ def query_candidates_from_db(
         combined_index_file,
     ]
     if len(index_files) in [2, 3]:
-        venn_diagram_file = workdir / "venn.pdf"
+        venn_diagram_file = workdir / "venn.jpg"
         combine_args += ["--venn", venn_diagram_file]
-    print("combine_args", combine_args)
+    sankey_diagram_file = workdir / "sankey.md"
+    combine_args += ["--sankey", sankey_diagram_file]
+    overlaps_file = workdir / "overlaps.csv"
+    combine_args += ["--overlaps", overlaps_file]
+    # print("combine_args", combine_args)
     subprocess.run(combine_args, check=True)
     gen_dir = workdir / "gen"
     gen_dir.mkdir(exist_ok=True)
