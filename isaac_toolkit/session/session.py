@@ -7,7 +7,18 @@ import yaml
 import pandas as pd
 
 from .config import IsaacConfig, DEFAULT_CONFIG
-from .artifact import FileArtifact, ElfArtifact, InstrTraceArtifact, SourceArtifact, TableArtifact, M2ISARArtifact, GraphArtifact, ArtifactFlag, PythonArtifact, filter_artifacts
+from .artifact import (
+    FileArtifact,
+    ElfArtifact,
+    InstrTraceArtifact,
+    SourceArtifact,
+    TableArtifact,
+    M2ISARArtifact,
+    GraphArtifact,
+    ArtifactFlag,
+    PythonArtifact,
+    filter_artifacts,
+)
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -48,27 +59,32 @@ def load_artifacts(base):
             artifact_ = ElfArtifact(name, dest, flags=flags, attrs=attrs)
         elif flags_ & ArtifactFlag.INSTR_TRACE:
             import pandas as pd
+
             df = pd.read_pickle(dest)
             artifact_ = InstrTraceArtifact(name, df, flags=flags, attrs=attrs)
-        elif flags_ & ArtifactFlag.SOURCE:
+        elif flags_ & (ArtifactFlag.SOURCE | ArtifactFlag.DISASS):
             artifact_ = SourceArtifact(name, dest, flags=flags, attrs=attrs)
         elif flags_ & ArtifactFlag.GRAPH:
             # TODO: move to artifact.py
             import pickle
+
             with open(dest, "rb") as f:
                 graph = pickle.load(f)
             artifact_ = GraphArtifact(name, graph, flags=flags, attrs=attrs)
         elif flags_ & ArtifactFlag.TABLE:
             import pandas as pd
+
             df = pd.read_pickle(dest)
             artifact_ = TableArtifact(name, df, flags=flags, attrs=attrs)
         elif flags_ & ArtifactFlag.M2ISAR:
             import pickle
+
             with open(dest, "rb") as f:
                 model = pickle.load(f)
             artifact_ = M2ISARArtifact(name, model, flags=flags, attrs=attrs)
         elif flags_ & ArtifactFlag.PYTHON:
             import pickle
+
             with open(dest, "rb") as f:
                 data = pickle.load(f)
             artifact_ = PythonArtifact(name, data, flags=flags, attrs=attrs)
@@ -81,7 +97,6 @@ def load_artifacts(base):
     # print("artifacts", artifacts)
     # print("artifacts_", artifacts_)
     return artifacts_
-
 
 
 class Session:
@@ -104,7 +119,9 @@ class Session:
                 idx = artifact_names.index(artifact.name)
                 del self._artifacts[idx]
             else:
-                raise RuntimeError(f"Artifact with name {artifact.name} already exists. Use override=True or cleanup session.")
+                raise RuntimeError(
+                    f"Artifact with name {artifact.name} already exists. Use override=True or cleanup session."
+                )
         self._artifacts.append(artifact)
 
     # @property
@@ -191,7 +208,16 @@ class Session:
             dest = dest_dir / dest_file
             dest.parent.mkdir(parents=True, exist_ok=True)
             artifact.save(dest)
-            artifacts_.append({"name": artifact.name, "flags": int(artifact.flags), "type": type(artifact).__name__, "dest": str(dest), "hash": artifact.hash, "attrs": artifact.attrs})
+            artifacts_.append(
+                {
+                    "name": artifact.name,
+                    "flags": int(artifact.flags),
+                    "type": type(artifact).__name__,
+                    "dest": str(dest),
+                    "hash": artifact.hash,
+                    "attrs": artifact.attrs,
+                }
+            )
         yaml_data = {"artifacts": artifacts_}
         artifacts_yaml = self.directory / "artifacts.yml"
         with open(artifacts_yaml, "w") as f:

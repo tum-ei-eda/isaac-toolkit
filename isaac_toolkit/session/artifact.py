@@ -11,6 +11,7 @@ import networkx as nx
 
 from .config import IsaacConfig, DEFAULT_CONFIG
 
+
 class ArtifactFlag(IntFlag):
     # INPUT = auto()
     # OUTPUT = auto()
@@ -22,6 +23,7 @@ class ArtifactFlag(IntFlag):
     SOURCE = auto()
     M2ISAR = auto()
     PYTHON = auto()
+    DISASS = auto()
 
 
 def filter_artifacts(artifacts, func):
@@ -29,6 +31,7 @@ def filter_artifacts(artifacts, func):
 
 
 # class ExportedArtifact()
+
 
 class Artifact:
 
@@ -65,7 +68,9 @@ class Artifact:
 
 class FileArtifact(Artifact):
 
-    def __init__(self, name: str, path: Union[str, Path], flags: ArtifactFlag = None, attrs: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, name: str, path: Union[str, Path], flags: ArtifactFlag = None, attrs: Optional[Dict[str, Any]] = None
+    ):
         super().__init__(name, flags=flags, attrs=attrs)
         self.path = Path(path)
 
@@ -80,6 +85,13 @@ class ElfArtifact(FileArtifact):
     @property
     def flags(self):
         return super().flags | ArtifactFlag.ELF
+
+
+class DisassArtifact(FileArtifact):
+
+    @property
+    def flags(self):
+        return super().flags | ArtifactFlag.DISASS
 
 
 class SourceArtifact(FileArtifact):
