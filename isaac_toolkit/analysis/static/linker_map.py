@@ -49,7 +49,7 @@ def analyze_linker_map(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     linker_map_artifacts = filter_artifacts(
-        artifacts, lambda x: x.name == "linker.map" and x.flags & ArtifactFlag.PYTHON
+        artifacts, lambda x: x.name.endswith(".map") and x.flags & ArtifactFlag.PYTHON
     )
     assert len(linker_map_artifacts) == 1
     linker_map_artifact = linker_map_artifacts[0]
