@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Tuple, Optional
+from typing import Dict, List, Set, Tuple, Optional, Union
 
 import bisect
 
@@ -8,9 +8,6 @@ import argparse
 import posixpath
 from pathlib import Path
 from collections import defaultdict
-
-import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
@@ -56,6 +53,7 @@ def collect_bbs(trace_df, mapping):
     prev_pc = None
     prev_size = None
     prev_instr = None
+    bbs = []
     for row in trace_df.itertuples(index=False):
         pc = row.pc
         instr = row.instr
@@ -76,6 +74,7 @@ def collect_bbs(trace_df, mapping):
                     if False:
                         func = find_func_name(mapping, prev_pc)
                         bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
+                        bbs.append(bb)
                         if bb.get_freq() == 1:
                             func2bbs[bb.func].append(bb)
                         bb_freq[bb] += 1
@@ -89,6 +88,7 @@ def collect_bbs(trace_df, mapping):
         if instr in branch_instrs:
             func = find_func_name(mapping, pc)
             bb = BasicBlock(first_pc=first_pc, last_pc=pc, end_instr=instr, func=func)
+            bbs.append(bb)
             if bb.get_freq() == 1:
                 func2bbs[bb.func].append(bb)
                 bb_freq[bb] += 1
@@ -98,7 +98,6 @@ def collect_bbs(trace_df, mapping):
         prev_size = sz
     if first_pc is not None:
         func = None
-    bbs = BasicBlock.get_instances()
 
     return bbs, func2bbs, bb_freq
 
@@ -108,8 +107,6 @@ def collect_bbs(trace_df, mapping):
 
 
 def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
-    print("callgrind_format_get_inclusive_cost")
-    print("bbs", bbs)
     call_stack = []
     bb_stack = []
     inclusive_cost_dict = defaultdict(lambda: defaultdict(list))
@@ -120,9 +117,6 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
     # [B returns]: [[bb1, bb2, [bb3, # cost from B]]]
     # where bb1 - bb3 belong to func A and bb4 - bb6 belong to func B
     for i, bb in enumerate(bbs):
-        print("i", i)
-        print("bb", bb)
-        print("prev_bb", prev_bb)
         if prev_bb is None or (
             prev_bb.end_instr in ["jal", "beq", "bne", "blt", "bltu", "bge", "bgeu", "ecall"]
             and prev_bb.func != bb.func
@@ -230,7 +224,6 @@ def callgrind_format_converter(
     """
     assert dump_pc or dump_pos
     inclusive_cost_dict = callgrind_format_get_inclusive_cost(bbs)
-    print("inclusive_cost_dict", inclusive_cost_dict)
 
     # Find the basic block, of which the first pc is equal to pc
     # TODO: time complexity is suboptimal
@@ -260,7 +253,6 @@ def callgrind_format_converter(
         return position_cost_dict
 
     positions = "instr" if dump_pc else "line"
-    print("positions", positions)
 
     prologue = f"""\
 # callgrind format
@@ -291,12 +283,24 @@ summary:
         if source_file == "???":
             return "0"
         assert file2pc_loc is not None
-        mapping_ = file2pc_loc[source_file]
-        i = bisect.bisect_right(mapping_, pc, key=lambda x: x[0])
+        mapping_ = file2pc_loc.get(source_file)
+        if mapping_ is None:
+            return "0"
+        # PYTHON 3.10:
+        # i = bisect.bisect_right(mapping_, pc, key=lambda x: x[0])
+        # if i:
+        #     start_pc, line = mapping_[i - 1]
+        #     if pc >= start_pc:
+        #         return f"{line}"
+        # ---
+        # PYTHON 3.8
+        mapping_first = [x[0] for x in mapping_]
+        i = bisect.bisect_right(mapping_first, pc)
         if i:
             start_pc, line = mapping_[i - 1]
             if pc >= start_pc:
                 return f"{line}"
+        # ---
         return "0"
 
     dump_positions = callgrind_format_dump_instr if dump_pc else callgrind_format_dump_line
@@ -304,17 +308,13 @@ summary:
     # source file to functions mapping
     srcFile_to_func = defaultdict(list)
     for func in func_set:
-        print("func", func)
         srcFile_to_func[find_srcFile(func)].append(func)
-
-    print("srcFile_to_func", srcFile_to_func)
 
     for srcFile, funcs in srcFile_to_func.items():
         callgrind_output += f"ob={posixpath.abspath(elf_file_path)}\n"
         callgrind_output += f"fl={srcFile}\n"
 
         for func in funcs:
-            print(func)
             callgrind_output += f"fn={func}\n"
 
             bb_list = func2bbs[func]
@@ -325,7 +325,8 @@ summary:
             branch_pc_list = [bb.last_pc for bb in bb_list]
 
             for pc in sorted(position_cost_dict.keys()):
-                callgrind_output += f"{hex(pc)} {position_cost_dict[pc]}\n"
+                position_info = dump_positions(pc, srcFile)
+                callgrind_output += f"{position_info} {position_cost_dict[pc]}\n"
                 if pc in branch_pc_list and pc in inclusive_cost_dict:
                     for callee_pc, inclusive_cost in inclusive_cost_dict[pc].items():
                         # TODO Share object files case not implemented here
@@ -334,7 +335,7 @@ summary:
                         callgrind_output += f"cfi={find_srcFile(callee_func)}\n"
                         callgrind_output += f"cfn={callee_func}\n"
                         callgrind_output += f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
-                        callgrind_output += f"{hex(pc)} {sum(inclusive_cost)}\n"
+                        callgrind_output += f"{position_info} {sum(inclusive_cost)}\n"
 
             callgrind_output += "\n"
 
@@ -342,7 +343,14 @@ summary:
     return content
 
 
-def generate_callgrind_output(sess: Session, force: bool = False):
+def generate_callgrind_output(
+    sess: Session,
+    output: Optional[Union[str, Path]] = None,
+    force: bool = False,
+    dump_pc: bool = False,
+    dump_pos: bool = False,
+):
+    assert output is not None
     artifacts = sess.artifacts
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
     assert len(elf_artifacts) == 1
@@ -362,17 +370,29 @@ def generate_callgrind_output(sess: Session, force: bool = False):
     file2funcs_artifact = file2funcs_artifacts[0]
     file2funcs_df = file2funcs_artifact.df
 
+    pc2locs_artifacts = filter_artifacts(artifacts, lambda x: x.name == "pc2locs")
+    assert len(pc2locs_artifacts) == 1
+    pc2locs_artifact = pc2locs_artifacts[0]
+    pc2locs_df = pc2locs_artifact.df
+
+    def helper(pc2locs_df):
+        df_ = pc2locs_df.explode("locs")
+        df_.reset_index(inplace=True)
+        df_[["file", "line"]] = df_["locs"].str.split(":", n=1, expand=True)
+        ret = {}
+        for file, file_df in df_.groupby("file"):
+            temp = list(map(tuple, file_df[["pc", "line"]].values))
+            temp = sorted(temp, key=lambda x: x[0])
+            ret[file] = temp
+        return ret
+
+    file2pc_loc = helper(pc2locs_df)
+
     mapping = dict(list(func2pc_df[["func", "pc_range"]].to_records(index=False)))
     bbs, func2bbs, bb_freq = collect_bbs(trace_artifact.df, mapping)
     file2funcs = dict(list((file2funcs_df.to_records(index=False))))
     func_set = set(func2bbs.keys())
-    print("func_set", func_set)
-    # dump_pc = False
-    dump_pc = True
-    dump_pos = False
-    # dump_pos = True
     elf_file_path = elf_artifact.path
-    file2pc_loc = None  # TODO
 
     content = callgrind_format_converter(
         bbs=bbs,
@@ -386,8 +406,8 @@ def generate_callgrind_output(sess: Session, force: bool = False):
         dump_pos=dump_pos,
         elf_file_path=elf_file_path,
     )
-    print("content:")
-    print(content)
+    with open(output, "w") as f:
+        f.write(content)
 
 
 def handle(args):
@@ -395,7 +415,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    generate_callgrind_output(sess, force=args.force)
+    generate_callgrind_output(sess, output=args.output, force=args.force, dump_pc=args.dump_pc, dump_pos=args.dump_pos)
     sess.save()
 
 
@@ -405,7 +425,10 @@ def get_parser():
         "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--output", default=None)
     parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--dump-pc", action="store_true")
+    parser.add_argument("--dump-pos", action="store_true")
     # TODO: allow overriding memgraph config?
     return parser
 
