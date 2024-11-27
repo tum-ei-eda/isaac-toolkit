@@ -20,7 +20,16 @@ or similar.
 
 ### RISC-V GNU Tools (GCC)
 
+```sh
+# rv32im_ilp32
+./scripts/download_helper.sh $INSTALL_DIR/rv32im_ilp32/ gnu 2024.09.03 rv32im_zicsr_zifencei_ilp32
+```
+
 ### LLVM
+
+```sh
+./scripts/download_helper.sh $INSTALL_DIR/llvm/ LLVM 19.1.1 llvm
+```
 
 ## Simulators
 
