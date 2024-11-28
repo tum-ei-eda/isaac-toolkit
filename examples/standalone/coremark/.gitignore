@@ -2,3 +2,4 @@ build/
 *.pdf
 *.dot
 *.log
+*.out
