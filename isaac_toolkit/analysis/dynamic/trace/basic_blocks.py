@@ -133,7 +133,47 @@ def collect_bbs(trace_df):
     # input("{}{}{}{}")
     first_pc = None
     # TODO: make this generic!
-    branch_instrs = ["jalr", "jal", "beq", "bne", "blt", "bge", "bltu", "bgeu", "ecall", "cbnez", "cjr", "cj", "cbeqz", "cjalr", "cjal"]
+    branch_instrs = [
+        "j",  # pseudo
+        "jr",  # pseudo
+        "ret",  # pseudo
+        "mret",  # pseudo
+        "sret",  # pseudo
+        "uret",  # pseudo
+        "call",  # pseudo
+        "tail",  # pseudo
+        "jalr",
+        "jal",
+        "beq",
+        "beqz",  # pseudo
+        "bne",
+        "blt",
+        "bltz",  # pseudo
+        "bgt",  # pseudo
+        "bgtz",  # pseudo
+        "bge",  # pseudo
+        "bgez",  # pseudo
+        "ble",
+        "bltu",
+        "bgtu",  # pseudo
+        "bgeu",  # pseudo
+        "bleu",
+        "ecall",
+        "bnez",  # bseudo
+        "cbnez",
+        "c.bnez",
+        "cjr",
+        "cj",  # pseudo
+        "cbeqz",
+        "cjalr",
+        "cjal",
+        "c.j",
+        "c.jr",
+        "c.j",
+        "c.beqz",
+        "c.jalr",
+        "c.jal",
+    ]
     # bbs = []
     prev_pc = None
     prev_size = None
