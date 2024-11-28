@@ -23,7 +23,16 @@ export CC=$RISCV_PREFIX/bin/$RISCV_NAME-gcc
 export OBJDUMP=$RISCV_PREFIX/bin/$RISCV_NAME-objdump
 
 # For simulation
-# TODO
+export SIMULATOR=spike
+# export SIMULATOR=etiss
+export SPIKE=$INSTALL_DIR/spike/spike
+export PK=$INSTALL_DIR/spike/pk_rv32gc
+```
+
+For the profiling step, additional Python packages should be installed:
+
+```sh
+pip install -r requirements.txt
 ```
 
 Setup empty ISAAC session:
@@ -40,7 +49,7 @@ python3 -m isaac_toolkit.session.create --session $SESS
 
 TODO
 ```sh
-cmake -S . -B $BUILD_DIR TODO
+cmake -S . -B $BUILD_DIR -DSIMULATOR=$SIMMULATOR
 cmake --build $BUILD_DIR
 ```
 
@@ -123,8 +132,81 @@ xdg-open $SESS/plots/mem_footprint_per_func.jpg
 
 ### 3. Simulation
 
+#### Via CMake
+
 TODO
+```sh
+cmake --build $BUILD_DIR --target run
+```
+
+#### Via Makefile
+
+TODO
+```sh
+make run
+```
+
+#### Manual
+
+##### Spike
+
+```sh
+$SPIKE --isa=${ARCH}_zicntr -l $PK $BUILD_DIR/coremark.elf -s 2> spike_instrs.log
+```
+
+##### ETISS
+
+```sh
+TODO
+```
 
 ### 4. Dynamic Analysis
 
-TODO
+Load simulation artifacts into ISAAC Session:
+
+```sh
+
+```
+
+Run dynamic analysis steps:
+
+```sh
+
+```
+
+Generate visualizations:
+
+```sh
+
+```
+
+Investigate generated tables
+
+```sh
+
+```
+
+Investigate pie charts:
+
+```sh
+
+```
+
+Optional: Profiling (WIP)
+
+*Hint:* The package `kcachegrind` needs to be installed!
+
+```sh
+python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out
+python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pc --output callgrind_pc.out
+
+# Callgraph
+
+
+# Callgrind GUI (instruction level)
+OBJDUMP=$OBJDUMP kcachegrind callgrind_pc.out
+
+# Gallgrind GUI (source level)
+kcachegrind callgrind_pc.out
+```
+

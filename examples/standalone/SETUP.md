@@ -28,11 +28,23 @@ or similar.
 ### LLVM
 
 ```sh
-./scripts/download_helper.sh $INSTALL_DIR/llvm/ LLVM 19.1.1 llvm
+./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 19.1.1
 ```
 
 ## Simulators
 
 ### ETISS
 
+```sh
+# NOT IMPLEMENTED!
+# ./scripts/download_helper.sh $INSTALL_DIR/etiss/ etiss 2024.11.28  
+
+# Alternative:
+./scripts/setup_etiss.sh
+```
+
 ### Spike
+
+```sh
+./scripts/download_helper.sh $INSTALL_DIR/spike/ spike 2024.11.28  
+```

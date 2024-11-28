@@ -33,4 +33,4 @@ sudo apt install TODO
 
 ### Toolchains, ISS,...
 
-See [`SETUP.md`](Setup.md) for more instructions!
+See [`SETUP.md`](SETUP.md) for more instructions!
