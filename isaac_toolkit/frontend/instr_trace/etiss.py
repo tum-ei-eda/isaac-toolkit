@@ -26,9 +26,9 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False, opera
             # print("B", time.time())
             # TODO: normalize instr names
             df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
+            df["instr"] = df["instr"].apply(lambda x: x.strip())
             df["instr"] = df["instr"].astype("category")
             # print("C", time.time())
-            df["instr"] = df["instr"].apply(lambda x: x.strip())
             # print("D", time.time())
             df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
             # print("E", time.time())
