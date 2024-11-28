@@ -151,7 +151,8 @@ make run
 ##### Spike
 
 ```sh
-$SPIKE --isa=${ARCH}_zicntr -l $PK $BUILD_DIR/coremark.elf -s 2> spike_instrs.log
+$SPIKE --isa=${ARCH}_zicntr -l --log=spike_instrs.
+log $PK $BUILD_DIR/coremark.elf -s
 ```
 
 ##### ETISS
@@ -165,43 +166,60 @@ TODO
 Load simulation artifacts into ISAAC Session:
 
 ```sh
-
+python3 -m isaac_toolkit.frontend.instr_trace.${SIM} ${SIM}_instrs.log --session $SESS
+# Optional argument (for supported simulators): --operands
 ```
 
 Run dynamic analysis steps:
 
 ```sh
 
+python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $SESS
+python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $SESS
+python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $SESS
+
+# Optional
+# python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
+# python3 -m isaac_toolkit.analysis.dynamic.trace.track_used_functions --session $SESS
 ```
 
 Generate visualizations:
 
 ```sh
+python3 -m isaac_toolkit.visualize.pie.runtime --session $SESS --legend
 
+# Optional:
+# For effective memory footprint
+python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend --force
 ```
 
 Investigate generated tables
 
 ```sh
-
+python3 -m isaac_toolkit.utils.pickle_printer $SESS/table/pc2bb.pkl | less
+python3 -m isaac_toolkit.utils.pickle_printer $SESS/table/instrs_hist.pkl | less
+python3 -m isaac_toolkit.utils.pickle_printer $SESS/table/opcodes_hist.pkl | less
 ```
 
 Investigate pie charts:
 
 ```sh
-
+xdg-open $SESS/plots/runtime_per_func.jpg 
+xdg-open $SESS/plots/runtime_per_opcode.jpg
+xdg-open $SESS/plots/runtime_per_instr.jpg
 ```
 
 Optional: Profiling (WIP)
 
-*Hint:* The package `kcachegrind` needs to be installed!
+*Hint:* The packages `kcachegrind` and `graphviz` need to be installed!
 
 ```sh
 python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out
 python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pc --output callgrind_pc.out
 
 # Callgraph
-
+gprof2dot --format=callgrind --output=callgraph.dot callgrind_pos.out -n 0.1 -e 0.1 --color-nodes-by-selftime
+dot -Tpdf callgraph.dot > callgraph.pdf
 
 # Callgrind GUI (instruction level)
 OBJDUMP=$OBJDUMP kcachegrind callgrind_pc.out
