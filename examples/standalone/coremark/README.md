@@ -15,7 +15,7 @@ export SESS=$(pwd)/sess
 # For compilation
 export BUILD_DIR=$(pwd)/build
 export RISCV_PREFIX=$INSTALL_DIR/rv32im_ilp32
-export RISCV_NAME=riscv32-unknown-elf-gcc
+export RISCV_NAME=riscv32-unknown-elf
 export RISCV_ARCH=rv32im_zicsr_zifencei
 export RISCV_ABI=ilp32
 export SYSROOT=$RISCV_PREFIX/$RISCV_NAME
@@ -23,10 +23,15 @@ export CC=$RISCV_PREFIX/bin/$RISCV_NAME-gcc
 export OBJDUMP=$RISCV_PREFIX/bin/$RISCV_NAME-objdump
 
 # For simulation
+# spike
 export SIMULATOR=spike
-# export SIMULATOR=etiss
 export SPIKE=$INSTALL_DIR/spike/spike
 export PK=$INSTALL_DIR/spike/pk_rv32gc
+# etiss
+# export SIMULATOR=etiss
+# export ETISS=$INSTALL_DIR/etiss/install/bin/run_helper.sh
+# export ETISS_INI=$INSTALL_DIR/etiss/install/custom.ini
+# export ETISS_SPECS=$INSTALL_DIR/etiss/etiss_riscv_examples/etiss-semihost.specs
 ```
 
 For the profiling step, additional Python packages should be installed:
@@ -49,15 +54,15 @@ python3 -m isaac_toolkit.session.create --session $SESS
 
 TODO
 ```sh
-cmake -S . -B $BUILD_DIR -DSIMULATOR=$SIMMULATOR
-cmake --build $BUILD_DIR
+# cmake -S . -B $BUILD_DIR -DSIMULATOR=$SIMMULATOR
+# cmake --build $BUILD_DIR
 ```
 
 #### Via Makefile
 
 TODO
 ```sh
-make
+# make
 ```
 
 #### Custom (manual)
@@ -65,14 +70,21 @@ make
 ##### GCC
 
 ```sh
+# spike
 mkdir -p $BUILD_DIR
 $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
 $OBJDUMP -d $BUILD_DIR/coremark.elf > $BUILD_DIR/coremark.dump
+
+# etiss
+# $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c $ETISS_CRT/crt0.S $ETISS_CRT/trap_handler.c -T $ETISS_LDSCRIPT -nostdlib -lc -lgcc -lsemihost -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map 
 ```
 
 ##### LLVM
 
 TODO
+```sh
+...
+```
 
 ### 2. Static Analysis
 
@@ -143,7 +155,7 @@ cmake --build $BUILD_DIR --target run
 
 TODO
 ```sh
-make run
+# make run
 ```
 
 #### Manual
@@ -151,14 +163,17 @@ make run
 ##### Spike
 
 ```sh
-$SPIKE --isa=${ARCH}_zicntr -l --log=spike_instrs.
-log $PK $BUILD_DIR/coremark.elf -s
+$SPIKE --isa=${ARCH}_zicntr -l --log=spike_instrs.log $PK $BUILD_DIR/coremark.elf -s
 ```
 
 ##### ETISS
 
 ```sh
 TODO
+$ETISS build/coremark.elf -i$ETISS_INI -pPrintInstruction | grep "^0x00000000" > etiss_instrs.log
+
+# Optional (without trace)
+# $ETISS build/coremark.elf -i$ETISS_INI
 ```
 
 ### 4. Dynamic Analysis
