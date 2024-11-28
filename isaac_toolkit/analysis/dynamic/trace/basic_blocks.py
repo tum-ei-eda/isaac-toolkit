@@ -207,9 +207,9 @@ def collect_bbs(trace_df):
                     pass
                 else:
                     # assert False, f"Sub basic block not found at: pc = {prev_pc:x} -> {pc:x}"
-                    logger.warning("Sub basic block not found at: pc = %x -> %x", prev_pc, pc)
-                    input("OOPS")
-                    if False:
+                    logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
+                    # input("OOPS")
+                    if True:
                         func = None
                         bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
                         first_pc = pc

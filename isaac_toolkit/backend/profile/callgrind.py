@@ -32,21 +32,45 @@ def collect_bbs(trace_df, mapping):
     first_pc = None
     # TODO: make this generic!
     branch_instrs = [
+        "j",  # pseudo
+        "jr",  # pseudo
+        "ret",  # pseudo
+        "mret",  # pseudo
+        "sret",  # pseudo
+        "uret",  # pseudo
+        "call",  # pseudo
+        "tail",  # pseudo
         "jalr",
         "jal",
         "beq",
+        "beqz",  # pseudo
         "bne",
         "blt",
-        "bge",
+        "bltz",  # pseudo
+        "bgt",  # pseudo
+        "bgtz",  # pseudo
+        "bge",  # pseudo
+        "bgez",  # pseudo
+        "ble",
         "bltu",
-        "bgeu",
+        "bgtu",  # pseudo
+        "bgeu",  # pseudo
+        "bleu",
         "ecall",
+        "bnez",  # bseudo
         "cbnez",
+        "c.bnez",
         "cjr",
-        "cj",
+        "cj",  # pseudo
         "cbeqz",
         "cjalr",
         "cjal",
+        "c.j",
+        "c.jr",
+        "c.j",
+        "c.beqz",
+        "c.jalr",
+        "c.jal",
     ]
     func2bbs = defaultdict(list)  # TODO: only track func_set?
     bb_freq = defaultdict(int)
@@ -69,9 +93,9 @@ def collect_bbs(trace_df, mapping):
                 if first_pc is None:
                     pass
                 else:
-                    logger.warning("Sub basic block not found at: pc = %x -> %x", prev_pc, pc)
-                    input("OOPS")
-                    if False:
+                    logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
+                    # input("OOPS")
+                    if True:
                         func = find_func_name(mapping, prev_pc)
                         bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
                         bbs.append(bb)
