@@ -56,41 +56,23 @@ def load_artifacts(base):
         #     path = artifact.get("path", None)
         #     assert path is not None
         if flags_ & ArtifactFlag.ELF:
-            artifact_ = ElfArtifact(name, dest, flags=flags, attrs=attrs)
+            artifact_ = ElfArtifact.from_dict(artifact)
+            # (name, dest, flags=flags, attrs=attrs)
         elif flags_ & ArtifactFlag.INSTR_TRACE:
-            import pandas as pd
-
-            df = pd.read_pickle(dest)
-            artifact_ = InstrTraceArtifact(name, df, flags=flags, attrs=attrs)
+            artifact_ = InstrTraceArtifact.from_dict(artifact)
         elif flags_ & (ArtifactFlag.SOURCE | ArtifactFlag.DISASS):
-            artifact_ = SourceArtifact(name, dest, flags=flags, attrs=attrs)
+            artifact_ = SourceArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.GRAPH:
-            # TODO: move to artifact.py
-            import pickle
-
-            with open(dest, "rb") as f:
-                graph = pickle.load(f)
-            artifact_ = GraphArtifact(name, graph, flags=flags, attrs=attrs)
+            artifact_ = GraphArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.TABLE:
-            import pandas as pd
-
-            df = pd.read_pickle(dest)
-            artifact_ = TableArtifact(name, df, flags=flags, attrs=attrs)
+            artifact_ = TableArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.M2ISAR:
-            import pickle
-
-            with open(dest, "rb") as f:
-                model = pickle.load(f)
-            artifact_ = M2ISARArtifact(name, model, flags=flags, attrs=attrs)
+            artifact_ = M2ISARArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.PYTHON:
-            import pickle
-
-            with open(dest, "rb") as f:
-                data = pickle.load(f)
-            artifact_ = PythonArtifact(name, data, flags=flags, attrs=attrs)
+            artifact_ = PythonArtifact.from_dict(artifact)
         else:
             logger.warning("Unhandled artifact type!")
-            artifact_ = FileArtifact(name, dest, flags=flags, attrs=attrs)
+            artifact_ = FileArtifact.from_dict(artifact)
             raise RuntimeError(f"Unhandled case!")
         artifacts_.append(artifact_)
     # TODO: check for duplicates
@@ -208,16 +190,9 @@ class Session:
             dest = dest_dir / dest_file
             dest.parent.mkdir(parents=True, exist_ok=True)
             artifact.save(dest)
-            artifacts_.append(
-                {
-                    "name": artifact.name,
-                    "flags": int(artifact.flags),
-                    "type": type(artifact).__name__,
-                    "dest": str(dest),
-                    "hash": artifact.hash,
-                    "attrs": artifact.attrs,
-                }
-            )
+            metadata = artifact.to_dict()
+            metadata["dest"] = str(dest)
+            artifacts_.append(metadata)
         yaml_data = {"artifacts": artifacts_}
         artifacts_yaml = self.directory / "artifacts.yml"
         with open(artifacts_yaml, "w") as f:
