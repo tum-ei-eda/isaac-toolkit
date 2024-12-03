@@ -76,7 +76,7 @@ $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c -o $BUILD_DIR/coremark.elf -Iinc
 $OBJDUMP -d $BUILD_DIR/coremark.elf > $BUILD_DIR/coremark.dump
 
 # etiss
-# $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c $ETISS_CRT/crt0.S $ETISS_CRT/trap_handler.c -T $ETISS_LDSCRIPT -nostdlib -lc -lgcc -lsemihost -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map 
+# $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c $ETISS_CRT/crt0.S $ETISS_CRT/trap_handler.c -T $ETISS_LDSCRIPT -nostdlib -lc -lgcc -lsemihost -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
 ```
 
 ##### LLVM
@@ -181,7 +181,7 @@ $ETISS build/coremark.elf -i$ETISS_INI -pPrintInstruction | grep "^0x00000000" >
 Load simulation artifacts into ISAAC Session:
 
 ```sh
-python3 -m isaac_toolkit.frontend.instr_trace.${SIM} ${SIM}_instrs.log --session $SESS
+python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS
 # Optional argument (for supported simulators): --operands
 ```
 
@@ -219,7 +219,7 @@ python3 -m isaac_toolkit.utils.pickle_printer $SESS/table/opcodes_hist.pkl | les
 Investigate pie charts:
 
 ```sh
-xdg-open $SESS/plots/runtime_per_func.jpg 
+xdg-open $SESS/plots/runtime_per_func.jpg
 xdg-open $SESS/plots/runtime_per_opcode.jpg
 xdg-open $SESS/plots/runtime_per_instr.jpg
 ```
@@ -242,4 +242,3 @@ OBJDUMP=$OBJDUMP kcachegrind callgrind_pc.out
 # Gallgrind GUI (source level)
 kcachegrind callgrind_pc.out
 ```
-
