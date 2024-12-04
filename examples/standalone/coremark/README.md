@@ -30,8 +30,9 @@ export PK=$INSTALL_DIR/spike/pk_rv32gc
 # etiss
 # export SIMULATOR=etiss
 # export ETISS=$INSTALL_DIR/etiss/install/bin/run_helper.sh
+# export ETISS_CRT=$INSTALL_DIR/etiss/etiss_riscv_examples/riscv_crt0
+# export ETISS_LDSCRIPT=$INSTALL_DIR/etiss/install/etiss.ld
 # export ETISS_INI=$INSTALL_DIR/etiss/install/custom.ini
-# export ETISS_SPECS=$INSTALL_DIR/etiss/etiss_riscv_examples/etiss-semihost.specs
 ```
 
 For the profiling step, additional Python packages should be installed:
