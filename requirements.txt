@@ -13,3 +13,5 @@ leb128
 fastparquet
 pyarrow
 mapfile-parser
+gprof2dot
+capstone
