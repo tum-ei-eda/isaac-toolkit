@@ -21,10 +21,11 @@ sudo apt install TODO
 Setup Python virtual environment (if not already inside one):
 
 ```sh
-TODO
+virtualenv -p python3 venv/
+# Alternative: python3 -m venv venv/
 ```
 
-Install MLoMCU Python package:
+Install MLonMCU Python package:
 
 ```sh
 TODO

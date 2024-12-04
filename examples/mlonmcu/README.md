@@ -17,5 +17,7 @@ To run these examples, the MLonMCU Tools needs to be installed as explained in [
 # TODO
 SESS_DIR=$(pwd)/sess
 PROG_NAME=toycar
-./mlonmcu_example.sh $SESS_DIR $PROG_NAME ...
+# ./mlonmcu_example.sh SESS_DIR [PROG [TOOLCHAIN [TARGET [BACKEND]]]]
+# i.e.:
+./mlonmcu_example.sh sess/ toycar ...
 ```
