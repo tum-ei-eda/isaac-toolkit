@@ -241,4 +241,18 @@ OBJDUMP=$OBJDUMP kcachegrind callgrind_pc.out
 
 # Gallgrind GUI (source level)
 kcachegrind callgrind_pos.out
+
+# Annotate source code (ASCII)
+callgrind_annotate callgrind_pos.out src/*.c
+```
+
+**Warning:** KCachegrind's machine code view can not handle programs compiled with the RISC-V compressed instructions.
+
+*Workarounds:*
+- Do not open the machine code view
+- Disable compressed instructions (during compilation)
+- Printing the entire disassembly instead of limiting the output to the selected function:
+
+```sh
+OBJDUMP_FORMAT="/bin/riscv32-unknown-elf-objdump -C -d %3 # %1 %2" kcachegrind callgrind_pc.out
 ```
