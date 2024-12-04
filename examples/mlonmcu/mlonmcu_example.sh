@@ -2,15 +2,21 @@ set -e
 
 if [ "$#" -lt 1 ]; then
     echo "Illegal number of parameters!"
-    echo "Usage: $0 SESS_DIR [PROG [TOOLCHAIN [TARGET [BACKEND]]]]"
+    echo "Usage: $0 SESS_DIR [PROG [TOOLCHAIN [TARGET [BACKEND [EXTRA_ARGS ...]]]]]"
     exit 1
 fi
 
 SESS=$1
 PROG=${2:-toycar}
 TOOLCHAIN=${3:-gcc}
-TARGET=${3:-etiss}
-BACKEND=${4:-tvmaotplus}
+TARGET=${4:-etiss}
+BACKEND=${5:-tvmaotplus}
+
+EXTRA_ARGS=""
+if [ "$#" -gt 5 ]; then
+    shift 5
+    EXTRA_ARGS="$@"
+fi
 
 # Create ISAAC session
 python3 -m isaac_toolkit.session.create --session $SESS --force
@@ -19,7 +25,9 @@ python3 -m isaac_toolkit.session.create --session $SESS --force
 python3 -m mlonmcu.cli.main flow run -v --progress $PROG \
     --target $TARGET --backend $BACKEND \
     -f log_instrs -c log_instrs.to_file=1  -c mlif.toolchain=$TOOLCHAIN \
-    -c run.export_optional=1 -c mlif.debug_symbols=1 -c etiss.arch=rv32im_zicsr_zifencei riscv_gcc.install_dir=/work/git/isaac-toolkit/examples/standalone/install/rv32im_ilp32/
+    -c run.export_optional=1 -c mlif.debug_symbols=1 -c \
+    $TARGET.compressed=0 \  # Workaround for KCachegrind bug
+    $EXTRA_ARGS
 # Optional: python3 -m mlonmcu.cli.main export --run run/
 
 # Load files
