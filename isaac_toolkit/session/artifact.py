@@ -52,7 +52,7 @@ class Artifact:
         self._flags = flags if flags is not None else ArtifactFlag(0)
         self.attrs = attrs if attrs is not None else {}
         self.autoload = autoload
-        self.changed: bool = False
+        self.changed: bool = True
         self.imported: bool = False
         if autoload:
             self.load()
@@ -68,7 +68,9 @@ class Artifact:
         attrs = data.get("attrs", None)
         assert attrs is not None
         flags_ = ArtifactFlag(flags)
-        return cls(name, path=dest, flags=flags, attrs=attrs)
+        ret = cls(name, path=dest, flags=flags, attrs=attrs)
+        ret.changed = False
+        return ret
 
     def to_dict(self):
         return {
@@ -113,9 +115,9 @@ class Artifact:
         raise NotImplementedError("Artifact._save() impl missing")
 
     def save(self, dest: Path):
-        # if not self.changed and self.exported:
-        #     logger.debug("Artifact '%s' is already exported and unchanged", self.name)
-        #     return
+        if not self.changed and self.exported:
+            logger.debug("Artifact '%s' is already exported and unchanged", self.name)
+            return
         logger.debug("Exporting artifact '%s' to '%s'", self.name, dest)
         self._save(dest)
         if self.path is None or not self.path.is_file():
