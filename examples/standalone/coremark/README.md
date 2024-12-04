@@ -240,5 +240,5 @@ dot -Tpdf callgraph.dot > callgraph.pdf
 OBJDUMP=$OBJDUMP kcachegrind callgrind_pc.out
 
 # Gallgrind GUI (source level)
-kcachegrind callgrind_pc.out
+kcachegrind callgrind_pos.out
 ```
