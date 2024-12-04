@@ -111,10 +111,13 @@ jobs:
         elif [[ "$SIMULATOR" == "spike" ]]
         then
             $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
-            $OBJDUMP -d $BUILD_DIR/coremark.elf > $BUILD_DIR/coremark.dump
         else
             echo "Unsupported SIMULATOR=$SIMULATOR"
             exit 1
+        fi
+        if [[ "$FULL" == "1" ]]
+        then
+            $OBJDUMP -d $BUILD_DIR/coremark.elf > $BUILD_DIR/coremark.dump
         fi
 
         python3 -m isaac_toolkit.frontend.elf.riscv --session $SESS $BUILD_DIR/coremark.elf
