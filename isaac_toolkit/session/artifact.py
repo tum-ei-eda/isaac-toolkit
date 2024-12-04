@@ -113,9 +113,9 @@ class Artifact:
         raise NotImplementedError("Artifact._save() impl missing")
 
     def save(self, dest: Path):
-        if not self.changed and self.exported:
-            logger.debug("Artifact '%s' is already exported and unchanged", self.name)
-            return
+        # if not self.changed and self.exported:
+        #     logger.debug("Artifact '%s' is already exported and unchanged", self.name)
+        #     return
         logger.debug("Exporting artifact '%s' to '%s'", self.name, dest)
         self._save(dest)
         if self.path is None or not self.path.is_file():
