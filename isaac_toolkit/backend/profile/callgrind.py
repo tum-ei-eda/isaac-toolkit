@@ -78,6 +78,9 @@ def collect_bbs(trace_df, mapping):
     prev_size = None
     prev_instr = None
     bbs = []
+    bb_instrs = []
+    bb_size = 0
+    trace_pcs = set(trace_df["pc"].unique())
     for row in trace_df.itertuples(index=False):
         pc = row.pc
         instr = row.instr
@@ -97,7 +100,16 @@ def collect_bbs(trace_df, mapping):
                     # input("OOPS")
                     if True:
                         func = find_func_name(mapping, prev_pc)
-                        bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
+                        bb = BasicBlock(
+                            first_pc=first_pc,
+                            last_pc=prev_pc,
+                            num_instrs=len(bb_instrs),
+                            size=bb_size,
+                            end_instr=instr,
+                            func=func,
+                        )
+                        bb_instrs = []
+                        bb_size = 0
                         bbs.append(bb)
                         if bb.get_freq() == 1:
                             func2bbs[bb.func].append(bb)
@@ -110,8 +122,15 @@ def collect_bbs(trace_df, mapping):
             first_pc = pc
 
         if instr in branch_instrs:
+        bb_instrs.append(instr)
+        bb_size += sz
+
             func = find_func_name(mapping, pc)
-            bb = BasicBlock(first_pc=first_pc, last_pc=pc, end_instr=instr, func=func)
+            bb = BasicBlock(
+                first_pc=first_pc, last_pc=pc, num_instrs=len(bb_instrs), size=bb_size, end_instr=instr, func=func
+            )
+            bb_instrs = []
+            bb_size = 0
             bbs.append(bb)
             if bb.get_freq() == 1:
                 func2bbs[bb.func].append(bb)
@@ -123,7 +142,7 @@ def collect_bbs(trace_df, mapping):
     if first_pc is not None:
         func = None
 
-    return bbs, func2bbs, bb_freq
+    return bbs, trace_pcs, func2bbs, bb_freq
 
 
 # TODO: consistent arg naming
@@ -169,12 +188,15 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
                 callee_first_bb = bb_stack[-1][0][0] if isinstance(bb_stack[-1][0], list) else bb_stack[-1][0]
                 for bb_stack_elem in bb_stack[-1]:
                     if not isinstance(bb_stack_elem, list):
-                        cost += 1 + (bb_stack_elem.last_pc - bb_stack_elem.first_pc) // 4
+                        # cost += 1 + (bb_stack_elem.last_pc - bb_stack_elem.first_pc) // 4
+                        cost += bb_stack_elem.num_instrs
                     else:
                         subroutine_cost = bb_stack_elem[1]
                         cost += (
-                            subroutine_cost + 1 + (bb_stack_elem[0].last_pc - bb_stack_elem[0].first_pc) // 4
-                        )  # TODO: do not hardcode
+                            # subroutine_cost + 1 + (bb_stack_elem[0].last_pc - bb_stack_elem[0].first_pc) // 4
+                            subroutine_cost
+                            + bb_stack_elem[0].num_instrs
+                        )
 
                 bb_stack.pop()
                 call_stack.pop()
@@ -205,6 +227,7 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
 
 def callgrind_format_converter(
     bbs: List[BasicBlock],
+    trace_pcs: Set[int],
     mapping: Dict[str, Tuple[int, int]],
     func2bbs: Dict[str, List[BasicBlock]],
     bb_freq: Dict[BasicBlock, int],
@@ -271,9 +294,10 @@ def callgrind_format_converter(
         position_cost_dict = defaultdict(int)
         for bb in sorted_bb_lists:
             pc = bb.first_pc
-            while pc <= bb.last_pc:
-                position_cost_dict[pc] += bb.get_freq()
-                pc += 4
+            for pc_ in range(pc, bb.last_pc + 2, 2):
+                if pc_ not in trace_pcs:
+                    continue
+                position_cost_dict[pc_] += bb.get_freq()
         return position_cost_dict
 
     positions = "instr" if dump_pc else "line"
@@ -413,13 +437,14 @@ def generate_callgrind_output(
     file2pc_loc = helper(pc2locs_df)
 
     mapping = dict(list(func2pc_df[["func", "pc_range"]].to_records(index=False)))
-    bbs, func2bbs, bb_freq = collect_bbs(trace_artifact.df, mapping)
+    bbs, trace_pcs, func2bbs, bb_freq = collect_bbs(trace_artifact.df, mapping)
     file2funcs = dict(list((file2funcs_df.to_records(index=False))))
     func_set = set(func2bbs.keys())
     elf_file_path = elf_artifact.path
 
     content = callgrind_format_converter(
         bbs=bbs,
+        trace_pcs=trace_pcs,
         mapping=mapping,
         func2bbs=func2bbs,
         bb_freq=bb_freq,

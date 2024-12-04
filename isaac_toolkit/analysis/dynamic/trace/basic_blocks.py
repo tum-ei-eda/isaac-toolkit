@@ -48,10 +48,10 @@ class BasicBlock(object):
     def get_instances():
         return list(BasicBlock._instances.values())
 
-    def __new__(cls, first_pc: int, last_pc: int, end_instr: str, func: str):
+    def __new__(cls, first_pc: int, last_pc: int, num_instrs: int, size: int, end_instr: str, func: str):
         # print("__new__", first_pc, last_pc, end_instr, func)
         # print("_instances", BasicBlock._instances)
-        key = (first_pc, last_pc, end_instr, func)
+        key = (first_pc, last_pc, num_instrs, size, end_instr, func)
         # print("key", key)
         instance = cls._instances.get(key)
         # children = cls._children.get(key)
@@ -101,16 +101,18 @@ class BasicBlock(object):
         instance._freq += 1
         return instance
 
-    def __init__(self, first_pc: int, last_pc: int, end_instr: str, func: str) -> None:
+    def __init__(self, first_pc: int, last_pc: int, num_instrs: int, size: int, end_instr: str, func: str) -> None:
         if not self.__initialized:
             self.first_pc = first_pc
             self.last_pc = last_pc
+            self.num_instrs = num_instrs
+            self.size = size
             self.func = func
             self.end_instr = end_instr
             self.__initialized = True
 
     def __repr__(self) -> str:
-        return f"start:{hex(self.first_pc)}, end:{hex(self.last_pc)}, end_instr:{self.end_instr}, func:{self.func}\n"
+        return f"start:{hex(self.first_pc)}, end:{hex(self.last_pc)}, num_instrs:{self.num_instrs}, size:{self.size}, end_instr:{self.end_instr}, func:{self.func}\n"
 
     def __eq__(self, other) -> bool:
         # print("__eq__", self, other, end="")
@@ -178,6 +180,8 @@ def collect_bbs(trace_df):
     prev_pc = None
     prev_size = None
     prev_instr = None
+    bb_instrs = []
+    bb_size = 0
     for row in trace_df.itertuples(index=False):
         # print("row", row)
         pc = row.pc
@@ -211,7 +215,16 @@ def collect_bbs(trace_df):
                     # input("OOPS")
                     if True:
                         func = None
-                        bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
+                        bb = BasicBlock(
+                            first_pc=first_pc,
+                            last_pc=prev_pc,
+                            num_instrs=len(bb_instrs),
+                            size=bb_size,
+                            end_instr=instr,
+                            func=func,
+                        )
+                        bb_instrs = []
+                        bb_size = 0
                         first_pc = pc
                         # if bb.get_freq() == 1:
                         #     bbs.append(bb)
@@ -223,7 +236,11 @@ def collect_bbs(trace_df):
         if instr in branch_instrs:
             # func = self.find_func_name(pc)
             func = None
-            bb = BasicBlock(first_pc=first_pc, last_pc=pc, end_instr=instr, func=func)
+            bb = BasicBlock(
+                first_pc=first_pc, last_pc=pc, num_instrs=len(bb_instrs), size=bb_size, end_instr=instr, func=func
+            )
+            bb_instrs = []
+            bb_size = 0
             # self.func_set.add(func)
             # if bb.get_freq() == 1:
             #     # sub_bbs = find_overlapping_bbs(bb, bbs)
@@ -244,6 +261,8 @@ def collect_bbs(trace_df):
         prev_pc = pc
         prev_instr = instr
         prev_size = sz
+        bb_instrs.append(instr)
+        bb_size += sz
     if first_pc is not None:
         func = None
         # bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)
@@ -257,9 +276,10 @@ def collect_bbs(trace_df):
         start = bb.first_pc
         end = bb.last_pc
         freq = bb.get_freq()
-        last_size = 4  # TODO: do not hardcode
-        size = end - start + 4
-        num = size // 4  # TODO
+        # last_size = 4  # TODO: do not hardcode
+        # size = end - start + 4
+        size = bb.size
+        num = bb.num_instrs
         bb_data = {"bb": (start, end), "freq": freq, "size": size, "num_instrs": num}
         bbs_data.append(bb_data)
 
