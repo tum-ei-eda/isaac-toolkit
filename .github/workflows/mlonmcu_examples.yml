@@ -82,8 +82,8 @@ jobs:
       with:
         name: results-${{ matrix.mlonmcu-ref }}-${{ matrix.mlonmcu-template }}-${{ matrix.program }}-${{ matrix.toolchain }}-${{ matrix.simulator }}-${{ matrix.backend }}
         path: |
-          sess/
-          !sess/elf
-          !sess/instr_trace/
-          *.pdf
-          *.out
+          examples/mlonmcu/sess/
+          examples/mlonmcu/*.pdf
+          examples/mlonmcu/*.out
+          !examples/mlonmcu/sess/elf
+          !examples/mlonmcu/sess/instr_trace/

@@ -28,8 +28,9 @@ jobs:
       matrix:
         python-version: ["3.8"]
         toolchain: ["gcc"]
+        # simulator: ["etiss", "spike"]
         simulator: ["etiss"]
-        full: ["1"]
+        full: ["0", "1"]
     env:
       INSTALL_DIR: ${{ github.workspace }}/examples/standalone/install
       VENV_DIR: ${{ github.workspace }}/venv
@@ -200,8 +201,8 @@ jobs:
       with:
         name: results-${{ matrix.toolchain }}-${{ matrix.simulator }}
         path: |
-          sess/
-          !sess/elf
-          !sess/instr_trace/
-          *.pdf
-          *.out
+          examples/standalone/coremark/sess/
+          examples/standalone/coremark/*.pdf
+          examples/standalone/coremark/*.out
+          !examples/standalone/coremark/sess/elf
+          !examples/standalone/coremark/sess/instr_trace/
