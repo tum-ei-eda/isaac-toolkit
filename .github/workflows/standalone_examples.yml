@@ -158,9 +158,9 @@ jobs:
 
         if [[ "$FULL" == "1" && "$SIMULATOR" == "etiss" ]]
         then
-            python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS
-        else
             python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS --operands
+        else
+            python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS
         fi
 
         python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $SESS
