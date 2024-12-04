@@ -73,8 +73,8 @@ jobs:
         then
             ./scripts/setup_etiss.sh $INSTALL_DIR/etiss
         fi
-    - name: Run Coremark example (ETISS)
-      working-directory: examples/coremark
+    - name: Run Coremark example
+      working-directory: examples/standalone/coremark
       run: |
         source $VENV_DIR/bin/activate
 
