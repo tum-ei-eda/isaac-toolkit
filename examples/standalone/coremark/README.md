@@ -225,7 +225,7 @@ xdg-open $SESS/plots/runtime_per_instr.jpg
 
 Optional: Profiling (WIP)
 
-*Hint:* The packages `kcachegrind` and `graphviz` need to be installed!
+*Hint:* The packages `kcachegrind` and `graphviz-dev` need to be installed!
 
 ```sh
 python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out
