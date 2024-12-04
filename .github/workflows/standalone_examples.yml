@@ -1,0 +1,192 @@
+##
+## Copyright (c) 2022 TUM Department of Electrical and Computer Engineering.
+##
+## This file is part of MLonMCU.
+## See https://github.com/tum-ei-eda/mlonmcu.git for further info.
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+##
+name: Run Benchmarks
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+        toolchain: ["gcc"]
+        simulator: ["etiss"]
+    env:
+      INSTALL_DIR: ${{ github.workspace }}/examples/standalone/install
+      RISCV_NAME: "riscv32-unknown-elf"
+      RISCV_ARCH: "rv32im_zicsr_zifencei"
+      RISCV_ABI: "ilp32"
+      SIMULATOR: ${{ matrix.simulator }}
+      TOOLCHAIN: ${{ matrix.toolchain }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    # TODO: caching
+    - name: Install APT packages
+      run: |
+        sudo apt -qq install -y build-essential git cmake libboost-system-dev libboost-filesystem-dev libboost-program-options-dev
+    - name: Initialize Virtualenv
+      run: |
+        python -m pip install --upgrade pip
+        python -m venv $GITHUB_WORKSPACE/venv
+    - name: Install dependencies
+      run: |
+        source $GITHUB_WORKSPACE/venv/bin/activate
+        pip install -r requirements.txt
+    - name: Initialize MLonMCU environment
+      run: |
+        source $GITHUB_WORKSPACE/venv/bin/activate
+        mlonmcu init home/ --non-interactive --template ${{ github.event.inputs.template }}
+    - name: Setup dependencies
+      working-directory: examples/standalone
+      run: |
+        ./scripts/download_helper.sh $INSTALL_DIR/rv32im_ilp32/ gnu 2024.09.03 rv32im_zicsr_zifencei_ilp32
+
+        if [[ "$TOOLCHAIN" == "llvm" ]]
+        then
+            ./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 19.1.1
+        fi
+
+        if [[ "$SIMULATOR" == "etiss" ]]
+        then
+            ./scripts/setup_etiss.sh
+        fi
+    - name: Run Coremark example (ETISS)
+      working-directory: examples/coremark
+      run: |
+        source $GITHUB_WORKSPACE/venv/bin/activate
+
+        # For isaac toolkit
+        export SESS=$(pwd)/sess
+        export BUILD_DIR=$(pwd)/build
+
+        # For compilation
+        export RISCV_PREFIX=$INSTALL_DIR/rv32im_ilp32
+        export SYSROOT=$RISCV_PREFIX/$RISCV_NAME
+        export CC=$RISCV_PREFIX/bin/$RISCV_NAME-gcc
+        export OBJDUMP=$RISCV_PREFIX/bin/$RISCV_NAME-objdump
+
+        # For simulation
+        if [[ "$SIMULATOR" == "etiss" ]]
+        then
+            export ETISS=$INSTALL_DIR/etiss/install/bin/run_helper.sh
+            export ETISS_INI=$INSTALL_DIR/etiss/install/custom.ini
+            export ETISS_SPECS=$INSTALL_DIR/etiss/etiss_riscv_examples/etiss-semihost.specs
+        elif [[ "$SIMULATOR" == "spike" ]]
+        then
+            export SIMULATOR=spike
+            export SPIKE=$INSTALL_DIR/spike/spike
+            export PK=$INSTALL_DIR/spike/pk_rv32gc
+        else
+            echo "Unsupported SIMULATOR=$SIMULATOR"
+            exit 1
+        fi
+
+        python3 -m isaac_toolkit.session.create --session $SESS
+
+        mkdir -p $BUILD_DIR
+        if [[ "$SIMULATOR" == "etiss" ]]
+        then
+            $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c $ETISS_CRT/crt0.S $ETISS_CRT/trap_handler.c -T $ETISS_LDSCRIPT -nostdlib -lc -lgcc -lsemihost -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
+        elif [[ "$SIMULATOR" == "spike" ]]
+        then
+            $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
+            $OBJDUMP -d $BUILD_DIR/coremark.elf > $BUILD_DIR/coremark.dump
+        else
+            echo "Unsupported SIMULATOR=$SIMULATOR"
+            exit 1
+        fi
+
+        python3 -m isaac_toolkit.frontend.elf.riscv --session $SESS $BUILD_DIR/coremark.elf
+
+        # Optional:
+        # python3 -m isaac_toolkit.frontend.linker_map --session $SESS $BUILD_DIR/coremark.map
+        # python3 -m isaac_toolkit.frontend.disass.objdump --session $SESS $BUILD_DIR/coremark.dump
+
+        python3 -m isaac_toolkit.analysis.static.dwarf --session $SESS
+        python3 -m isaac_toolkit.analysis.static.mem_footprint --session $SESS
+
+        # Optional:
+        # python3 -m isaac_toolkit.analysis.static.linker_map --session $SESS
+        # python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $SESS
+        # python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $SESS
+
+        python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend
+
+        # Optional:
+        # python3 -m isaac_toolkit.visualize.pie.disass_counts --session $SESS --legend
+
+        xdg-open $SESS/plots/mem_footprint_per_func.jpg
+
+        # Optional:
+        # xdg-open $SESS/plots/disass_counts_per_instr.jpg
+        # xdg-open $SESS/plots/disass_counts_per_opcode.jpg
+
+        if [[ "$SIMULATOR" == "etiss" ]]
+        then
+            $ETISS build/coremark.elf -i$ETISS_INI -pPrintInstruction | grep "^0x00000000" > etiss_instrs.log
+
+            # Optional (without trace)
+            # $ETISS build/coremark.elf -i$ETISS_INI
+        elif [[ "$SIMULATOR" == "spike" ]]
+        then
+            $SPIKE --isa=${ARCH}_zicntr -l --log=spike_instrs.log $PK $BUILD_DIR/coremark.elf -s
+        else
+            echo "Unsupported SIMULATOR=$SIMULATOR"
+            exit 1
+        fi
+
+        python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS
+        # Optional argument (for supported simulators): --operands
+
+        python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $SESS
+        python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $SESS
+        python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $SESS
+
+        # Optional
+        # python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
+        # python3 -m isaac_toolkit.analysis.dynamic.trace.track_used_functions --session $SESS
+
+        python3 -m isaac_toolkit.visualize.pie.runtime --session $SESS --legend
+
+        # Optional:
+        # For effective memory footprint
+        python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend --force
+
+        python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out
+        python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pc --output callgrind_pc.out
+
+        # Callgraph
+        gprof2dot --format=callgrind --output=callgraph.dot callgrind_pos.out -n 0.1 -e 0.1 --color-nodes-by-selftime
+        dot -Tpdf callgraph.dot > callgraph.pdf
+
+        # Annotate source code (ASCII)
+        callgrind_annotate callgrind_pos.out src/*.c
+    - name: Archive reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: results
+        path: |
+          sess/
