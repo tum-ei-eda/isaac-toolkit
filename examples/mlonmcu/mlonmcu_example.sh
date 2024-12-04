@@ -18,25 +18,23 @@ if [ "$#" -gt 5 ]; then
     EXTRA_ARGS="$@"
 fi
 
-# Create ISAAC session
+# --- Create ISAAC session ---
 python3 -m isaac_toolkit.session.create --session $SESS --force
 
-# Run MLonMCU command
+# --- Run MLonMCU command ---
 python3 -m mlonmcu.cli.main flow run -v --progress $PROG \
     --target $TARGET --backend $BACKEND \
     -f log_instrs -c log_instrs.to_file=1  -c mlif.toolchain=$TOOLCHAIN \
     -c run.export_optional=1 -c mlif.debug_symbols=1 -c \
     $TARGET.compressed=0 \  # Workaround for KCachegrind bug
     $EXTRA_ARGS
-# Optional: python3 -m mlonmcu.cli.main export --run run/
 
-# Load files
 ELF=$MLONMCU_HOME/temp/sessions/latest/runs/latest/generic_mlonmcu
 TRACE=$MLONMCU_HOME/temp/sessions/latest/runs/latest/${TARGET}_instrs.log
 MAP=$MLONMCU_HOME/mlif/generic/linker.map
 DUMP=$MLONMCU_HOME/generic_mlonmcu.dump
 
-# Load artifacts
+# --- Load artifacts ---
 python3 -m isaac_toolkit.frontend.elf.riscv $ELF --session $SESS --force
 python3 -m isaac_toolkit.frontend.instr_trace.$TARGET $TRACE --session $SESS --force # --operands
 
@@ -44,7 +42,7 @@ python3 -m isaac_toolkit.frontend.instr_trace.$TARGET $TRACE --session $SESS --f
 # python3 -m isaac_toolkit.frontend.linker_map --session $SESS $MAP --force
 # python3 -m isaac_toolkit.frontend.disass.objdump --session $SESS $DUMP --force
 
-# Static analysis
+# --- Static analysis ---
 python3 -m isaac_toolkit.analysis.static.dwarf --session $SESS --force
 python3 -m isaac_toolkit.analysis.static.mem_footprint --session $SESS --force
 
@@ -53,14 +51,22 @@ python3 -m isaac_toolkit.analysis.static.mem_footprint --session $SESS --force
 # python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $SESS --force
 # python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $SESS --force
 
-# Dynamic analysis
+# --- Dynamic analysis ---
 python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $SESS --force
 
 # Optional:
 # python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --force
 # python3 -m isaac_toolkit.analysis.dynamic.trace.track_used_functions --session $SESS --force
 
-# Profiling
+# --- Visualization ---
+python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend
+
+# Optional:
+# python3 -m isaac_toolkit.visualize.pie.disass_counts --session $SESS --legend
+
+# --- Profiling ---
+
+# Callgrind
 python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out
 python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pc --output callgrind_pc.out
 
