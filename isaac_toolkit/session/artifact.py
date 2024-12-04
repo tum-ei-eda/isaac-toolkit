@@ -210,7 +210,7 @@ class PythonArtifact(Artifact):
             pickle.dump(self.data, f)
 
     def _load(self, source: Path):
-        with open(dest, "rb") as f:
+        with open(source, "rb") as f:
             data = pickle.load(f)
         self._data = data
 
