@@ -157,7 +157,8 @@ jobs:
             exit 1
         fi
 
-        if [[ "$FULL" == "1" && "$SIMULATOR" == "etiss" ]]
+        # if [[ "$FULL" == "1" && "$SIMULATOR" == "etiss" ]]
+        if [[ "$FULL" == "1" && "$SIMULATOR" == "etiss" && "1" == "0" ]]  # disabled due to RAM issues
         then
             python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS --operands
         else
@@ -171,10 +172,11 @@ jobs:
         if [[ "$FULL" == "1" ]]
         then
             python3 -m isaac_toolkit.analysis.dynamic.trace.track_used_functions --session $SESS
-            if [[ "$SIMULATOR" == "etiss" ]]
-            then
-                python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
-            fi
+            if [[ "$SIMULATOR" == "etiss" ]]  # disabled due to RAM issues
+            # if [[ "$SIMULATOR" == "etiss" ]]
+            # then
+            #     python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
+            # fi
         fi
 
         python3 -m isaac_toolkit.visualize.pie.runtime --session $SESS --legend
@@ -201,3 +203,5 @@ jobs:
           sess/
           !sess/elf
           !sess/instr_trace/
+          *.pdf
+          *.out
