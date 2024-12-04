@@ -10,6 +10,7 @@ from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
@@ -135,47 +136,6 @@ def collect_bbs(trace_df):
     # input("{}{}{}{}")
     first_pc = None
     # TODO: make this generic!
-    branch_instrs = [
-        "j",  # pseudo
-        "jr",  # pseudo
-        "ret",  # pseudo
-        "mret",  # pseudo
-        "sret",  # pseudo
-        "uret",  # pseudo
-        "call",  # pseudo
-        "tail",  # pseudo
-        "jalr",
-        "jal",
-        "beq",
-        "beqz",  # pseudo
-        "bne",
-        "blt",
-        "bltz",  # pseudo
-        "bgt",  # pseudo
-        "bgtz",  # pseudo
-        "bge",  # pseudo
-        "bgez",  # pseudo
-        "ble",
-        "bltu",
-        "bgtu",  # pseudo
-        "bgeu",  # pseudo
-        "bleu",
-        "ecall",
-        "bnez",  # bseudo
-        "cbnez",
-        "c.bnez",
-        "cjr",
-        "cj",  # pseudo
-        "cbeqz",
-        "cjalr",
-        "cjal",
-        "c.j",
-        "c.jr",
-        "c.j",
-        "c.beqz",
-        "c.jalr",
-        "c.jal",
-    ]
     # bbs = []
     prev_pc = None
     prev_size = None
@@ -233,7 +193,7 @@ def collect_bbs(trace_df):
         if first_pc is None:
             first_pc = pc
 
-        if instr in branch_instrs:
+        if instr in riscv_branch_instrs + riscv_return_instrs:
             # func = self.find_func_name(pc)
             func = None
             bb = BasicBlock(

@@ -12,6 +12,7 @@ from collections import defaultdict
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session import riscv_branch_instrs, riscv_return_instrs
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
@@ -31,47 +32,6 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
 def collect_bbs(trace_df, mapping):
     first_pc = None
     # TODO: make this generic!
-    branch_instrs = [
-        "j",  # pseudo
-        "jr",  # pseudo
-        "ret",  # pseudo
-        "mret",  # pseudo
-        "sret",  # pseudo
-        "uret",  # pseudo
-        "call",  # pseudo
-        "tail",  # pseudo
-        "jalr",
-        "jal",
-        "beq",
-        "beqz",  # pseudo
-        "bne",
-        "blt",
-        "bltz",  # pseudo
-        "bgt",  # pseudo
-        "bgtz",  # pseudo
-        "bge",  # pseudo
-        "bgez",  # pseudo
-        "ble",
-        "bltu",
-        "bgtu",  # pseudo
-        "bgeu",  # pseudo
-        "bleu",
-        "ecall",
-        "bnez",  # bseudo
-        "cbnez",
-        "c.bnez",
-        "cjr",
-        "cj",  # pseudo
-        "cbeqz",
-        "cjalr",
-        "cjal",
-        "c.j",
-        "c.jr",
-        "c.j",
-        "c.beqz",
-        "c.jalr",
-        "c.jal",
-    ]
     func2bbs = defaultdict(list)  # TODO: only track func_set?
     bb_freq = defaultdict(int)
     prev_pc = None
@@ -121,10 +81,10 @@ def collect_bbs(trace_df, mapping):
         if first_pc is None:
             first_pc = pc
 
-        if instr in branch_instrs:
         bb_instrs.append(instr)
         bb_size += sz
 
+        if instr in riscv_branch_instrs + riscv_return_instrs:
             func = find_func_name(mapping, pc)
             bb = BasicBlock(
                 first_pc=first_pc, last_pc=pc, num_instrs=len(bb_instrs), size=bb_size, end_instr=instr, func=func
@@ -160,10 +120,7 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
     # [B returns]: [[bb1, bb2, [bb3, # cost from B]]]
     # where bb1 - bb3 belong to func A and bb4 - bb6 belong to func B
     for i, bb in enumerate(bbs):
-        if prev_bb is None or (
-            prev_bb.end_instr in ["jal", "beq", "bne", "blt", "bltu", "bge", "bgeu", "ecall"]
-            and prev_bb.func != bb.func
-        ):  # TODO: do not hardcode
+        if prev_bb is None or (prev_bb.end_instr in branch_instrs and prev_bb.func != bb.func):
             # first bb in the trace
             call_stack.append(bb.func)
             bb_stack.append([bb])
@@ -171,7 +128,7 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
             # jalr doesn't necessarily mean return
             # 0x2ac8, jalr, memset -> 0x2ae8, memset
             bb_stack[-1].append(bb)
-        elif prev_bb.end_instr == "jalr":
+        elif prev_bb.end_instr in riscv_return_instrs:
             # Check whether jalr refer to return
             # sometimes jalr simply means indirect jump
             # TODO: Redundant? Is it already handled in the above condition?
