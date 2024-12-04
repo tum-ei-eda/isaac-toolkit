@@ -192,6 +192,8 @@ jobs:
     - name: Archive reports
       uses: actions/upload-artifact@v4
       with:
-        name: results
+        name: results-${{ matrix.toolchain }}-${{ matrix.simulator }}
         path: |
           sess/
+          !sess/elf
+          !sess/instr_trace/
