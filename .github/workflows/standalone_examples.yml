@@ -172,11 +172,11 @@ jobs:
         if [[ "$FULL" == "1" ]]
         then
             python3 -m isaac_toolkit.analysis.dynamic.trace.track_used_functions --session $SESS
-            if [[ "$SIMULATOR" == "etiss" ]]  # disabled due to RAM issues
             # if [[ "$SIMULATOR" == "etiss" ]]
-            # then
-            #     python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
-            # fi
+            if [[ "$SIMULATOR" == "etiss" && "1" == "0" ]]  # disabled due to RAM issues
+            then
+                python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
+            fi
         fi
 
         python3 -m isaac_toolkit.visualize.pie.runtime --session $SESS --legend
