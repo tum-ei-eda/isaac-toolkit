@@ -140,7 +140,7 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
             # ret case for the rest code snippet
             diff = len(call_stack) - call_stack.index(bb.func) - 1
 
-            for i in range(diff):
+            for j in range(diff):
                 cost = 0
                 callee_first_bb = bb_stack[-1][0][0] if isinstance(bb_stack[-1][0], list) else bb_stack[-1][0]
                 for bb_stack_elem in bb_stack[-1]:
@@ -174,7 +174,7 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
                 # ...
                 # 0x5ae0 jalr   rd, rs, imm <--- in function B
                 # 0x6b4  ... <--- return to function A
-                if i == diff - 1:
+                if j == diff - 1:
                     bb_stack[-1].append(bb)
 
         prev_bb = bb
