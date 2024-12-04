@@ -22,8 +22,8 @@ on:
 
 jobs:
   benchmark:
-    # runs-on: ubuntu-22.04
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
+    # runs-on: self-hosted
     strategy:
       matrix:
         python-version: ["3.8"]
