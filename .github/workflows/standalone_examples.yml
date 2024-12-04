@@ -71,7 +71,7 @@ jobs:
 
         if [[ "$SIMULATOR" == "etiss" ]]
         then
-            ./scripts/setup_etiss.sh
+            ./scripts/setup_etiss.sh $INSTALL_DIR/etiss
         fi
     - name: Run Coremark example (ETISS)
       working-directory: examples/coremark

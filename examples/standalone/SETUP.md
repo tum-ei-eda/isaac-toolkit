@@ -37,14 +37,14 @@ or similar.
 
 ```sh
 # NOT IMPLEMENTED!
-# ./scripts/download_helper.sh $INSTALL_DIR/etiss/ etiss 2024.11.28  
+# ./scripts/download_helper.sh $INSTALL_DIR/etiss/ etiss 2024.11.28
 
 # Alternative:
-./scripts/setup_etiss.sh
+./scripts/setup_etiss.sh $INSTALL_DIR/etiss
 ```
 
 ### Spike
 
 ```sh
-./scripts/download_helper.sh $INSTALL_DIR/spike/ spike 2024.11.28  
+./scripts/download_helper.sh $INSTALL_DIR/spike/ spike 2024.11.28
 ```
