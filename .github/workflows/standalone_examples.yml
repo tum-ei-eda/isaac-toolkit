@@ -1,8 +1,8 @@
 ##
-## Copyright (c) 2022 TUM Department of Electrical and Computer Engineering.
+## Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
 ##
-## This file is part of MLonMCU.
-## See https://github.com/tum-ei-eda/mlonmcu.git for further info.
+## This file is part of ISAAC Toolkit.
+## See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -59,10 +59,6 @@ jobs:
       run: |
         source $VENV_DIR/bin/activate
         pip install -r requirements.txt
-    - name: Initialize MLonMCU environment
-      run: |
-        source $VENV_DIR/bin/activate
-        mlonmcu init home/ --non-interactive --template ${{ github.event.inputs.template }}
     - name: Setup dependencies
       working-directory: examples/standalone
       run: |
