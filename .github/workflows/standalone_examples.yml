@@ -22,19 +22,23 @@ on:
 
 jobs:
   benchmark:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         python-version: ["3.10"]
         toolchain: ["gcc"]
         simulator: ["etiss"]
+        full: ["1"]
     env:
       INSTALL_DIR: ${{ github.workspace }}/examples/standalone/install
+      VENV_DIR: ${{ github.workspace }}/venv
+      PYTHONPATH: ${{ github.workspace }}
       RISCV_NAME: "riscv32-unknown-elf"
       RISCV_ARCH: "rv32im_zicsr_zifencei"
       RISCV_ABI: "ilp32"
       SIMULATOR: ${{ matrix.simulator }}
       TOOLCHAIN: ${{ matrix.toolchain }}
+      FULL: ${{ matrix.full }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -46,18 +50,18 @@ jobs:
     # TODO: caching
     - name: Install APT packages
       run: |
-        sudo apt -qq install -y build-essential git cmake libboost-system-dev libboost-filesystem-dev libboost-program-options-dev
+        sudo apt -qq install -y build-essential git cmake libboost-system-dev libboost-filesystem-dev libboost-program-options-dev kcachegrind graphviz
     - name: Initialize Virtualenv
       run: |
         python -m pip install --upgrade pip
-        python -m venv $GITHUB_WORKSPACE/venv
+        python -m venv $VENV_DIR
     - name: Install dependencies
       run: |
-        source $GITHUB_WORKSPACE/venv/bin/activate
+        source $VENV_DIR/bin/activate
         pip install -r requirements.txt
     - name: Initialize MLonMCU environment
       run: |
-        source $GITHUB_WORKSPACE/venv/bin/activate
+        source $VENV_DIR/bin/activate
         mlonmcu init home/ --non-interactive --template ${{ github.event.inputs.template }}
     - name: Setup dependencies
       working-directory: examples/standalone
@@ -76,19 +80,16 @@ jobs:
     - name: Run Coremark example (ETISS)
       working-directory: examples/coremark
       run: |
-        source $GITHUB_WORKSPACE/venv/bin/activate
+        source $VENV_DIR/bin/activate
 
-        # For isaac toolkit
         export SESS=$(pwd)/sess
         export BUILD_DIR=$(pwd)/build
 
-        # For compilation
         export RISCV_PREFIX=$INSTALL_DIR/rv32im_ilp32
         export SYSROOT=$RISCV_PREFIX/$RISCV_NAME
         export CC=$RISCV_PREFIX/bin/$RISCV_NAME-gcc
         export OBJDUMP=$RISCV_PREFIX/bin/$RISCV_NAME-objdump
 
-        # For simulation
         if [[ "$SIMULATOR" == "etiss" ]]
         then
             export ETISS=$INSTALL_DIR/etiss/install/bin/run_helper.sh
@@ -121,35 +122,32 @@ jobs:
 
         python3 -m isaac_toolkit.frontend.elf.riscv --session $SESS $BUILD_DIR/coremark.elf
 
-        # Optional:
-        # python3 -m isaac_toolkit.frontend.linker_map --session $SESS $BUILD_DIR/coremark.map
-        # python3 -m isaac_toolkit.frontend.disass.objdump --session $SESS $BUILD_DIR/coremark.dump
+        if [[ "$FULL" == "1" ]]
+        then
+            python3 -m isaac_toolkit.frontend.linker_map --session $SESS $BUILD_DIR/coremark.map
+            python3 -m isaac_toolkit.frontend.disass.objdump --session $SESS $BUILD_DIR/coremark.dump
+        fi
 
         python3 -m isaac_toolkit.analysis.static.dwarf --session $SESS
         python3 -m isaac_toolkit.analysis.static.mem_footprint --session $SESS
 
-        # Optional:
-        # python3 -m isaac_toolkit.analysis.static.linker_map --session $SESS
-        # python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $SESS
-        # python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $SESS
+        if [[ "$FULL" == "1" ]]
+        then
+            python3 -m isaac_toolkit.analysis.static.linker_map --session $SESS
+            python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $SESS
+            python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $SESS
+        fi
 
         python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend
 
-        # Optional:
-        # python3 -m isaac_toolkit.visualize.pie.disass_counts --session $SESS --legend
-
-        xdg-open $SESS/plots/mem_footprint_per_func.jpg
-
-        # Optional:
-        # xdg-open $SESS/plots/disass_counts_per_instr.jpg
-        # xdg-open $SESS/plots/disass_counts_per_opcode.jpg
+        if [[ "$FULL" == "1" ]]
+        then
+            python3 -m isaac_toolkit.visualize.pie.disass_counts --session $SESS --legend
+        fi
 
         if [[ "$SIMULATOR" == "etiss" ]]
         then
             $ETISS build/coremark.elf -i$ETISS_INI -pPrintInstruction | grep "^0x00000000" > etiss_instrs.log
-
-            # Optional (without trace)
-            # $ETISS build/coremark.elf -i$ETISS_INI
         elif [[ "$SIMULATOR" == "spike" ]]
         then
             $SPIKE --isa=${ARCH}_zicntr -l --log=spike_instrs.log $PK $BUILD_DIR/coremark.elf -s
@@ -158,22 +156,32 @@ jobs:
             exit 1
         fi
 
-        python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS
-        # Optional argument (for supported simulators): --operands
+        if [[ "$FULL" == "1" && "$SIMULATOR" == "etiss" ]]
+        then
+            python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS
+        else
+            python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS --operands
+        fi
 
         python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $SESS
         python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $SESS
         python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $SESS
 
-        # Optional
-        # python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
-        # python3 -m isaac_toolkit.analysis.dynamic.trace.track_used_functions --session $SESS
+        if [[ "$FULL" == "1" ]]
+        then
+            python3 -m isaac_toolkit.analysis.dynamic.trace.track_used_functions --session $SESS
+            if [[ "$SIMULATOR" == "etiss" ]]
+            then
+                python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
+            fi
+        fi
 
         python3 -m isaac_toolkit.visualize.pie.runtime --session $SESS --legend
 
-        # Optional:
-        # For effective memory footprint
-        python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend --force
+        if [[ "$FULL" == "1" ]]
+        then
+            python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend --force
+        fi
 
         python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out
         python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pc --output callgrind_pc.out
