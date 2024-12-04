@@ -169,7 +169,6 @@ $SPIKE --isa=${ARCH}_zicntr -l --log=spike_instrs.log $PK $BUILD_DIR/coremark.el
 ##### ETISS
 
 ```sh
-TODO
 $ETISS build/coremark.elf -i$ETISS_INI -pPrintInstruction | grep "^0x00000000" > etiss_instrs.log
 
 # Optional (without trace)
