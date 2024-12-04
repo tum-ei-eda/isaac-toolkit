@@ -11,6 +11,8 @@ import pandas as pd
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
+from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV32, CS_MODE_RISCV64, CS_MODE_RISCVC
+
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 
@@ -23,6 +25,14 @@ def parse_elf(elf_path):
     func_to_addrs = defaultdict(list)
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
+
+        # extract disassembly to count instructions per bb
+        code = elf.get_section_by_name(".text")
+        ops = code.data()
+        addr = code["sh_addr"]
+        md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCVC)
+        valid_pcs = set(x.address for x in md.disasm(ops, addr))
+
         section = elffile.get_section_by_name(".symtab")
         xlen = elffile.elfclass
         assert xlen is not None
@@ -125,14 +135,16 @@ def parse_elf(elf_path):
                         assert sz >= 0
                         start = cur
                         end = cur + sz
+                        pcs = [pc for pc in range(start, end + 2, 2) if pc in valid_pcs]
+                        num_instrs = len(pcs)
                         # print("sz", sz)
                         # print("start", start)
                         # print("end", end)
                         cur += sz
                         if GISEL:
-                            tmp[str(bb_id)] = (start, end, sz)
+                            tmp[str(bb_id)] = (start, end, sz, num_instrs)
                         else:
-                            tmp[bb_id] = (start, end, sz)
+                            tmp[bb_id] = (start, end, sz, num_instrs)
                     # print("tmp", tmp)
                     ret[func_name] = tmp
                     # input("w")
@@ -156,8 +168,8 @@ def parse_elf(elf_path):
                 if GISEL:
                     bbs = dict(sorted(bbs.items(), key=lambda x: int(x[0]))).values()
                 for i, bb in enumerate(bbs):
-                    start, end, sz = bb
-                    print(f"> bb{i}", ":", hex(start), "-", hex(end), f"(len={sz}B)")
+                    start, end, sz, num_instrs = bb
+                    print(f"> bb{i}", ":", hex(start), "-", hex(end), f"(len={sz}B, num={num_instrs})")
                     print()
     return llvm_bb_addr_map
 
@@ -187,8 +199,8 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
         for bb_name, bb_data in func_data.items():
             # print("bn", bb_name)
             bb_name = f"%bb.{bb_name}"
-            start, end, sz = bb_data
-            new = {"func_name": func_name, "bb_name": bb_name, "pcs": (start, end), "size": sz}
+            start, end, sz, num_instrs = bb_data
+            new = {"func_name": func_name, "bb_name": bb_name, "pcs": (start, end), "size": sz, "num_instrs": num_instrs}
             # if trace_pc2bb_df is not None:
             #     print("trace_pc2bb_df", trace_pc2bb_df)
             #     # trace_pc2bb_df[["start", "end"]] = trace_pc2bb_df["bb"].apply(pd.Series)
