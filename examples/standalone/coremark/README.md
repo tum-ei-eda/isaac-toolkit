@@ -254,5 +254,5 @@ callgrind_annotate callgrind_pos.out src/*.c
 - Printing the entire disassembly instead of limiting the output to the selected function:
 
 ```sh
-OBJDUMP_FORMAT="/bin/riscv32-unknown-elf-objdump -C -d %3 # %1 %2" kcachegrind callgrind_pc.out
+OBJDUMP_FORMAT="$OBJDUMP -C -d %3 # %1 %2" kcachegrind callgrind_pc.out
 ```

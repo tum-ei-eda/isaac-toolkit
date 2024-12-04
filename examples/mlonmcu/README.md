@@ -66,7 +66,7 @@ xdg-open $SESS/plots/runtime_per_instr.jpg
 
 ### Profiling
 
-*Hint:* The packages `kcachegrind` and `graphviz` need to be installed!
+*Hint:* The packages `kcachegrind` and `graphviz` need to be installed! Further the `OBJDUMP` environment variable nhas to point to a supported RISC-V objdump program.
 
 ```sh
 python3 -m isaac_toolkit.backend.profile.callgrind --session sess/ --dump-pos --output callgrind_pos.out
@@ -94,5 +94,5 @@ kcachegrind callgrind_pos.out
 - Printing the entire disassembly instead of limiting the output to the selected function:
 
 ```sh
-OBJDUMP_FORMAT="/bin/riscv32-unknown-elf-objdump -C -d %3 # %1 %2" kcachegrind callgrind_pc.out
+OBJDUMP_FORMAT="$OBJDUMP -C -d %3 # %1 %2" kcachegrind callgrind_pc.out
 ```
