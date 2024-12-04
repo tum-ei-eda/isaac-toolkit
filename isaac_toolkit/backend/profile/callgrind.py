@@ -12,7 +12,7 @@ from collections import defaultdict
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
-from isaac_toolkit.session import riscv_branch_instrs, riscv_return_instrs
+from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
