@@ -22,6 +22,12 @@ fi
 python3 -m isaac_toolkit.session.create --session $SESS --force
 
 # --- Run MLonMCU command ---
+echo CMD: python3 -m mlonmcu.cli.main flow run -v --progress $PROG \
+    --target $TARGET --backend $BACKEND \
+    -f log_instrs -c log_instrs.to_file=1  -c mlif.toolchain=$TOOLCHAIN \
+    -c run.export_optional=1 -c mlif.debug_symbols=1 -c \
+    $TARGET.compressed=0 \  # Workaround for KCachegrind bug
+    $EXTRA_ARGS
 python3 -m mlonmcu.cli.main flow run -v --progress $PROG \
     --target $TARGET --backend $BACKEND \
     -f log_instrs -c log_instrs.to_file=1  -c mlif.toolchain=$TOOLCHAIN \
