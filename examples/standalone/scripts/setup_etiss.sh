@@ -8,7 +8,7 @@ if [ "$#" -lt 1 ]; then
     exit 1
 fi
 
-ETISS_DIR=$1
+ETISS_DIR=$(readlink -f $1)
 ETISS_REF=${2:-b24bc484d1498d6cdc4587a4dbd246adce0e5f26}
 CMAKE_BUILD_TYPE=${3:-Release}
 
