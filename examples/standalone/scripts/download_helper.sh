@@ -18,6 +18,18 @@ release=${7:-$(lsb_release -r --short)}
 ext=${8:-tar.xz}
 cpu_arch=$(uname -p)
 
+
+if [[ "$dist_lower" == "pop!_os" ]]
+then
+    dist_lower=ubuntu
+fi
+
+if [[ "$dist_lower" != "ubuntu" ]]
+then
+    echo "Unsupported distribution: $dist_lower (Currently only Ubuntu/PopOS is supported)".
+
+fi
+
 if [[ "$tool_lower" == "llvm" ]]
 then
     # TODO: label?
