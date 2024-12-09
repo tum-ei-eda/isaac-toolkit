@@ -17,8 +17,8 @@
 ## limitations under the License.
 ##
 name: Tests
-on:
-  workflow_dispatch:
+
+on: [push, pull_request]
 
 jobs:
   unit-test:
