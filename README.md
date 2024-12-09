@@ -7,7 +7,7 @@ Automated Customization Toolkit for Instruction Set Architectures (ISAs)
 
 ```python
 isaac_toolkit
-├── algorithm 
+├── algorithm
 │   └── ... # work in progress
 ├── analysis
 │   ├── dynamic  # dynamic analysis tools
@@ -53,7 +53,7 @@ isaac_toolkit
 │   │   └── spike.py
 │   ├── isa  # work in progress
 │   │   └── ...
-│   ├── linker_map.py 
+│   ├── linker_map.py
 │   ├── memgraph  # work in progress
 │   │   ├── llvm_ir_cdfg.py
 │   │   └── llvm_mir_cdfg.py
@@ -105,6 +105,10 @@ Install packages:
 
 ```sh
 pip install -r requirements.txt
+
+# Optional:
+pip install -r requirements_full.txt  # for specific backends
+pip install -r requirements_dev.txt  # for linting, testing,...
 ```
 
 ### Demo
