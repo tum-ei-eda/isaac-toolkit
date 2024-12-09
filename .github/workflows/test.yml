@@ -1,0 +1,78 @@
+##
+## Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+##
+## This file is part of ISAAC Toolkit.
+## See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+##
+name: Tests
+on:
+  workflow_dispatch:
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    env:
+      VENV_DIR: ${{ github.workspace }}/venv
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Initialize Virtualenv
+      run: |
+        python -m pip install --upgrade pip
+        python -m venv $VENV_DIR
+    - name: Install dependencies
+      run: |
+        source $VENV_DIR/bin/activate
+        pip install -r requirements_dev.txt
+    - name: Run Pytest (via coverage)
+      run: |
+        source $VENV_DIR/bin/activate
+
+        # Without coverage:
+        # python3 -m pytest tests/ -rs -s
+
+        # With coverage:
+        coverage run --source isaac_toolkit -m pytest tests/
+	      coverage report -m
+	      coverage html
+    - name: Archive code coverage html report
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report
+        path: htmlcov
+    - name: Get coverage percentage
+      id: report
+      run: |
+        source .venv/bin/activate
+        echo "name=percent::$(coverage report | awk '$1 == \"TOTAL\" {print $NF+0 \"%\"}')" >> $GITHUB_OUTPUT
+    - name: Test coverage Text
+      run: echo "|${{ steps.report.outputs.percent }}|"
+    - name: Create coverage badge
+      uses: RubbaBoy/BYOB@v1.2.1
+      with:
+        NAME: coverage
+        LABEL: 'Coverage'
+        STATUS: "${{ steps.report.outputs.percent }}"
+        COLOR: blue
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
