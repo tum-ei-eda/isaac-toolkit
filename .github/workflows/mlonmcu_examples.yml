@@ -28,7 +28,7 @@ jobs:
       matrix:
         python-version: ["3.8"]
         mlonmcu-ref: ["main"]
-        mlonmcu-template: ["dev"]
+        mlonmcu-template: ["default"]
         prog: ["toycar"]
         toolchain: ["gcc"]
         simulator: ["etiss"]

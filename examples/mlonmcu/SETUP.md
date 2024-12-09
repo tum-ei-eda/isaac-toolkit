@@ -51,10 +51,10 @@ Export `MLONMCU_HOME` environment variable:
 export MLONMCU_HOME=$(pwd)/workspace
 ```
 
-Initialize workspace using provided `environment.yml.j2` environment template:
+Initialize workspace using provided `environment.yml.j2` (TODO) environment template:
 
 ```sh
-mlonmcu init $MLONMCU_HOME -t ${{ matrix.mlonmcu-template}} --non-interactive --clone-models --allow-exists
+mlonmcu init $MLONMCU_HOME -t default --non-interactive --clone-models --allow-exists
 ```
 
 Install additional Python dependencies
