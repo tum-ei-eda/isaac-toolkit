@@ -43,12 +43,11 @@ jobs:
 
       - name: Run check
         run: |
-          licenseheaders -t apache-2.tmpl -y "${YEARS}" -o "${OWNER}" -n "${PROJECT}" -u "${URL}" -d . -E "${EXTENSIONS}"
+          licenseheaders -t apache-2.tmpl -y "${YEARS}" -o "${OWNER}" -n "${PROJECT}" -u "${URL}" -d isaac_toolkit/ -E "${EXTENSIONS}"
           test -z "$(git status --untracked-files=no --porcelain)" || (echo "Please check your license headers!" ; git status --untracked-files=no --porcelain ; false) && echo "License check was successful."
         env:
           OWNER: "TUM Department of Electrical and Computer Engineering"
           PROJECT: "ISAAC Toolkit"
           YEARS: "2024"
-          URL: "https://github.com/tum-ei-eda/isaac_toolkit.git"
+          URL: "https://github.com/tum-ei-eda/isaac-toolkit.git"
           EXTENSIONS: "py"
-          EXCLUDE: ".venv venv sess session"
