@@ -4,6 +4,8 @@
 
 See [`../SETUP.md`](../SETUP.md) for details!
 
+**Warning:** Make sure that your `$INSTALL_DIR` environment variable contains an **absolute** and valid path, e.g. `export INSTALL_DIR=$(pwd)/../install/`.
+
 *Hint:* Other RISC-V configs (different arch/abi) can also be used when downloading and using the appropriate toolchains.
 
 Define configuartion:

@@ -28,7 +28,7 @@ See subdirectories! (Coremark, Dhrystone,...)
 Required APT packages:
 
 ```sh
-sudo apt install TODO
+sudo apt install build-essential git cmake libboost-system-dev libboost-filesystem-dev libboost-program-options-dev kcachegrind graphviz-dev
 ```
 
 ### Toolchains, ISS,...
