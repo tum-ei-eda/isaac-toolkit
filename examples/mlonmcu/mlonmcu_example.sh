@@ -25,14 +25,12 @@ python3 -m isaac_toolkit.session.create --session $SESS --force
 echo CMD: python3 -m mlonmcu.cli.main flow run -v --progress $PROG \
     --target $TARGET --backend $BACKEND \
     -f log_instrs -c log_instrs.to_file=1  -c mlif.toolchain=$TOOLCHAIN \
-    -c run.export_optional=1 -c mlif.debug_symbols=1 -c \
-    $TARGET.compressed=0 \  # Workaround for KCachegrind bug
+    -c run.export_optional=1 -c mlif.debug_symbols=1 -c $TARGET.compressed=0 \
     $EXTRA_ARGS
 python3 -m mlonmcu.cli.main flow run -v --progress $PROG \
     --target $TARGET --backend $BACKEND \
     -f log_instrs -c log_instrs.to_file=1  -c mlif.toolchain=$TOOLCHAIN \
-    -c run.export_optional=1 -c mlif.debug_symbols=1 -c \
-    $TARGET.compressed=0 \  # Workaround for KCachegrind bug
+    -c run.export_optional=1 -c mlif.debug_symbols=1 -c $TARGET.compressed=0 \
     $EXTRA_ARGS
 
 ELF=$MLONMCU_HOME/temp/sessions/latest/runs/latest/generic_mlonmcu
