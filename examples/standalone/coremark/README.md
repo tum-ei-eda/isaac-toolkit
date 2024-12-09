@@ -21,8 +21,9 @@ export RISCV_NAME=riscv32-unknown-elf
 export RISCV_ARCH=rv32im_zicsr_zifencei
 export RISCV_ABI=ilp32
 export SYSROOT=$RISCV_PREFIX/$RISCV_NAME
-export CC=$RISCV_PREFIX/bin/$RISCV_NAME-gcc
-export OBJDUMP=$RISCV_PREFIX/bin/$RISCV_NAME-objdump
+# do not export, as this could impact pip install as well
+CC=$RISCV_PREFIX/bin/$RISCV_NAME-gcc
+OBJDUMP=$RISCV_PREFIX/bin/$RISCV_NAME-objdump
 
 # For simulation
 # spike
@@ -65,7 +66,7 @@ TODO
 
 TODO
 ```sh
-# make
+# make CC=$CC OBJDUMP=$OBJDUMP
 ```
 
 #### Custom (manual)
