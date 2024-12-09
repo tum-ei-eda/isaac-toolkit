@@ -96,8 +96,12 @@ class YAMLSettings:
                                 for dict_key, dict_val in v1.items():
                                     if dict_key in v2:
                                         if isinstance(dict_val, YAMLSettings):
-                                            assert isinstance(v2[dict_key], YAMLSettings)
-                                            v2[dict_key].merge(dict_val, overwrite=overwrite)
+                                            assert isinstance(
+                                                v2[dict_key], YAMLSettings
+                                            )
+                                            v2[dict_key].merge(
+                                                dict_val, overwrite=overwrite
+                                            )
                                     else:
                                         v2[dict_key] = dict_val
                         elif isinstance(v1, list):

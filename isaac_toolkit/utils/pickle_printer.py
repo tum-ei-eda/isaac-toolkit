@@ -12,7 +12,9 @@ def print_memory_footprint(df):
     print("================")
     print("Memory Footprint")
     print("================")
-    mem = pd.concat([df.dtypes, df.memory_usage(deep=True)], axis=1).sort_values(1, ascending=False)
+    mem = pd.concat([df.dtypes, df.memory_usage(deep=True)], axis=1).sort_values(
+        1, ascending=False
+    )
     mem.rename(columns={0: "dtype", 1: "mem"}, inplace=True)
     total = mem["mem"].sum()
     print(mem)
@@ -38,7 +40,9 @@ def handle(args):
             print(f"len={len(data)}")
 
     if args.memory:
-        assert isinstance(data, (pd.DataFrame, pd.Series)), "Memory footprint only available for pandas types"
+        assert isinstance(
+            data, (pd.DataFrame, pd.Series)
+        ), "Memory footprint only available for pandas types"
         print_memory_footprint(data)
 
 

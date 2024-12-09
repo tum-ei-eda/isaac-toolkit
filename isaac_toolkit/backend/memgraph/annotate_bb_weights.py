@@ -86,7 +86,8 @@ def annotate_bb_weights(sess: Session, label: str = "default", force: bool = Fal
 
         artifacts = sess.artifacts
         llvm_bbs_artifacts = filter_artifacts(
-            artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs_new"
+            artifacts,
+            lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs_new",
         )  # TODO: optional or different pass
         assert len(llvm_bbs_artifacts) == 1
         llvm_bbs_artifact = llvm_bbs_artifacts[0]
@@ -103,7 +104,16 @@ def annotate_bb_weights(sess: Session, label: str = "default", force: bool = Fal
                 continue
             freq = row["freq"]
             rel_weight = row["rel_weight"]
-            anonotate_helper(driver, func_name, bb_name, num_instrs, freq, rel_weight, label=label, check=True)
+            anonotate_helper(
+                driver,
+                func_name,
+                bb_name,
+                num_instrs,
+                freq,
+                rel_weight,
+                label=label,
+                check=True,
+            )
     finally:
         driver.close()
 
@@ -120,7 +130,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--label", default="default", required=True)

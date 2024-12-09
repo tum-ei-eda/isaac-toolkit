@@ -13,7 +13,9 @@ from isaac_toolkit.session.artifact import InstrTraceArtifact
 # TODO: logger
 
 
-def load_instr_trace(sess: Session, input_file: Path, force: bool = False, operands: bool = False):
+def load_instr_trace(
+    sess: Session, input_file: Path, force: bool = False, operands: bool = False
+):
     assert input_file.is_file()
     name = input_file.name
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
@@ -84,7 +86,9 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("file")
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

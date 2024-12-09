@@ -56,8 +56,9 @@ def collect_bbs(trace_df, mapping):
                 if first_pc is None:
                     pass
                 else:
-                    logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
-                    # input("OOPS")
+                    logger.warning(
+                        "Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc
+                    )
                     if True:
                         func = find_func_name(mapping, prev_pc)
                         bb = BasicBlock(
@@ -87,7 +88,12 @@ def collect_bbs(trace_df, mapping):
         if instr in riscv_branch_instrs + riscv_return_instrs:
             func = find_func_name(mapping, pc)
             bb = BasicBlock(
-                first_pc=first_pc, last_pc=pc, num_instrs=len(bb_instrs), size=bb_size, end_instr=instr, func=func
+                first_pc=first_pc,
+                last_pc=pc,
+                num_instrs=len(bb_instrs),
+                size=bb_size,
+                end_instr=instr,
+                func=func,
             )
             bb_instrs = []
             bb_size = 0
@@ -120,7 +126,9 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
     # [B returns]: [[bb1, bb2, [bb3, # cost from B]]]
     # where bb1 - bb3 belong to func A and bb4 - bb6 belong to func B
     for i, bb in enumerate(bbs):
-        if prev_bb is None or (prev_bb.end_instr in riscv_branch_instrs and prev_bb.func != bb.func):
+        if prev_bb is None or (
+            prev_bb.end_instr in riscv_branch_instrs and prev_bb.func != bb.func
+        ):
             # first bb in the trace
             call_stack.append(bb.func)
             bb_stack.append([bb])
@@ -128,6 +136,7 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
             # jalr doesn't necessarily mean return
             # 0x2ac8, jalr, memset -> 0x2ae8, memset
             bb_stack[-1].append(bb)
+        # elif prev_bb.end_instr in return_instrs:
         elif prev_bb.end_instr in riscv_return_instrs:
             # Check whether jalr refer to return
             # sometimes jalr simply means indirect jump
@@ -142,7 +151,11 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
 
             for j in range(diff):
                 cost = 0
-                callee_first_bb = bb_stack[-1][0][0] if isinstance(bb_stack[-1][0], list) else bb_stack[-1][0]
+                callee_first_bb = (
+                    bb_stack[-1][0][0]
+                    if isinstance(bb_stack[-1][0], list)
+                    else bb_stack[-1][0]
+                )
                 for bb_stack_elem in bb_stack[-1]:
                     if not isinstance(bb_stack_elem, list):
                         # cost += 1 + (bb_stack_elem.last_pc - bb_stack_elem.first_pc) // 4
@@ -161,11 +174,15 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
                 caller = bb_stack[-1][-1]
                 if isinstance(caller, list):
                     caller_bb = caller[0]
-                    inclusive_cost_dict[caller_bb.last_pc][callee_first_bb.first_pc].append(cost)
+                    inclusive_cost_dict[caller_bb.last_pc][
+                        callee_first_bb.first_pc
+                    ].append(cost)
                     bb_stack[-1][-1][1] += cost
                 else:
                     caller_bb = caller
-                    inclusive_cost_dict[caller_bb.last_pc][callee_first_bb.first_pc].append(cost)
+                    inclusive_cost_dict[caller_bb.last_pc][
+                        callee_first_bb.first_pc
+                    ].append(cost)
                     bb_stack[-1][-1] = [caller_bb, cost]
 
                 # When callee function returns, it jumps to the start of the "next" basic block
@@ -251,10 +268,14 @@ def callgrind_format_converter(
         position_cost_dict = defaultdict(int)
         for bb in sorted_bb_lists:
             pc = bb.first_pc
+            # while pc <= bb.last_pc:
             for pc_ in range(pc, bb.last_pc + 2, 2):
                 if pc_ not in trace_pcs:
+                    # pc += 2
                     continue
                 position_cost_dict[pc_] += bb.get_freq()
+                # pc += 4
+                # pc += 2
         return position_cost_dict
 
     positions = "instr" if dump_pc else "line"
@@ -308,7 +329,9 @@ summary:
         # ---
         return "0"
 
-    dump_positions = callgrind_format_dump_instr if dump_pc else callgrind_format_dump_line
+    dump_positions = (
+        callgrind_format_dump_instr if dump_pc else callgrind_format_dump_line
+    )
 
     # source file to functions mapping
     srcFile_to_func = defaultdict(list)
@@ -339,7 +362,9 @@ summary:
                         callee_func = find_func_name(mapping, callee_pc)
                         callgrind_output += f"cfi={find_srcFile(callee_func)}\n"
                         callgrind_output += f"cfn={callee_func}\n"
-                        callgrind_output += f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
+                        callgrind_output += (
+                            f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
+                        )
                         callgrind_output += f"{position_info} {sum(inclusive_cost)}\n"
 
             callgrind_output += "\n"
@@ -361,7 +386,9 @@ def generate_callgrind_output(
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
 
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
 
@@ -421,14 +448,22 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    generate_callgrind_output(sess, output=args.output, force=args.force, dump_pc=args.dump_pc, dump_pos=args.dump_pos)
+    generate_callgrind_output(
+        sess,
+        output=args.output,
+        force=args.force,
+        dump_pc=args.dump_pc,
+        dump_pos=args.dump_pos,
+    )
     sess.save()
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--output", default=None)

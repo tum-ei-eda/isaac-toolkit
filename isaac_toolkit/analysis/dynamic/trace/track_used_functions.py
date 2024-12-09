@@ -53,10 +53,14 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
 def track_unused_functions(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
-    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
+    func2pc_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
+    )
     assert len(func2pc_artifacts) == 1
     func2pc_artifact = func2pc_artifacts[0]
     mem_footprint_artifacts = filter_artifacts(
@@ -78,7 +82,9 @@ def track_unused_functions(sess: Session, force: bool = False):
         "by": __name__,
     }
 
-    effective_mem_footprint_artifact = TableArtifact("effective_mem_footprint", effective_footprint_df, attrs=attrs)
+    effective_mem_footprint_artifact = TableArtifact(
+        "effective_mem_footprint", effective_footprint_df, attrs=attrs
+    )
     sess.add_artifact(effective_mem_footprint_artifact, override=force)
 
 
@@ -94,7 +100,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

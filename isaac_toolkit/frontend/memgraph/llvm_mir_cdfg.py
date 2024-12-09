@@ -58,7 +58,14 @@ def get_cfg_artifacts(driver, label: str = "default"):
             props = rel._properties
             label = rel.type
             # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
-            G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props)
+            G.add_edge(
+                rel.start_node.id,
+                rel.end_node.id,
+                key=rel.id,
+                label=label,
+                type=rel.type,
+                properties=props,
+            )
         # print("G", G, dir(G))
         # print("mfn", module_func_nodes)
         ret = []
@@ -71,7 +78,9 @@ def get_cfg_artifacts(driver, label: str = "default"):
                     "module_name": module_name,
                     "func_name": func_name,
                 }
-                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
+                artifact = GraphArtifact(
+                    f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs
+                )
                 # print("artifact", artifact, dir(artifact), artifact.flags)
                 ret.append(artifact)
     finally:
@@ -124,7 +133,14 @@ def get_dfg_artifacts(driver, label: str = "default"):
             props = rel._properties
             label = rel.type
             # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
-            G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props)
+            G.add_edge(
+                rel.start_node.id,
+                rel.end_node.id,
+                key=rel.id,
+                label=label,
+                type=rel.type,
+                properties=props,
+            )
         # print("G", G, dir(G))
         # print("mfbn", module_func_bb_nodes)
         ret = []
@@ -140,7 +156,9 @@ def get_dfg_artifacts(driver, label: str = "default"):
                         "bb_name": bb_name,
                     }
                     artifact = GraphArtifact(
-                        f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G_, attrs=attrs
+                        f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg",
+                        G_,
+                        attrs=attrs,
                     )
                     # print("artifact", artifact, dir(artifact), artifact.flags)
                     ret.append(artifact)
@@ -185,7 +203,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--label", default="default", required=True)

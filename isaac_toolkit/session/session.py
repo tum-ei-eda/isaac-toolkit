@@ -207,7 +207,9 @@ class Session:
         if isinstance(session_dir, str):
             session_dir = Path(session_dir)
         assert isinstance(session_dir, Path)
-        assert session_dir.parent.is_dir(), f"Parent directory does not exist: {session_dir.parent}"
+        assert (
+            session_dir.parent.is_dir()
+        ), f"Parent directory does not exist: {session_dir.parent}"
         session_dir.mkdir()
         # create_dirs(session_dir, ["inputs", "outputs", "temp", "graphs", "tables"])
         config = IsaacConfig.from_dict(DEFAULT_CONFIG)

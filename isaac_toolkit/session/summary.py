@@ -11,7 +11,9 @@ def get_summary(sess):
     # inputs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.inputs)
     # outputs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.outputs)
     # temps_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.temps)
-    artifacts_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.artifacts)
+    artifacts_text = "\n".join(
+        f" - {artifact.summary()}" for artifact in sess.artifacts
+    )
     return f"""Summary of ISAAC session {sess.directory}
 
 Config:
@@ -38,7 +40,9 @@ def handle_summary(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     return parser

@@ -25,12 +25,16 @@ def map_llvm_bbs(sess: Session, force: bool = False):
     # print("elf_artifacts", elf_artifacts)
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
-    trace_pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")  # TODO: optional or different pass
+    trace_pc2bb_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
+    )  # TODO: optional or different pass
     assert len(trace_pc2bb_artifacts) == 1
     trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
     trace_pc2bb_df = trace_pc2bb_artifact.df
     # print("trace_pc2bb_df", trace_pc2bb_df)
-    llvm_bbs_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs")  # TODO: optional or different pass
+    llvm_bbs_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs"
+    )  # TODO: optional or different pass
     assert len(llvm_bbs_artifacts) == 1
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
     llvm_bbs_df = llvm_bbs_artifact.df.copy()
@@ -39,6 +43,7 @@ def map_llvm_bbs(sess: Session, force: bool = False):
     for index, row in llvm_bbs_df.sort_values("start").iterrows():
         start = row["start"]
         end = row["end"]
+
         def find_matching_bb(pc):
             # print("find_matching_bb", pc)
             matches = trace_pc2bb_df.where(lambda x: x["start"] < pc).dropna()
@@ -50,7 +55,9 @@ def map_llvm_bbs(sess: Session, force: bool = False):
                 return None
             assert len(matches) == 1
             return matches.iloc[0]
+
         matching_row_start = [find_matching_bb(start)]
+
         def split_trace_bb(idx, row, start=None, end=None):
             # print("split_trace_bb", idx, row, start, end)
             # idx = row.index[0]
@@ -63,6 +70,7 @@ def map_llvm_bbs(sess: Session, force: bool = False):
                 pass
                 # print(f"SPLIT {row.index} @ {end} (end)")
                 # input(">")
+
         # print("matching_row_start", matching_row_start)
         for row in matching_row_start:
             if row is None:
@@ -78,6 +86,7 @@ def map_llvm_bbs(sess: Session, force: bool = False):
             # if row["end"] == end:
             #     continue
             split_trace_bb(index, row, end=end)
+
     # input("!")
     def helper(x):
         # print("x", x)
@@ -97,9 +106,13 @@ def map_llvm_bbs(sess: Session, force: bool = False):
         # input("b")
         # x["test"] = 42
         return ret
-    trace_pc2bb_df["llvm_bbs"] = trace_pc2bb_df[["func_name", "start", "end"]].apply(lambda x: helper(x), axis=1)
+
+    trace_pc2bb_df["llvm_bbs"] = trace_pc2bb_df[["func_name", "start", "end"]].apply(
+        lambda x: helper(x), axis=1
+    )
     # print("trace_pc2bb_df new", trace_pc2bb_df)
     remain = trace_pc2bb_df[trace_pc2bb_df["llvm_bbs"].map(len) == 0]
+
     # print("remain", remain)
     def helper2(x):
         # print("x", x)
@@ -119,7 +132,10 @@ def map_llvm_bbs(sess: Session, force: bool = False):
         # input("b")
         # x["test"] = 42
         return ret
-    remain["llvm_bbs"] = remain[["func_name", "start", "end"]].apply(lambda x: helper2(x), axis=1)
+
+    remain["llvm_bbs"] = remain[["func_name", "start", "end"]].apply(
+        lambda x: helper2(x), axis=1
+    )
     # print("remain new", remain)
     # input("a1")
 
@@ -146,7 +162,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

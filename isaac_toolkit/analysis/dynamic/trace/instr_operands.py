@@ -53,7 +53,9 @@ def analyze_instr_operands(
     filter_operands: Optional[str] = None,
 ):
     artifacts = sess.artifacts
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     # filter_instrs = "addi"
@@ -65,7 +67,9 @@ def analyze_instr_operands(
 
     to_drop = {"rd", "rs1", "rs2", "rs3"} if imm_only else set()
     if filter_operands is not None:
-        keep = set(filter(lambda x: re.compile(filter_operands).match(x), operand_names))
+        keep = set(
+            filter(lambda x: re.compile(filter_operands).match(x), operand_names)
+        )
         drop = set(operand_names) - keep
         to_drop |= drop
         operand_names = sorted(list(keep))
@@ -83,7 +87,9 @@ def analyze_instr_operands(
     to_keep = [
         instr_name
         for instr_name in to_keep
-        if not pd.isna(operands_df[operands_df["instr"] == instr_name][operand_names]).all().all()
+        if not pd.isna(operands_df[operands_df["instr"] == instr_name][operand_names])
+        .all()
+        .all()
     ]
 
     if len(to_keep) < len(instrs):
@@ -112,10 +118,17 @@ def analyze_instr_operands(
     for i, instr_name in enumerate(instrs):
         instr_df = operands_df[operands_df["instr"] == instr_name]
         for j, operand_name in enumerate(operand_names):
-            if operand_name not in instr_df.columns or pd.isna(instr_df[operand_name]).all():
+            if (
+                operand_name not in instr_df.columns
+                or pd.isna(instr_df[operand_name]).all()
+            ):
                 continue
             counts = instr_df[operand_name].value_counts()
-            bit_counts = instr_df[operand_name].apply(lambda x: max(1, ceil(log2(1 + x)))).value_counts()
+            bit_counts = (
+                instr_df[operand_name]
+                .apply(lambda x: max(1, ceil(log2(1 + x))))
+                .value_counts()
+            )
             plot_data[operand_name][instr_name] = (counts, bit_counts)
             operands_hist_data.append(
                 {
@@ -133,7 +146,11 @@ def analyze_instr_operands(
             num_instrs = len(instrs)
             assert num_instrs > 0
             # VALUES
-            fig, axes = plt.subplots(nrows=num_operands, ncols=num_instrs, figsize=(3 * num_instrs, 2 * num_operands))
+            fig, axes = plt.subplots(
+                nrows=num_operands,
+                ncols=num_instrs,
+                figsize=(3 * num_instrs, 2 * num_operands),
+            )
             plt.tight_layout()
             if num_instrs == 1 and num_operands == 1:
                 axes = [[axes]]
@@ -161,7 +178,11 @@ def analyze_instr_operands(
             fig.savefig(plot_file, bbox_inches="tight")
             plt.close()
             # BITS
-            fig, axes = plt.subplots(nrows=num_operands, ncols=num_instrs, figsize=(3 * num_instrs, 2 * num_operands))
+            fig, axes = plt.subplots(
+                nrows=num_operands,
+                ncols=num_instrs,
+                figsize=(3 * num_instrs, 2 * num_operands),
+            )
             plt.tight_layout()
             if num_instrs == 1 and num_operands == 1:
                 axes = [[axes]]
@@ -193,7 +214,8 @@ def analyze_instr_operands(
                 instr_name: {
                     operand_name: plot_data[operand_name][instr_name]
                     for operand_name in operand_names
-                    if operand_name in plot_data and instr_name in plot_data[operand_name].keys()
+                    if operand_name in plot_data
+                    and instr_name in plot_data[operand_name].keys()
                 }
                 for instr_name in instrs
             }
@@ -203,7 +225,9 @@ def analyze_instr_operands(
                 if num_operands_ == 0:
                     continue
                 # VALUES
-                fig, axes = plt.subplots(nrows=num_operands_, ncols=1, figsize=(10, 2 * num_operands))
+                fig, axes = plt.subplots(
+                    nrows=num_operands_, ncols=1, figsize=(10, 2 * num_operands)
+                )
                 plt.tight_layout()
                 plot_data = {}
                 if num_operands_ == 1:
@@ -222,7 +246,9 @@ def analyze_instr_operands(
                 fig.savefig(plot_file, bbox_inches="tight")
                 plt.close()
                 # BITS
-                fig, axes = plt.subplots(nrows=num_operands_, ncols=1, figsize=(10, 2 * num_operands))
+                fig, axes = plt.subplots(
+                    nrows=num_operands_, ncols=1, figsize=(10, 2 * num_operands)
+                )
                 plt.tight_layout()
                 plot_data = {}
                 if num_operands_ == 1:
@@ -248,7 +274,9 @@ def analyze_instr_operands(
         "by": __name__,
     }
 
-    operands_hist_artifact = TableArtifact("instr_operands_hist", operands_hist_df, attrs=attrs2)
+    operands_hist_artifact = TableArtifact(
+        "instr_operands_hist", operands_hist_df, attrs=attrs2
+    )
     sess.add_artifact(operands_hist_artifact, override=force)
 
 
@@ -274,7 +302,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

@@ -2,6 +2,7 @@ import sys
 import logging
 import argparse
 from pathlib import Path
+
 # from collections import defaultdict
 
 import pandas as pd
@@ -31,7 +32,9 @@ def collect_instructions(trace_df):
 def create_instr_hist(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
@@ -61,7 +64,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

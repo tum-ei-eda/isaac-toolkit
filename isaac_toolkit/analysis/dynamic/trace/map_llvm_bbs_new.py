@@ -23,7 +23,9 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
     # print("elf_artifacts", elf_artifacts)
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     # print("trace_artifact", trace_artifact)
@@ -104,7 +106,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

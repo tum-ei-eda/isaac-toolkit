@@ -49,7 +49,15 @@ class BasicBlock(object):
     def get_instances():
         return list(BasicBlock._instances.values())
 
-    def __new__(cls, first_pc: int, last_pc: int, num_instrs: int, size: int, end_instr: str, func: str):
+    def __new__(
+        cls,
+        first_pc: int,
+        last_pc: int,
+        num_instrs: int,
+        size: int,
+        end_instr: str,
+        func: str,
+    ):
         # print("__new__", first_pc, last_pc, end_instr, func)
         # print("_instances", BasicBlock._instances)
         key = (first_pc, last_pc, num_instrs, size, end_instr, func)
@@ -102,7 +110,15 @@ class BasicBlock(object):
         instance._freq += 1
         return instance
 
-    def __init__(self, first_pc: int, last_pc: int, num_instrs: int, size: int, end_instr: str, func: str) -> None:
+    def __init__(
+        self,
+        first_pc: int,
+        last_pc: int,
+        num_instrs: int,
+        size: int,
+        end_instr: str,
+        func: str,
+    ) -> None:
         if not self.__initialized:
             self.first_pc = first_pc
             self.last_pc = last_pc
@@ -120,7 +136,11 @@ class BasicBlock(object):
         if not isinstance(other, BasicBlock):
             # print(" -> False1")
             return False
-        ret = self.first_pc == other.first_pc and self.last_pc == other.last_pc and self.func == other.func
+        ret = (
+            self.first_pc == other.first_pc
+            and self.last_pc == other.last_pc
+            and self.func == other.func
+        )
         # print(f" -> {ret}2")
         return ret
 
@@ -171,7 +191,9 @@ def collect_bbs(trace_df):
                     pass
                 else:
                     # assert False, f"Sub basic block not found at: pc = {prev_pc:x} -> {pc:x}"
-                    logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
+                    logger.warning(
+                        "Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc
+                    )
                     # input("OOPS")
                     if True:
                         func = None
@@ -197,7 +219,12 @@ def collect_bbs(trace_df):
             # func = self.find_func_name(pc)
             func = None
             bb = BasicBlock(
-                first_pc=first_pc, last_pc=pc, num_instrs=len(bb_instrs), size=bb_size, end_instr=instr, func=func
+                first_pc=first_pc,
+                last_pc=pc,
+                num_instrs=len(bb_instrs),
+                size=bb_size,
+                end_instr=instr,
+                func=func,
             )
             bb_instrs = []
             bb_size = 0
@@ -255,14 +282,18 @@ def collect_bbs(trace_df):
 def analyze_basic_blocks(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
 
     pc2bb = collect_bbs(trace_artifact.df)
     # print("pc2bb", pc2bb)
-    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
+    func2pc_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
+    )
     if len(func2pc_artifacts) > 0:
         assert len(func2pc_artifacts) == 1
         func2pc_artifact = func2pc_artifacts[0]
@@ -316,7 +347,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

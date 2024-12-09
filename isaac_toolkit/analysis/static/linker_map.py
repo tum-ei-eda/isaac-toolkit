@@ -57,7 +57,16 @@ def analyze_linker_map(sess: Session, force: bool = False):
 
     symbol_map = analyze_linker_map_helper(mapFile)
     symbol_map_df = pd.DataFrame(
-        symbol_map, columns=["segment", "section", "symbol", "object", "object_full", "library", "library_full"]
+        symbol_map,
+        columns=[
+            "segment",
+            "section",
+            "symbol",
+            "object",
+            "object_full",
+            "library",
+            "library_full",
+        ],
     )
 
     attrs = {
@@ -81,7 +90,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

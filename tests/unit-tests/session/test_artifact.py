@@ -1,6 +1,10 @@
 import pytest
 
-from isaac_toolkit.session.artifact import ArtifactFlag, PythonArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import (
+    ArtifactFlag,
+    PythonArtifact,
+    filter_artifacts,
+)
 
 
 FOO_ARTIFACT = PythonArtifact("foo", data=[])

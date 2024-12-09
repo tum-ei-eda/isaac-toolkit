@@ -10,7 +10,12 @@ import pandas as pd
 from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts, InstrTraceArtifact
+from isaac_toolkit.session.artifact import (
+    ArtifactFlag,
+    TableArtifact,
+    filter_artifacts,
+    InstrTraceArtifact,
+)
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
@@ -27,14 +32,18 @@ def trunc_trace(
 ):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     trace_df = trace_artifact.df
     assert force
 
-    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
+    func2pc_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
+    )
     if len(func2pc_artifacts) > 0:
         assert len(func2pc_artifacts) == 1
         func2pc_artifact = func2pc_artifacts[0]
@@ -142,7 +151,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

@@ -56,7 +56,9 @@ def parse_elf(elf_path):
                 total_footprint += sz
             # print("total_footprint", total_footprint)
             # print("func_footprint", func_footprint)
-            footprint_df = pd.DataFrame(func_footprint.items(), columns=["func", "bytes"])
+            footprint_df = pd.DataFrame(
+                func_footprint.items(), columns=["func", "bytes"]
+            )
             footprint_df.sort_values("bytes", inplace=True, ascending=False)
             footprint_df["rel_bytes"] = footprint_df["bytes"] / total_footprint
             # print("footprint_df", footprint_df)
@@ -98,7 +100,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

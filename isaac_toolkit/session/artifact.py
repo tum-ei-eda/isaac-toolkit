@@ -250,7 +250,9 @@ class TableArtifact(PythonArtifact):
         attrs: Optional[Dict[str, Any]] = None,
         autoload: bool = False,
     ):
-        super().__init__(name, data=df, path=path, flags=flags, attrs=attrs, autoload=autoload)
+        super().__init__(
+            name, data=df, path=path, flags=flags, attrs=attrs, autoload=autoload
+        )
 
     @property
     def flags(self):
@@ -290,7 +292,9 @@ class GraphArtifact(PythonArtifact):
         attrs: Optional[Dict[str, Any]] = None,
         autoload: bool = False,
     ):
-        super().__init__(name, data=graph, path=path, flags=flags, attrs=attrs, autoload=autoload)
+        super().__init__(
+            name, data=graph, path=path, flags=flags, attrs=attrs, autoload=autoload
+        )
 
     @property
     def flags(self):

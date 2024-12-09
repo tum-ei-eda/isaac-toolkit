@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: share with other pie scripts
-def plot_pie_data(series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True):
+def plot_pie_data(
+    series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True
+):
 
     # series.fillna("?", inplace=True)
     # print("series", series.head())
@@ -56,16 +58,25 @@ def generate_pie_data(df, x: str, y: str, topk: int = 9):
     return ret
 
 
-def agg_library_footprint(mem_footprint_df, symbol_map_df, by: str = "library", col: str = "rel_bytes"):
+def agg_library_footprint(
+    mem_footprint_df, symbol_map_df, by: str = "library", col: str = "rel_bytes"
+):
     # ret = mem_footprint_df.copy()
-    ret = mem_footprint_df.set_index("func").join(symbol_map_df.set_index("symbol"), how="left")
+    ret = mem_footprint_df.set_index("func").join(
+        symbol_map_df.set_index("symbol"), how="left"
+    )
     ret = ret[[by, col]]
     ret = ret.groupby(by, as_index=False, dropna=False).sum()
     return ret
 
 
 def create_mem_footprint_pie_plots(
-    sess: Session, threshold: float = 0.05, topk: int = 9, fmt: str = "jpg", legend: bool = True, force: bool = False
+    sess: Session,
+    threshold: float = 0.05,
+    topk: int = 9,
+    fmt: str = "jpg",
+    legend: bool = True,
+    force: bool = False,
 ):
     artifacts = sess.artifacts
     # TODO: allow missing files!
@@ -77,7 +88,8 @@ def create_mem_footprint_pie_plots(
     mem_footprint_df = mem_footprint_artifact.df
 
     effective_mem_footprint_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "effective_mem_footprint"
+        artifacts,
+        lambda x: x.flags & ArtifactFlag.TABLE and x.name == "effective_mem_footprint",
     )
     effective_mem_footprint_df = None
     if len(effective_mem_footprint_artifacts) > 0:
@@ -99,7 +111,9 @@ def create_mem_footprint_pie_plots(
     # TODO: use threshold
 
     if mem_footprint_df is not None:
-        mem_footprint_per_func_data = generate_pie_data(mem_footprint_df, x="func", y="rel_bytes", topk=topk)
+        mem_footprint_per_func_data = generate_pie_data(
+            mem_footprint_df, x="func", y="rel_bytes", topk=topk
+        )
         mem_footprint_per_func_plot = plot_pie_data(
             mem_footprint_per_func_data,
             "rel_bytes",
@@ -119,7 +133,9 @@ def create_mem_footprint_pie_plots(
         # input(">")
         if symbol_map_df is not None:
             # library
-            library_footprint_df = agg_library_footprint(mem_footprint_df, symbol_map_df, by="library", col="rel_bytes")
+            library_footprint_df = agg_library_footprint(
+                mem_footprint_df, symbol_map_df, by="library", col="rel_bytes"
+            )
             mem_footprint_per_library_data = generate_pie_data(
                 library_footprint_df, x="library", y="rel_bytes", topk=topk
             )
@@ -130,9 +146,13 @@ def create_mem_footprint_pie_plots(
                 legend=legend,
                 title="Memory Footprint per Library",
             )
-            mem_footprint_per_library_plot_file = plots_dir / f"mem_footprint_per_library.{fmt}"
+            mem_footprint_per_library_plot_file = (
+                plots_dir / f"mem_footprint_per_library.{fmt}"
+            )
             if mem_footprint_per_library_plot_file.is_file():
-                assert force, f"File already exists: {mem_footprint_per_library_plot_file}"
+                assert (
+                    force
+                ), f"File already exists: {mem_footprint_per_library_plot_file}"
             mem_footprint_per_library_plot.get_figure().savefig(
                 mem_footprint_per_library_plot_file,
                 bbox_inches="tight",
@@ -140,8 +160,12 @@ def create_mem_footprint_pie_plots(
             )
             plt.close()
             # object
-            object_footprint_df = agg_library_footprint(mem_footprint_df, symbol_map_df, by="object", col="rel_bytes")
-            mem_footprint_per_object_data = generate_pie_data(object_footprint_df, x="object", y="rel_bytes", topk=topk)
+            object_footprint_df = agg_library_footprint(
+                mem_footprint_df, symbol_map_df, by="object", col="rel_bytes"
+            )
+            mem_footprint_per_object_data = generate_pie_data(
+                object_footprint_df, x="object", y="rel_bytes", topk=topk
+            )
             mem_footprint_per_object_plot = plot_pie_data(
                 mem_footprint_per_object_data,
                 "rel_bytes",
@@ -149,9 +173,13 @@ def create_mem_footprint_pie_plots(
                 legend=legend,
                 title="Memory Footprint per Object",
             )
-            mem_footprint_per_object_plot_file = plots_dir / f"mem_footprint_per_object.{fmt}"
+            mem_footprint_per_object_plot_file = (
+                plots_dir / f"mem_footprint_per_object.{fmt}"
+            )
             if mem_footprint_per_object_plot_file.is_file():
-                assert force, f"File already exists: {mem_footprint_per_object_plot_file}"
+                assert (
+                    force
+                ), f"File already exists: {mem_footprint_per_object_plot_file}"
             mem_footprint_per_object_plot.get_figure().savefig(
                 mem_footprint_per_object_plot_file, bbox_inches="tight", dpi=300
             )
@@ -167,9 +195,13 @@ def create_mem_footprint_pie_plots(
             legend=legend,
             title="Eff. Memory Footprint per Func",
         )
-        effective_mem_footprint_per_func_plot_file = plots_dir / f"effective_mem_footprint_per_func.{fmt}"
+        effective_mem_footprint_per_func_plot_file = (
+            plots_dir / f"effective_mem_footprint_per_func.{fmt}"
+        )
         if effective_mem_footprint_per_func_plot_file.is_file():
-            assert force, f"File already exists: {effective_mem_footprint_per_func_plot_file}"
+            assert (
+                force
+            ), f"File already exists: {effective_mem_footprint_per_func_plot_file}"
         effective_mem_footprint_per_func_plot.get_figure().savefig(
             effective_mem_footprint_per_func_plot_file,
             bbox_inches="tight",
@@ -179,7 +211,10 @@ def create_mem_footprint_pie_plots(
         if symbol_map_df is not None:
             # library
             library_footprint_df = agg_library_footprint(
-                effective_mem_footprint_df, symbol_map_df, by="library", col="eff_rel_bytes"
+                effective_mem_footprint_df,
+                symbol_map_df,
+                by="library",
+                col="eff_rel_bytes",
             )
             effective_mem_footprint_per_library_data = generate_pie_data(
                 library_footprint_df, x="library", y="eff_rel_bytes", topk=topk
@@ -191,9 +226,13 @@ def create_mem_footprint_pie_plots(
                 legend=legend,
                 title="Eff. Memory Footprint per Library",
             )
-            effective_mem_footprint_per_library_plot_file = plots_dir / f"effective_mem_footprint_per_library.{fmt}"
+            effective_mem_footprint_per_library_plot_file = (
+                plots_dir / f"effective_mem_footprint_per_library.{fmt}"
+            )
             if effective_mem_footprint_per_library_plot_file.is_file():
-                assert force, f"File already exists: {effective_mem_footprint_per_library_plot_file}"
+                assert (
+                    force
+                ), f"File already exists: {effective_mem_footprint_per_library_plot_file}"
             effective_mem_footprint_per_library_plot.get_figure().savefig(
                 effective_mem_footprint_per_library_plot_file,
                 bbox_inches="tight",
@@ -202,7 +241,10 @@ def create_mem_footprint_pie_plots(
             plt.close()
             # object
             object_footprint_df = agg_library_footprint(
-                effective_mem_footprint_df, symbol_map_df, by="object", col="eff_rel_bytes"
+                effective_mem_footprint_df,
+                symbol_map_df,
+                by="object",
+                col="eff_rel_bytes",
             )
             effective_mem_footprint_per_object_data = generate_pie_data(
                 object_footprint_df, x="object", y="eff_rel_bytes", topk=topk
@@ -214,9 +256,13 @@ def create_mem_footprint_pie_plots(
                 legend=legend,
                 title="Eff. Memory Footprint per Object",
             )
-            effective_mem_footprint_per_object_plot_file = plots_dir / f"effective_mem_footprint_per_object.{fmt}"
+            effective_mem_footprint_per_object_plot_file = (
+                plots_dir / f"effective_mem_footprint_per_object.{fmt}"
+            )
             if effective_mem_footprint_per_object_plot_file.is_file():
-                assert force, f"File already exists: {effective_mem_footprint_per_object_plot_file}"
+                assert (
+                    force
+                ), f"File already exists: {effective_mem_footprint_per_object_plot_file}"
             effective_mem_footprint_per_object_plot.get_figure().savefig(
                 effective_mem_footprint_per_object_plot_file,
                 bbox_inches="tight",
@@ -240,7 +286,12 @@ def handle(args):
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
     create_mem_footprint_pie_plots(
-        sess, threshold=args.threshold, topk=args.topk, legend=args.legend, force=args.force, fmt=args.fmt
+        sess,
+        threshold=args.threshold,
+        topk=args.topk,
+        legend=args.legend,
+        force=args.force,
+        fmt=args.fmt,
     )
     sess.save()
 
@@ -248,7 +299,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

@@ -20,7 +20,11 @@ logger = logging.getLogger("llvm_bbs")
 
 
 def choose_bbs(
-    sess: Session, threshold: float = 0.9, min_weight: float = 0.01, max_num: Optional[int] = None, force: bool = False
+    sess: Session,
+    threshold: float = 0.9,
+    min_weight: float = 0.01,
+    max_num: Optional[int] = None,
+    force: bool = False,
 ):
     artifacts = sess.artifacts
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -79,14 +83,22 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    choose_bbs(sess, threshold=args.threshold, min_weight=args.min_weight, max_num=args.max_num, force=args.force)
+    choose_bbs(
+        sess,
+        threshold=args.threshold,
+        min_weight=args.min_weight,
+        max_num=args.max_num,
+        force=args.force,
+    )
     sess.save()
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

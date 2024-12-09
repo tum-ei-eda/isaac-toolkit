@@ -23,5 +23,6 @@ def main():
         prog = "dot"
         graph.draw(out_file, prog=prog)
 
+
 if __name__ == "__main__":
     main()

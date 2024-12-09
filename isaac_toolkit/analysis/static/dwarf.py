@@ -102,8 +102,16 @@ def parse_dwarf(elf_path):
             file_entries = lp_header["file_entry"]
 
             # File and directory indices are 1-indexed.
-            file_entry = file_entries[file_index] if line_program.header.version >= 5 else file_entries[file_index - 1]
-            dir_index = file_entry["dir_index"] if line_program.header.version >= 5 else file_entry["dir_index"] - 1
+            file_entry = (
+                file_entries[file_index]
+                if line_program.header.version >= 5
+                else file_entries[file_index - 1]
+            )
+            dir_index = (
+                file_entry["dir_index"]
+                if line_program.header.version >= 5
+                else file_entry["dir_index"] - 1
+            )
             assert dir_index >= 0
 
             # A dir_index of 0 indicates that no absolute directory was recorded during
@@ -216,7 +224,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
