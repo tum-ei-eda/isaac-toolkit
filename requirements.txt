@@ -11,3 +11,4 @@ pyarrow
 mapfile-parser
 gprof2dot
 capstone
+networkx<3.0.0,>=2.5.1

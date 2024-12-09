@@ -55,7 +55,7 @@ jobs:
     # TODO: caching
     - name: Install APT packages
       run: |
-        sudo apt -qq install -y build-essential git cmake libboost-system-dev libboost-filesystem-dev libboost-program-options-dev kcachegrind graphviz-dev
+        sudo apt -qq install -y build-essential git cmake libboost-system-dev libboost-filesystem-dev libboost-program-options-dev kcachegrind graphviz-dev device-tree-compiler
     - name: Initialize Virtualenv
       run: |
         python -m pip install --upgrade pip
