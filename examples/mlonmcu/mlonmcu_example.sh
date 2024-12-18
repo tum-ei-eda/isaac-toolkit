@@ -78,8 +78,8 @@ python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend
 # --- Profiling ---
 
 # Callgrind
-python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out --force
-python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pc --output callgrind_pc.out --force
+python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out --unmangle --force
+python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pc --output callgrind_pc.out --unmangle --force
 
 # Callgraph
 gprof2dot --format=callgrind --output=callgraph.dot callgrind_pos.out -n 0.1 -e 0.1 --color-nodes-by-selftime
