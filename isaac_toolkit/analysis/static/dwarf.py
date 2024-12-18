@@ -34,7 +34,7 @@ logger = logging.getLogger("dwarf")
 
 
 def parse_dwarf(elf_path):
-    mapping = defaultdict(tuple)
+    func2pcs_data = []
     # the mapping between source file and its function
     srcFile_func_dict = defaultdict(lambda: [set(), set(), set()])
     # the mapping between program counter and source line
@@ -80,11 +80,6 @@ def parse_dwarf(elf_path):
         #### # input("123")
         #### ###
 
-        hard_coded_mapping = {}
-        # hard_coded_mapping = {
-        #     "_start": (int("0x12c", 0), int("0x183", 0))
-        # }
-
         # mapping function symbol to pc range
         for section in elffile.iter_sections():
             if section.name == ".symtab":
@@ -97,15 +92,15 @@ def parse_dwarf(elf_path):
                 start_pc = symbol["st_value"]
                 end_pc = start_pc + symbol["st_size"] - 1
                 range = (start_pc, end_pc)
-                mapping[symbol.name] = range
-            elif symbol.name in hard_coded_mapping:
-                mapping[symbol.name] = hard_coded_mapping[symbol.name]
+                # mapping[symbol.name] = range
+                new = (symbol.name, (start_pc, end_pc))
+                func2pcs_data.append(new)
             # Warning: this mapping uses mangled func names
 
         ## mapping source file to function
         if not elffile.has_dwarf_info():
             logger.error("ELF file has no DWARF info!")
-            return mapping, None, None
+            return func2pcs_data, None, None
 
         dwarfinfo = elffile.get_dwarf_info()
 
@@ -184,7 +179,7 @@ def parse_dwarf(elf_path):
 
             if CU_name in pc_to_source_line_mapping:
                 pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
-    return mapping, srcFile_func_dict, pc_to_source_line_mapping
+    return func2pcs_data, srcFile_func_dict, pc_to_source_line_mapping
 
 
 def analyze_dwarf(sess: Session, force: bool = False):
@@ -209,7 +204,7 @@ def analyze_dwarf(sess: Session, force: bool = False):
             pc, line = pc_line
             loc = f"{file}:{line}"
             pc2locs[pc].add(loc)
-    func2pc_df = pd.DataFrame(func2pc.items(), columns=["func", "pc_range"])
+    func2pc_df = pd.DataFrame(func2pc, columns=["func", "pc_range"])
     file2funcs_df = pd.DataFrame(
         file2funcs_data, columns=["file", "func_names", "linkage_names", "unmangled_linkage_names"]
     )
