@@ -11,6 +11,7 @@ PROG=${2:-toycar}
 TOOLCHAIN=${3:-gcc}
 TARGET=${4:-etiss}
 BACKEND=${5:-tvmaotplus}
+TRUNC_TRACE=${TRUNC_TRACE:-1}
 
 EXTRA_ARGS=""
 if [ "$#" -gt 5 ]; then
@@ -54,6 +55,12 @@ python3 -m isaac_toolkit.analysis.static.mem_footprint --session $SESS --force
 # python3 -m isaac_toolkit.analysis.static.linker_map --session $SESS --force
 # python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $SESS --force
 # python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $SESS --force
+
+if [[ "$TRUNC_TRACE" == "1" ]]
+then
+    # --- Ignore setup runtime ---
+    python3 -m isaac_toolkit.analysis.dynamic.trace.trunc_trace --session $SESS --start-func mlonmcu_run --force
+fi
 
 # --- Dynamic analysis ---
 python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $SESS --force
