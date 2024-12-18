@@ -1,4 +1,4 @@
-mlonmcu @ git+https://github.com/tum-ei-eda/mlonmcu@feature-memgraph
+# mlonmcu @ git+https://github.com/tum-ei-eda/mlonmcu@feature-memgraph
 decorator
 scipy
 tflite
