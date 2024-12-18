@@ -51,9 +51,11 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
     """
     Given a program counter, find the function it belongs to
     """
-    for func, range in mapping.items():
-        if pc >= range[0] and pc <= range[1]:
-            return func
+    for func, ranges in mapping.items():
+        for range_ in ranges:
+            if pc >= range_[0] and pc <= range_[1]:
+                return func
+    return hex(pc)
 
 
 def collect_bbs(trace_df, mapping):
@@ -143,6 +145,7 @@ def collect_bbs(trace_df, mapping):
 def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
     call_stack = []
     bb_stack = []
+    total_cost = 0
     inclusive_cost_dict = defaultdict(lambda: defaultdict(list))
     prev_bb = None
 
@@ -151,9 +154,10 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
     # [B returns]: [[bb1, bb2, [bb3, # cost from B]]]
     # where bb1 - bb3 belong to func A and bb4 - bb6 belong to func B
     for i, bb in enumerate(bbs):
-        if prev_bb is None or (
-            prev_bb.end_instr in riscv_branch_instrs and prev_bb.func != bb.func
-        ):
+        total_cost += bb.num_instrs
+        print("bb", bb)
+        print("prev_bb", prev_bb)
+        if prev_bb is None or (prev_bb.end_instr in riscv_branch_instrs and prev_bb.func != bb.func):
             # first bb in the trace
             call_stack.append(bb.func)
             bb_stack.append([bb])
@@ -162,7 +166,8 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
             # 0x2ac8, jalr, memset -> 0x2ae8, memset
             bb_stack[-1].append(bb)
         # elif prev_bb.end_instr in return_instrs:
-        elif prev_bb.end_instr in riscv_return_instrs:
+        # elif prev_bb.end_instr in riscv_return_instrs:
+        elif prev_bb.end_instr in riscv_return_instrs or prev_bb.num_instrs == 1:
             # Check whether jalr refer to return
             # sometimes jalr simply means indirect jump
             # TODO: Redundant? Is it already handled in the above condition?
@@ -176,11 +181,7 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
 
             for j in range(diff):
                 cost = 0
-                callee_first_bb = (
-                    bb_stack[-1][0][0]
-                    if isinstance(bb_stack[-1][0], list)
-                    else bb_stack[-1][0]
-                )
+                callee_first_bb = bb_stack[-1][0][0] if isinstance(bb_stack[-1][0], list) else bb_stack[-1][0]
                 for bb_stack_elem in bb_stack[-1]:
                     if not isinstance(bb_stack_elem, list):
                         # cost += 1 + (bb_stack_elem.last_pc - bb_stack_elem.first_pc) // 4
@@ -199,15 +200,11 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
                 caller = bb_stack[-1][-1]
                 if isinstance(caller, list):
                     caller_bb = caller[0]
-                    inclusive_cost_dict[caller_bb.last_pc][
-                        callee_first_bb.first_pc
-                    ].append(cost)
+                    inclusive_cost_dict[caller_bb.last_pc][callee_first_bb.first_pc].append(cost)
                     bb_stack[-1][-1][1] += cost
                 else:
                     caller_bb = caller
-                    inclusive_cost_dict[caller_bb.last_pc][
-                        callee_first_bb.first_pc
-                    ].append(cost)
+                    inclusive_cost_dict[caller_bb.last_pc][callee_first_bb.first_pc].append(cost)
                     bb_stack[-1][-1] = [caller_bb, cost]
 
                 # When callee function returns, it jumps to the start of the "next" basic block
@@ -220,6 +217,16 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
                     bb_stack[-1].append(bb)
 
         prev_bb = bb
+
+    # print("inclusive_cost_dict", inclusive_cost_dict)
+    # inclusive_cost_dict_sum = {pc: sum([sum(x) for x in costs.values()]) for pc, costs in inclusive_cost_dict.items()}
+    # print("inclusive_cost_dict_sum", inclusive_cost_dict_sum)
+    # inclusive_cost_dict_total = sum(inclusive_cost_dict_sum.values())
+    # print("inclusive_cost_dict_total", inclusive_cost_dict_total)
+    # inclusive_cost_dict_max = max(inclusive_cost_dict_sum.values())
+    # print("inclusive_cost_dict_sum_max", inclusive_cost_dict_max)
+    # print("total_cost", total_cost)
+    # TODO: check that all costs are contained
 
     return inclusive_cost_dict
 
@@ -451,7 +458,7 @@ def generate_callgrind_output(
 
     file2pc_loc = helper(pc2locs_df)
 
-    mapping = dict(list(func2pc_df[["func", "pc_range"]].to_records(index=False)))
+    mapping = func2pc_df.groupby("func")["pc_range"].apply(list).to_dict()
     bbs, trace_pcs, func2bbs, bb_freq = collect_bbs(trace_artifact.df, mapping)
     file2funcs = dict(list((file2funcs_df[["file", "func_names"]].to_records(index=False))))
     file2linkage_names = dict(list((file2funcs_df[["file", "linkage_names"]].to_records(index=False))))
