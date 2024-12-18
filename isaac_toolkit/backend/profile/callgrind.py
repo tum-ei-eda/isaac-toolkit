@@ -26,6 +26,7 @@ import argparse
 import posixpath
 from pathlib import Path
 from collections import defaultdict
+from cpp_demangle import demangle
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
@@ -35,6 +36,14 @@ from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
+
+
+def unmangle_helper(func_name: Optional[str]):
+    if func_name is None:
+        return None
+    if not func_name.startswith("_Z"):
+        return func_name
+    return demangle(func_name)
 
 
 def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
@@ -74,9 +83,7 @@ def collect_bbs(trace_df, mapping):
                 if first_pc is None:
                     pass
                 else:
-                    logger.warning(
-                        "Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc
-                    )
+                    logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
                     if True:
                         func = find_func_name(mapping, prev_pc)
                         bb = BasicBlock(
@@ -224,11 +231,14 @@ def callgrind_format_converter(
     func2bbs: Dict[str, List[BasicBlock]],
     bb_freq: Dict[BasicBlock, int],
     srcFile_func_dict: Dict[str, List[str]],
+    srcFile_linkage_name_dict: Dict[str, List[str]],
+    srcFile_unmangled_linkage_name_dict: Dict[str, List[str]],
     func_set: Set[str],
     file2pc_loc: Optional[Dict[str, List[Tuple[int, int]]]] = None,
     dump_pc: bool = True,
     dump_pos: bool = False,
     elf_file_path: str = "/path/to/elf",
+    unmangle_names: bool = False,
 ):
     """
     Collect necessary information for callgrind output format.
@@ -276,6 +286,10 @@ def callgrind_format_converter(
     # Some functions come from libc. In this case ??? is returned.
     def find_srcFile(target_func: str) -> str:
         for srcFile, funcs in srcFile_func_dict.items():
+            for func in funcs:
+                if func == target_func:
+                    return srcFile
+        for srcFile, funcs in srcFile_linkage_name_dict.items():
             for func in funcs:
                 if func == target_func:
                     return srcFile
@@ -347,9 +361,7 @@ summary:
         # ---
         return "0"
 
-    dump_positions = (
-        callgrind_format_dump_instr if dump_pc else callgrind_format_dump_line
-    )
+    dump_positions = callgrind_format_dump_instr if dump_pc else callgrind_format_dump_line
 
     # source file to functions mapping
     srcFile_to_func = defaultdict(list)
@@ -361,10 +373,12 @@ summary:
         callgrind_output += f"fl={srcFile}\n"
 
         for func in funcs:
-            callgrind_output += f"fn={func}\n"
 
             bb_list = func2bbs[func]
             bb_list.sort(key=lambda bb: bb.first_pc)
+            if unmangle_names:
+                func = unmangle_helper(func)
+            callgrind_output += f"fn={func}\n"
 
             position_cost_dict = aggregate_pos_cost_of_func(bb_list)
 
@@ -379,10 +393,10 @@ summary:
                         callgrind_output += f"cob={posixpath.abspath(elf_file_path)}\n"
                         callee_func = find_func_name(mapping, callee_pc)
                         callgrind_output += f"cfi={find_srcFile(callee_func)}\n"
+                        if unmangle_names:
+                            callee_func = unmangle_helper(callee_func)
                         callgrind_output += f"cfn={callee_func}\n"
-                        callgrind_output += (
-                            f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
-                        )
+                        callgrind_output += f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
                         callgrind_output += f"{position_info} {sum(inclusive_cost)}\n"
 
             callgrind_output += "\n"
@@ -397,6 +411,7 @@ def generate_callgrind_output(
     force: bool = False,
     dump_pc: bool = False,
     dump_pos: bool = False,
+    unmangle_names: bool = False,
 ):
     assert output is not None
     artifacts = sess.artifacts
@@ -404,9 +419,7 @@ def generate_callgrind_output(
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
 
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
 
@@ -440,7 +453,11 @@ def generate_callgrind_output(
 
     mapping = dict(list(func2pc_df[["func", "pc_range"]].to_records(index=False)))
     bbs, trace_pcs, func2bbs, bb_freq = collect_bbs(trace_artifact.df, mapping)
-    file2funcs = dict(list((file2funcs_df.to_records(index=False))))
+    file2funcs = dict(list((file2funcs_df[["file", "func_names"]].to_records(index=False))))
+    file2linkage_names = dict(list((file2funcs_df[["file", "linkage_names"]].to_records(index=False))))
+    file2unmangled_linkage_names = dict(
+        list((file2funcs_df[["file", "unmangled_linkage_names"]].to_records(index=False)))
+    )
     func_set = set(func2bbs.keys())
     elf_file_path = elf_artifact.path
 
@@ -451,11 +468,14 @@ def generate_callgrind_output(
         func2bbs=func2bbs,
         bb_freq=bb_freq,
         srcFile_func_dict=file2funcs,
+        srcFile_linkage_name_dict=file2linkage_names,
+        srcFile_unmangled_linkage_name_dict=file2unmangled_linkage_names,
         func_set=func_set,
         file2pc_loc=file2pc_loc,
         dump_pc=dump_pc,
         dump_pos=dump_pos,
         elf_file_path=elf_file_path,
+        unmangle_names=unmangle_names,
     )
     with open(output, "w") as f:
         f.write(content)
@@ -472,6 +492,7 @@ def handle(args):
         force=args.force,
         dump_pc=args.dump_pc,
         dump_pos=args.dump_pos,
+        unmangle_names=args.unmangle,
     )
     sess.save()
 
@@ -488,6 +509,7 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--dump-pc", action="store_true")
     parser.add_argument("--dump-pos", action="store_true")
+    parser.add_argument("--unmangle", action="store_true")
     # TODO: allow overriding memgraph config?
     return parser
 
