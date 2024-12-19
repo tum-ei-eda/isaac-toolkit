@@ -155,8 +155,8 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
     # where bb1 - bb3 belong to func A and bb4 - bb6 belong to func B
     for i, bb in enumerate(bbs):
         total_cost += bb.num_instrs
-        print("bb", bb)
-        print("prev_bb", prev_bb)
+        # print("bb", bb)
+        # print("prev_bb", prev_bb)
         if prev_bb is None or (prev_bb.end_instr in riscv_branch_instrs and prev_bb.func != bb.func):
             # first bb in the trace
             call_stack.append(bb.func)
