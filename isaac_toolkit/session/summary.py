@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -29,9 +29,7 @@ def get_summary(sess):
     # inputs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.inputs)
     # outputs_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.outputs)
     # temps_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.temps)
-    artifacts_text = "\n".join(
-        f" - {artifact.summary()}" for artifact in sess.artifacts
-    )
+    artifacts_text = "\n".join(f" - {artifact.summary()}" for artifact in sess.artifacts)
     return f"""Summary of ISAAC session {sess.directory}
 
 Config:

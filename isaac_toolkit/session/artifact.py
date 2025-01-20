@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -268,9 +268,7 @@ class TableArtifact(PythonArtifact):
         attrs: Optional[Dict[str, Any]] = None,
         autoload: bool = False,
     ):
-        super().__init__(
-            name, data=df, path=path, flags=flags, attrs=attrs, autoload=autoload
-        )
+        super().__init__(name, data=df, path=path, flags=flags, attrs=attrs, autoload=autoload)
 
     @property
     def flags(self):
@@ -310,9 +308,7 @@ class GraphArtifact(PythonArtifact):
         attrs: Optional[Dict[str, Any]] = None,
         autoload: bool = False,
     ):
-        super().__init__(
-            name, data=graph, path=path, flags=flags, attrs=attrs, autoload=autoload
-        )
+        super().__init__(name, data=graph, path=path, flags=flags, attrs=attrs, autoload=autoload)
 
     @property
     def flags(self):
