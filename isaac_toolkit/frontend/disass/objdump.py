@@ -16,7 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import re
 import sys
 import argparse
 from pathlib import Path
@@ -24,7 +23,7 @@ from pathlib import Path
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, DisassArtifact, TableArtifact
+from isaac_toolkit.session.artifact import DisassArtifact, TableArtifact
 
 
 def load_disass(sess: Session, input_file: Path, force: bool = False):

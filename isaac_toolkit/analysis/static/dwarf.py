@@ -53,13 +53,13 @@ def parse_dwarf(elf_path):
             if symbol_type == "STT_FUNC":
                 start_pc = symbol["st_value"]
                 end_pc = start_pc + symbol["st_size"] - 1
-                range = (start_pc, end_pc)
+                # range = (start_pc, end_pc)
                 # mapping[symbol.name] = range
                 new = (symbol.name, (start_pc, end_pc))
                 func2pcs_data.append(new)
             # Warning: this mapping uses mangled func names
 
-        ## mapping source file to function
+        # mapping source file to function
         if not elffile.has_dwarf_info():
             logger.error("ELF file has no DWARF info!")
             return func2pcs_data, None, None
@@ -119,7 +119,7 @@ def parse_dwarf(elf_path):
                         file_index = DIE.attributes["DW_AT_decl_file"].value
                         filename = lpe_filename(line_program, file_index)
                     else:
-                        file_name = "???"
+                        filename = "???"
 
                     srcFile_func_dict[filename][0].add(func_name)
                     srcFile_func_dict[filename][1].add(linkage_name)
@@ -182,9 +182,9 @@ def analyze_dwarf(sess: Session, force: bool = False):
         "by": "isaac_toolkit.analysis.static.dwarf",
     }
 
-    func2pc_artifact = TableArtifact(f"func2pc", func2pc_df, attrs=attrs)
-    file2funcs_artifact = TableArtifact(f"file2funcs", file2funcs_df, attrs=attrs)
-    pc2locs_artifact = TableArtifact(f"pc2locs", pc2locs_df, attrs=attrs)
+    func2pc_artifact = TableArtifact("func2pc", func2pc_df, attrs=attrs)
+    file2funcs_artifact = TableArtifact("file2funcs", file2funcs_df, attrs=attrs)
+    pc2locs_artifact = TableArtifact("pc2locs", pc2locs_df, attrs=attrs)
     # print("artifact1", func2pc_artifact)
     # print("artifact2", file2funcs_artifact)
     # print("artifact3", pc2locs_artifact)

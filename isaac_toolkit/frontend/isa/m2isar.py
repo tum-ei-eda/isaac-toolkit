@@ -22,7 +22,7 @@ import argparse
 from pathlib import Path
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, M2ISARArtifact
+from isaac_toolkit.session.artifact import M2ISARArtifact
 
 logger = logging.getLogger(__name__)
 

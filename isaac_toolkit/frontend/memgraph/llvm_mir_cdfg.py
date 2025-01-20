@@ -22,7 +22,6 @@ from pathlib import Path
 
 from neo4j import GraphDatabase, Query
 import networkx as nx
-from networkx.drawing.nx_agraph import write_dot
 import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
@@ -96,9 +95,7 @@ def get_cfg_artifacts(driver, label: str = "default"):
                     "module_name": module_name,
                     "func_name": func_name,
                 }
-                artifact = GraphArtifact(
-                    f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs
-                )
+                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
                 # print("artifact", artifact, dir(artifact), artifact.flags)
                 ret.append(artifact)
     finally:

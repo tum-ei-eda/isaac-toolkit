@@ -21,7 +21,6 @@ import sys
 import leb128
 import logging
 import argparse
-import posixpath
 from pathlib import Path
 from collections import defaultdict
 
@@ -45,10 +44,11 @@ def parse_elf(elf_path):
         elffile = ELFFile(f)
 
         # extract disassembly to count instructions per bb
-        code = elf.get_section_by_name(".text")
+        code = elffile.get_section_by_name(".text")
         ops = code.data()
         addr = code["sh_addr"]
-        md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCVC)
+        mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
+        md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
         valid_pcs = set(x.address for x in md.disasm(ops, addr))
 
         section = elffile.get_section_by_name(".symtab")
@@ -105,9 +105,7 @@ def parse_elf(elf_path):
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     # print("features", features)
                     assert features == 0
-                    func_addr = int.from_bytes(
-                        reader.read(addr_bytes), byteorder="little"
-                    )
+                    func_addr = int.from_bytes(reader.read(addr_bytes), byteorder="little")
                     # print("func_addr", func_addr)
                     func_name = addr_to_func.get(func_addr, None)
                     # print("func_name", func_name)
@@ -139,7 +137,8 @@ def parse_elf(elf_path):
                         assert end_offset >= 0
                         # TODO: leb128?
                         # metadata = int.from_bytes(reader.read(1), byteorder="little")
-                        metadata = leb128.u.decode_reader(reader)[0]
+                        # metadata = leb128.u.decode_reader(reader)[0]
+                        _ = leb128.u.decode_reader(reader)[0]
                         # print("metadata", metadata)
                         # TODO: decode metadata (is_return, is_call, ...)
                         # rest = reader.read(1000)
@@ -201,9 +200,10 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
     if len(trace_pc2bb_artifacts) > 0:
         assert len(trace_pc2bb_artifacts) == 1
         trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
-        trace_pc2bb_df = trace_pc2bb_artifact.df
+        # trace_pc2bb_df = trace_pc2bb_artifact.df
     else:
-        trace_pc2bb_df = None
+        pass
+        # trace_pc2bb_df = None
 
     llvm_bbs = parse_elf(elf_artifact.path)
     # print("llvm_bbs", llvm_bbs)
@@ -309,7 +309,7 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
         "by": "isaac_toolkit.analysis.static.llvm_bbs",
     }
 
-    llvm_bbs_artifact = TableArtifact(f"llvm_bbs", llvm_bbs_df, attrs=attrs)
+    llvm_bbs_artifact = TableArtifact("llvm_bbs", llvm_bbs_df, attrs=attrs)
     # print("llvm_bbs_artifact", llvm_bbs_artifact)
     sess.add_artifact(llvm_bbs_artifact, override=force)
 

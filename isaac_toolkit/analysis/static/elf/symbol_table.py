@@ -19,9 +19,7 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
 from elftools.elf.elffile import ELFFile
@@ -47,7 +45,7 @@ def parse_elf(elf_path):
 
         assert section, "Symbol Table not found!"
         assert isinstance(section, SymbolTableSection)
-        for i, sym in enumerate(section.iter_symbols()):
+        for sym in section.iter_symbols():
             ty = sym.entry["st_info"]["type"]
             # if ty != "STT_FUNC":
             #     continue

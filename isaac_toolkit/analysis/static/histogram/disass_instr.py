@@ -26,7 +26,7 @@ from pathlib import Path
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import TableArtifact, filter_artifacts
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO

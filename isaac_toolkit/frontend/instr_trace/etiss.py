@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import time
+# import time
 import sys
 import pandas as pd
 import argparse
@@ -31,16 +31,12 @@ from isaac_toolkit.session.artifact import InstrTraceArtifact
 # TODO: logger
 
 
-def load_instr_trace(
-    sess: Session, input_file: Path, force: bool = False, operands: bool = False
-):
+def load_instr_trace(sess: Session, input_file: Path, force: bool = False, operands: bool = False):
     assert input_file.is_file()
     name = input_file.name
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
-    with pd.read_csv(
-        input_file, sep=":", names=["pc", "rest"], chunksize=2**22
-    ) as reader:
+    with pd.read_csv(input_file, sep=":", names=["pc", "rest"], chunksize=2**22) as reader:
         for df in tqdm(reader, disable=False):
             # print("A", time.time())
             df["pc"] = df["pc"].apply(lambda x: int(x, 0))
@@ -68,9 +64,7 @@ def load_instr_trace(
             df["size"] = df["size"].astype("category")
             # print("F", time.time())
             df["bytecode"] = df["bytecode"].apply(
-                lambda x: (
-                    int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2))
-                )
+                lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
             )
             df["bytecode"] = pd.to_numeric(df["bytecode"])
             # print("H", time.time())
@@ -87,9 +81,7 @@ def load_instr_trace(
                 return ret
 
             if operands:
-                df["operands"] = df["operands"].apply(
-                    lambda x: convert(x[1:-1].split(" | "))
-                )
+                df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
             else:
                 df.drop(columns=["operands"], inplace=True)
             df.drop(columns=["rest"], inplace=True)

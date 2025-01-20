@@ -21,7 +21,7 @@ import argparse
 from pathlib import Path
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, ElfArtifact
+from isaac_toolkit.session.artifact import ElfArtifact
 
 
 def load_elf(sess: Session, input_file: Path, force: bool = False):

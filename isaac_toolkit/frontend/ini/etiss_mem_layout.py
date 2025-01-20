@@ -24,12 +24,12 @@ from pathlib import Path
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact
+from isaac_toolkit.session.artifact import TableArtifact
 
 
 def load_ini(sess: Session, input_file: Path, force: bool = False):
     assert input_file.is_file()
-    name = input_file.name
+    # name = input_file.name
     attrs = {
         "simulator": "etiss",
         "by": "isaac_toolkit.frontend.ini.etiss_mem_layout",
@@ -38,9 +38,7 @@ def load_ini(sess: Session, input_file: Path, force: bool = False):
     config.read(input_file)
 
     if "IntConfigurations" not in config:
-        raise RuntimeError(
-            "Section [IntConfigurations] does not exist in config file " + input_file
-        )
+        raise RuntimeError("Section [IntConfigurations] does not exist in config file " + input_file)
 
     cfg = config["IntConfigurations"]
 

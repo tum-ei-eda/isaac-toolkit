@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
+# import time
 import sys
 import pandas as pd
 import argparse
@@ -49,7 +49,6 @@ def load_mem_trace(
         names=["time_ps", "pc", "mode", "addr", "bytes"],
         chunksize=2**22,
     ) as reader:
-        # with pd.read_csv(input_file, sep=";", names=["time_ps", "pc", "mode", "addr", "bytes"], chunksize=2**12) as reader:
         for df in tqdm(reader, disable=False):
             # df["pc"] = df["pc"].apply(lambda x: int(x, 0))  # TODO: add 0x prefix
             df["pc"] = df["pc"].apply(lambda x: int(x, 16))

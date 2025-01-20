@@ -23,7 +23,7 @@ from pathlib import Path
 from mapfile_parser import mapfile
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, PythonArtifact
+from isaac_toolkit.session.artifact import PythonArtifact
 
 
 def load_linker_map(sess: Session, input_file: Path, force: bool = False):

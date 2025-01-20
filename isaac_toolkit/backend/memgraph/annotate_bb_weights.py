@@ -78,7 +78,8 @@ def anonotate_helper(
 
     session = driver.session()
     try:
-        results = session.run(instrs_query)
+        # results = session.run(instrs_query)
+        _ = session.run(instrs_query)
         # print("results", results, dir(results))
         if check:
             pass
