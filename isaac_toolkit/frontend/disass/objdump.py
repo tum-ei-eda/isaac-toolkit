@@ -59,6 +59,7 @@ def load_disass(sess: Session, input_file: Path, force: bool = False):
         # print("addr", addr)
         word = splitted[0]
         word = word.strip()
+        word = word.replace(" ", "")
         word = int(word, 16)
         # print("word", word)
         insn = splitted[1]
