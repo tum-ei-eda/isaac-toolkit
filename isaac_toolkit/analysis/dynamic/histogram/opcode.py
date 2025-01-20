@@ -126,9 +126,7 @@ def collect_opcodes(trace_df):
 
 def create_opcode_hist(sess: Session, force: bool = False):
     artifacts = sess.artifacts
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
 
