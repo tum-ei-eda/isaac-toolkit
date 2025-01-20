@@ -34,11 +34,21 @@ from isaac_toolkit.session.artifact import TableArtifact
 ETISS_CPU_TIME_DEFAULT = 0.000000031250
 
 
-def load_mem_trace(sess: Session, input_file: Path, force: bool = False, cpu_time: Optional[float] = None):
+def load_mem_trace(
+    sess: Session,
+    input_file: Path,
+    force: bool = False,
+    cpu_time: Optional[float] = None,
+):
     assert input_file.is_file()
     name = "mem_trace"
     dfs = []
-    with pd.read_csv(input_file, sep=";", names=["time_ps", "pc", "mode", "addr", "bytes"], chunksize=2**22) as reader:
+    with pd.read_csv(
+        input_file,
+        sep=";",
+        names=["time_ps", "pc", "mode", "addr", "bytes"],
+        chunksize=2**22,
+    ) as reader:
         # with pd.read_csv(input_file, sep=";", names=["time_ps", "pc", "mode", "addr", "bytes"], chunksize=2**12) as reader:
         for df in tqdm(reader, disable=False):
             # df["pc"] = df["pc"].apply(lambda x: int(x, 0))  # TODO: add 0x prefix

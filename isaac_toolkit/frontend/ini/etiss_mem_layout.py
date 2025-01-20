@@ -38,7 +38,9 @@ def load_ini(sess: Session, input_file: Path, force: bool = False):
     config.read(input_file)
 
     if "IntConfigurations" not in config:
-        raise RuntimeError("Section [IntConfigurations] does not exist in config file " + input_file)
+        raise RuntimeError(
+            "Section [IntConfigurations] does not exist in config file " + input_file
+        )
 
     cfg = config["IntConfigurations"]
 

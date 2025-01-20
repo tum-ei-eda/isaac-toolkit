@@ -85,7 +85,9 @@ def collect_bbs(trace_df, mapping):
                 if first_pc is None:
                     pass
                 else:
-                    logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
+                    logger.warning(
+                        "Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc
+                    )
                     if True:
                         func = find_func_name(mapping, prev_pc)
                         bb = BasicBlock(
@@ -157,7 +159,9 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
         total_cost += bb.num_instrs
         # print("bb", bb)
         # print("prev_bb", prev_bb)
-        if prev_bb is None or (prev_bb.end_instr in riscv_branch_instrs and prev_bb.func != bb.func):
+        if prev_bb is None or (
+            prev_bb.end_instr in riscv_branch_instrs and prev_bb.func != bb.func
+        ):
             # first bb in the trace
             call_stack.append(bb.func)
             bb_stack.append([bb])
@@ -181,7 +185,11 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
 
             for j in range(diff):
                 cost = 0
-                callee_first_bb = bb_stack[-1][0][0] if isinstance(bb_stack[-1][0], list) else bb_stack[-1][0]
+                callee_first_bb = (
+                    bb_stack[-1][0][0]
+                    if isinstance(bb_stack[-1][0], list)
+                    else bb_stack[-1][0]
+                )
                 for bb_stack_elem in bb_stack[-1]:
                     if not isinstance(bb_stack_elem, list):
                         # cost += 1 + (bb_stack_elem.last_pc - bb_stack_elem.first_pc) // 4
@@ -200,11 +208,15 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
                 caller = bb_stack[-1][-1]
                 if isinstance(caller, list):
                     caller_bb = caller[0]
-                    inclusive_cost_dict[caller_bb.last_pc][callee_first_bb.first_pc].append(cost)
+                    inclusive_cost_dict[caller_bb.last_pc][
+                        callee_first_bb.first_pc
+                    ].append(cost)
                     bb_stack[-1][-1][1] += cost
                 else:
                     caller_bb = caller
-                    inclusive_cost_dict[caller_bb.last_pc][callee_first_bb.first_pc].append(cost)
+                    inclusive_cost_dict[caller_bb.last_pc][
+                        callee_first_bb.first_pc
+                    ].append(cost)
                     bb_stack[-1][-1] = [caller_bb, cost]
 
                 # When callee function returns, it jumps to the start of the "next" basic block
@@ -368,7 +380,9 @@ summary:
         # ---
         return "0"
 
-    dump_positions = callgrind_format_dump_instr if dump_pc else callgrind_format_dump_line
+    dump_positions = (
+        callgrind_format_dump_instr if dump_pc else callgrind_format_dump_line
+    )
 
     # source file to functions mapping
     srcFile_to_func = defaultdict(list)
@@ -403,7 +417,9 @@ summary:
                         if unmangle_names:
                             callee_func = unmangle_helper(callee_func)
                         callgrind_output += f"cfn={callee_func}\n"
-                        callgrind_output += f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
+                        callgrind_output += (
+                            f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
+                        )
                         callgrind_output += f"{position_info} {sum(inclusive_cost)}\n"
 
             callgrind_output += "\n"
@@ -426,7 +442,9 @@ def generate_callgrind_output(
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
 
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
 
@@ -460,10 +478,16 @@ def generate_callgrind_output(
 
     mapping = func2pc_df.groupby("func")["pc_range"].apply(list).to_dict()
     bbs, trace_pcs, func2bbs, bb_freq = collect_bbs(trace_artifact.df, mapping)
-    file2funcs = dict(list((file2funcs_df[["file", "func_names"]].to_records(index=False))))
-    file2linkage_names = dict(list((file2funcs_df[["file", "linkage_names"]].to_records(index=False))))
+    file2funcs = dict(
+        list((file2funcs_df[["file", "func_names"]].to_records(index=False)))
+    )
+    file2linkage_names = dict(
+        list((file2funcs_df[["file", "linkage_names"]].to_records(index=False)))
+    )
     file2unmangled_linkage_names = dict(
-        list((file2funcs_df[["file", "unmangled_linkage_names"]].to_records(index=False)))
+        list(
+            (file2funcs_df[["file", "unmangled_linkage_names"]].to_records(index=False))
+        )
     )
     func_set = set(func2bbs.keys())
     elf_file_path = elf_artifact.path

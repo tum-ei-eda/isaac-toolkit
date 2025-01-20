@@ -32,7 +32,9 @@ from isaac_toolkit.session.artifact import InstrTraceArtifact
 # TODO: logger
 
 
-def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False, operands: bool = False):
+def load_instr_trace(
+    sess: Session, input_files: List[Path], force: bool = False, operands: bool = False
+):
     assert len(input_files) > 0
     name = input_files[0].name
     # sort input files by name
@@ -51,12 +53,16 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                 df["pc"] = pd.to_numeric(df["pc"])
                 # print("B", time.time())
                 # TODO: normalize instr names
-                df[["instr", "rest"]] = df["assembly"].str.split(" # ", n=1, expand=True)
+                df[["instr", "rest"]] = df["assembly"].str.split(
+                    " # ", n=1, expand=True
+                )
                 df["instr"] = df["instr"].apply(lambda x: x.strip())
                 df["instr"] = df["instr"].astype("category")
                 # print("C", time.time())
                 # print("D", time.time())
-                df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
+                df[["bytecode", "operands"]] = df["rest"].str.split(
+                    " ", n=1, expand=True
+                )
                 # print("E", time.time())
 
                 def detect_size(bytecode):
@@ -72,7 +78,11 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                 df["size"] = df["size"].astype("category")
                 # print("F", time.time())
                 df["bytecode"] = df["bytecode"].apply(
-                    lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
+                    lambda x: (
+                        int(x, 16)
+                        if "0x" in x
+                        else (int(x, 2) if "0b" in x else int(x, 2))
+                    )
                 )
                 df["bytecode"] = pd.to_numeric(df["bytecode"])
                 # print("H", time.time())
@@ -89,7 +99,9 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                     return ret
 
                 if operands:
-                    df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
+                    df["operands"] = df["operands"].apply(
+                        lambda x: convert(x[1:-1].split(" | "))
+                    )
                 else:
                     df.drop(columns=["operands"], inplace=True)
                 df.drop(columns=["rest"], inplace=True)
