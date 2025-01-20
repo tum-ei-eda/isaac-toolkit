@@ -19,12 +19,9 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -57,7 +54,7 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
         if len(matches) > 0:
             # print("matches", matches)
             df.loc[index, "Used"] = True
-    bytes_before = df["bytes"].sum()
+    # bytes_before = df["bytes"].sum()
     df = df[df["Used"]]
     bytes_after = df["bytes"].sum()
     df["eff_rel_bytes"] = df["bytes"] / bytes_after
@@ -71,14 +68,10 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
 def track_unused_functions(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
-    func2pc_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
-    )
+    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
     assert len(func2pc_artifacts) == 1
     func2pc_artifact = func2pc_artifacts[0]
     mem_footprint_artifacts = filter_artifacts(
@@ -100,9 +93,7 @@ def track_unused_functions(sess: Session, force: bool = False):
         "by": __name__,
     }
 
-    effective_mem_footprint_artifact = TableArtifact(
-        "effective_mem_footprint", effective_footprint_df, attrs=attrs
-    )
+    effective_mem_footprint_artifact = TableArtifact("effective_mem_footprint", effective_footprint_df, attrs=attrs)
     sess.add_artifact(effective_mem_footprint_artifact, override=force)
 
 

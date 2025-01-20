@@ -41,44 +41,6 @@ def parse_dwarf(elf_path):
     pc_to_source_line_mapping = defaultdict(list)
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
-        #### ###
-        #### from elftools.elf.sections import SymbolTableSection
-        #### # print('  %s sections' % elffile.num_sections())
-        #### section = elffile.get_section_by_name('.symtab')
-
-        #### assert section, "Symbol Table not found!"
-        #### # print('  Section name: %s, type: %s' %(section.name, section['sh_type']))
-        #### if isinstance(section, SymbolTableSection):
-        ####    num_symbols = section.num_symbols()
-        ####    # print("  It's a symbol section with %s symbols" % num_symbols)
-        ####    start_symbol = section.get_symbol_by_name("_start")
-        ####    assert len(start_symbol) == 1
-        ####    start_symbol = start_symbol[0]
-        ####    # print("start_symbol", start_symbol, start_symbol.entry, start_symbol.name)
-        ####    start_addr = start_symbol.entry["st_value"]
-        ####    # print("start_addr", start_addr)
-        ####    total_footprint = 0
-        ####    func_footprint = {}
-        ####    for i, sym in enumerate(section.iter_symbols()):
-        ####        # print("i", s]ym.entry)
-        ####        ty = sym.entry["st_info"]["type"]
-        ####        if ty != "STT_FUNC":
-        ####            continue
-        ####        func = sym.name
-        ####        sz = sym.entry["st_size"]
-        ####        # print("ty", ty)
-        ####        # print("sz", sz)
-        ####        func_footprint[func] = sz
-        ####        total_footprint += sz
-        ####    # print("total_footprint", total_footprint)
-        ####    # print("func_footprint", func_footprint)
-        ####    footprint_df = pd.DataFrame(func_footprint.items(), columns=["func", "bytes"])
-        ####    footprint_df.sort_values("bytes", inplace=True, ascending=False)
-        ####    footprint_df["rel_bytes"] = footprint_df["bytes"] / total_footprint
-        ####    # print("footprint_df", footprint_df)
-        ####    # print("  The name of the last symbol in the section is: %s" % (section.get_symbol(num_symbols - 1).name))
-        #### # input("123")
-        #### ###
 
         # mapping function symbol to pc range
         for section in elffile.iter_sections():
@@ -116,16 +78,8 @@ def parse_dwarf(elf_path):
             file_entries = lp_header["file_entry"]
 
             # File and directory indices are 1-indexed.
-            file_entry = (
-                file_entries[file_index]
-                if line_program.header.version >= 5
-                else file_entries[file_index - 1]
-            )
-            dir_index = (
-                file_entry["dir_index"]
-                if line_program.header.version >= 5
-                else file_entry["dir_index"] - 1
-            )
+            file_entry = file_entries[file_index] if line_program.header.version >= 5 else file_entries[file_index - 1]
+            dir_index = file_entry["dir_index"] if line_program.header.version >= 5 else file_entry["dir_index"] - 1
             assert dir_index >= 0
 
             # A dir_index of 0 indicates that no absolute directory was recorded during
@@ -154,9 +108,7 @@ def parse_dwarf(elf_path):
                     else:
                         func_name = "???"
                     if "DW_AT_linkage_name" in DIE.attributes:
-                        linkage_name = DIE.attributes[
-                            "DW_AT_linkage_name"
-                        ].value.decode()
+                        linkage_name = DIE.attributes["DW_AT_linkage_name"].value.decode()
                         from cpp_demangle import demangle
 
                         unmangled_linkage_name = demangle(linkage_name)
@@ -201,9 +153,7 @@ def analyze_dwarf(sess: Session, force: bool = False):
     elf_artifact = elf_artifacts[0]
 
     func2pc, file2funcs, file_pc2line = parse_dwarf(elf_artifact.path)
-    file2funcs_data = [
-        (file_name, vals[0], vals[1], vals[2]) for file_name, vals in file2funcs.items()
-    ]
+    file2funcs_data = [(file_name, vals[0], vals[1], vals[2]) for file_name, vals in file2funcs.items()]
     # print("func2pc", func2pc)
     # print("file2funcs", file2funcs)
     # print("file_func2line", file_pc2line)

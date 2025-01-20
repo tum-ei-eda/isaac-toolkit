@@ -20,13 +20,13 @@ import sys
 import argparse
 from pathlib import Path
 
-from neo4j import GraphDatabase
 import networkx as nx
-from networkx.drawing.nx_agraph import write_dot
-import matplotlib.pyplot as plt
+
+# from networkx.drawing.nx_agraph import write_dot
+# import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import GraphArtifact, filter_artifacts
 
 
 def maxmiso_algo(G):
@@ -105,10 +105,7 @@ def maxmiso_algo(G):
                     for in_ in ins:
                         print("in_", in_, G.nodes[in_[0]].get("label"))
                         src = in_[0]
-                        if (
-                            not max_miso[topo.index(src)]
-                            and not inputs[topo.index(src)]
-                        ):
+                        if not max_miso[topo.index(src)] and not inputs[topo.index(src)]:
                             ret += 1
                             inputs[topo.index(src)] = True
                 print("ret", ret)
@@ -201,14 +198,8 @@ def handle(args):
             # TODO: module_name
             view = nx.subgraph_view(
                 G,
-                filter_node=lambda node: (
-                    bb_name is None
-                    or G.nodes[node]["properties"].get("basic_block") == bb_name
-                )
-                and (
-                    func_name is None
-                    or G.nodes[node]["properties"].get("func_name") == func_name
-                )
+                filter_node=lambda node: (bb_name is None or G.nodes[node]["properties"].get("basic_block") == bb_name)
+                and (func_name is None or G.nodes[node]["properties"].get("func_name") == func_name)
                 and "%bb" not in G.nodes[node].get("label"),
             )
             G_ = G.subgraph([node for node in view.nodes])

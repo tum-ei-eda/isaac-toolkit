@@ -19,18 +19,14 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
 from typing import Optional
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import (
     ArtifactFlag,
-    TableArtifact,
     filter_artifacts,
     InstrTraceArtifact,
 )

@@ -19,12 +19,9 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -41,9 +38,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
     # print("elf_artifacts", elf_artifacts)
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     # print("trace_artifact", trace_artifact)
@@ -93,7 +88,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         llvm_bbs_df.loc[index, "num_instrs"] = num_instrs
         total_weight += weight
     trace_length = len(trace_df)
-    coverage = total_weight / trace_length
+    # coverage = total_weight / trace_length
     # print("trace_length", trace_length)
     # print("total_weight", total_weight)
     # print("coverage", coverage)
@@ -107,7 +102,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         "by": __name__,
     }
 
-    artifact = TableArtifact(f"llvm_bbs_new", llvm_bbs_df, attrs=attrs)
+    artifact = TableArtifact("llvm_bbs_new", llvm_bbs_df, attrs=attrs)
     # print("artifact", artifact)
     sess.add_artifact(artifact, override=force)
 

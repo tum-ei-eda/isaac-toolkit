@@ -21,14 +21,11 @@ import logging
 import argparse
 import humanize
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
-from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
@@ -91,8 +88,9 @@ class MemRange:
         if self.low > self.high:
             return self.name + "\t[not accessed]"
         return (
-            self.name
-            + f"\t[0x{self.low:x}-0x{self.high:x}] \t({self.count} times, reads: {self.num_reads} <{self.read_bytes}B>, writes: {self.num_writes} <{self.written_bytes}B>)"
+            f"{self.name}\t[0x{self.low:x}-0x{self.high:x}] \t({self.count} times, "
+            "reads: {self.num_reads} <{self.read_bytes}B>, "
+            "writes: {self.num_writes} <{self.written_bytes}B>)"
         )
 
 
@@ -217,14 +215,8 @@ def collect_mem_metrics(
         )
         print("  data:           " + print_sz(results["ram_data"]))
         print("  zero-init data: " + print_sz(results["ram_zdata"]))
-        print(
-            "  stack:          "
-            + print_sz(results["ram_stack"], unknown_msg="missing trace file")
-        )
-        print(
-            "  heap:           "
-            + print_sz(results["ram_heap"], unknown_msg="missing trace file")
-        )
+        print("  stack:          " + print_sz(results["ram_stack"], unknown_msg="missing trace file"))
+        print("  heap:           " + print_sz(results["ram_heap"], unknown_msg="missing trace file"))
 
     mem_metrics_data = [results]
     mem_metrics_df = pd.DataFrame(mem_metrics_data)
@@ -257,14 +249,10 @@ def analyze_mem_trace(
     # print("artifacts", artifacts)
 
     # Memory Trace
-    mem_trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "mem_trace"
-    )
+    mem_trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "mem_trace")
     assert len(mem_trace_artifacts) == 1
     mem_trace_artifact = mem_trace_artifacts[0]
-    assert mem_trace_artifact.attrs.get("simulator") in [
-        "etiss"
-    ]  # TODO: support spike?
+    assert mem_trace_artifact.attrs.get("simulator") in ["etiss"]  # TODO: support spike?
 
     # Memory Sections
     mem_sections_artifacts = filter_artifacts(
@@ -311,7 +299,7 @@ def analyze_mem_trace(
         "by": __name__,
     }
 
-    mem_access_artifact = TableArtifact("mem_access", mem_access_df, attrs=attrs)
+    mem_access_artifact = TableArtifact("mem_access", mem_access_df, attrs=attrs2)
     sess.add_artifact(mem_access_artifact, override=force)
 
 
@@ -320,9 +308,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    analyze_mem_trace(
-        sess, force=args.force, max_stack=args.max_stack, verbose=args.verbose
-    )
+    analyze_mem_trace(sess, force=args.force, max_stack=args.max_stack, verbose=args.verbose)
     sess.save()
 
 
