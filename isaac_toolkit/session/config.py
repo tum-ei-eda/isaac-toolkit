@@ -18,8 +18,8 @@
 #
 import logging
 from pathlib import Path
-from dataclasses import dataclass, field, asdict, fields
-from typing import List, Union, Optional, Dict
+from dataclasses import dataclass, asdict, fields
+from typing import Union, Optional
 
 import yaml
 from dacite import from_dict

@@ -47,12 +47,12 @@ def parse_elf(elf_path):
         code = elffile.get_section_by_name(".text")
         ops = code.data()
         addr = code["sh_addr"]
+        xlen = elffile.elfclass
         mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
         md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
         valid_pcs = set(x.address for x in md.disasm(ops, addr))
 
         section = elffile.get_section_by_name(".symtab")
-        xlen = elffile.elfclass
         assert xlen is not None
         addr_bytes = int(xlen / 8)
 
@@ -194,16 +194,16 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
     # print("elf_artifacts", elf_artifacts)
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
-    trace_pc2bb_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
-    )  # TODO: optional or different pass
-    if len(trace_pc2bb_artifacts) > 0:
-        assert len(trace_pc2bb_artifacts) == 1
-        trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
-        # trace_pc2bb_df = trace_pc2bb_artifact.df
-    else:
-        pass
-        # trace_pc2bb_df = None
+    # trace_pc2bb_artifacts = filter_artifacts(
+    #     artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
+    # )  # TODO: optional or different pass
+    # if len(trace_pc2bb_artifacts) > 0:
+    #     assert len(trace_pc2bb_artifacts) == 1
+    #     trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
+    #     # trace_pc2bb_df = trace_pc2bb_artifact.df
+    # else:
+    #     pass
+    #     # trace_pc2bb_df = None
 
     llvm_bbs = parse_elf(elf_artifact.path)
     # print("llvm_bbs", llvm_bbs)
@@ -274,8 +274,14 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
             #                 trace_pc2bb_df.loc[idx, "weight"] = weight_ * (sz / size_)
             #                 trace_pc2bb_df.loc[idx, "rel_weight"] = rel_weight_ * (sz / size_)
             #                 trace_pc2bb_df.loc[idx, "num_instrs"] = sz / default_enc_size
-            #                 # new2 = {"start": end + default_enc_size, "end": end_, "freq": freq_, "size": size_ - sz, "weight": weight_ * (1 - sz / size_), "rel_weight": rel_weight_ * (1 - sz / size_), "num_instrs": (size_ - sz) / default_enc_size}
-            #                 new2 = {"start": end, "end": end_, "freq": freq_, "size": size_ - sz, "weight": weight_ * (1 - sz / size_), "rel_weight": rel_weight_ * (1 - sz / size_), "num_instrs": (size_ - sz) / default_enc_size}
+            #                 # new2 = {"start": end + default_enc_size, "end": end_, "freq": freq_,
+            #                     "size": size_ - sz, "weight": weight_ * (1 - sz / size_),
+            #                     "rel_weight": rel_weight_ * (1 - sz / size_),
+            #                     "num_instrs": (size_ - sz) / default_enc_size}
+            #                 new2 = {"start": end, "end": end_, "freq": freq_, "size": size_ - sz,
+            #                     "weight": weight_ * (1 - sz / size_),
+            #                     "rel_weight": rel_weight_ * (1 - sz / size_),
+            #                     "num_instrs": (size_ - sz) / default_enc_size}
             #                 trace_pc2bb_df = pd.concat([trace_pc2bb_df, pd.DataFrame([new2])])
             #                 # TODO: export as updated artifact?
             #                 new["num_trace_bbs"] = 1

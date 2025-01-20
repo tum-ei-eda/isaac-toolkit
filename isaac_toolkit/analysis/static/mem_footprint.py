@@ -20,7 +20,6 @@ import sys
 import logging
 import argparse
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
 from elftools.elf.elffile import ELFFile

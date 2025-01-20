@@ -17,11 +17,6 @@
 # limitations under the License.
 #
 import sys
-import argparse
-from pathlib import Path
-
-from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, SourceArtifact
 
 from .c import get_parser, handle
 

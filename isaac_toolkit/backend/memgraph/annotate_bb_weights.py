@@ -54,7 +54,8 @@ def anonotate_helper(
 
     session = driver.session()
     try:
-        results = session.run(bb_query)
+        # results = session.run(bb_query)
+        _ = session.run(bb_query)
         # print("results", results)
         # print("results.df", results.df)
         # input("<>")

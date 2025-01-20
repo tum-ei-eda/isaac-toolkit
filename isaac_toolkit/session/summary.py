@@ -21,7 +21,6 @@ import argparse
 from pathlib import Path
 
 from . import Session
-from .artifact import ArtifactFlag, filter_artifacts
 
 
 def get_summary(sess):

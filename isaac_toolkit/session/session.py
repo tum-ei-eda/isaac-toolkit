@@ -17,12 +17,9 @@
 # limitations under the License.
 #
 import logging
-from typing import Union, Optional
-from enum import IntFlag, auto
 from pathlib import Path
 
 import yaml
-import pandas as pd
 
 from .config import IsaacConfig, DEFAULT_CONFIG
 from .artifact import (
@@ -54,7 +51,7 @@ def load_artifacts(base):
     artifacts_yaml = base / "artifacts.yml"
     if not artifacts_yaml.is_file():
         return []
-    with open(artifacts_yaml, "r") as f:
+    with open(artifacts_yaml, "r", encoding="utf-8") as f:
         yaml_data = yaml.safe_load(f)
     artifacts = yaml_data.get("artifacts", None)
     assert artifacts is not None
@@ -91,7 +88,7 @@ def load_artifacts(base):
         else:
             logger.warning("Unhandled artifact type!")
             artifact_ = FileArtifact.from_dict(artifact)
-            raise RuntimeError(f"Unhandled case!")
+            raise RuntimeError("Unhandled case!")
         artifacts_.append(artifact_)
     # TODO: check for duplicates
     # print("artifacts", artifacts)

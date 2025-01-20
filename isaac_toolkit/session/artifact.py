@@ -22,12 +22,9 @@ from typing import Union, Optional, Dict, Any
 from enum import IntFlag, auto
 from pathlib import Path
 
-import yaml
 import pickle
 import pandas as pd
 import networkx as nx
-
-from .config import IsaacConfig, DEFAULT_CONFIG
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -86,7 +83,7 @@ class Artifact:
         attrs = data.get("attrs", None)
         assert attrs is not None
         flags_ = ArtifactFlag(flags)
-        ret = cls(name, path=dest, flags=flags, attrs=attrs)
+        ret = cls(name, path=dest, flags=flags_, attrs=attrs)
         ret.changed = False
         return ret
 

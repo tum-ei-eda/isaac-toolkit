@@ -21,7 +21,7 @@ import argparse
 from pathlib import Path
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, SourceArtifact
+from isaac_toolkit.session.artifact import SourceArtifact
 
 
 def handle(args, fmt="c"):
