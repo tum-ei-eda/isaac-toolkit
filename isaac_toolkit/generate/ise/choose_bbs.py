@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -16,19 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import io
 import sys
-import leb128
 import logging
 import argparse
-import posixpath
 from typing import Optional
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts

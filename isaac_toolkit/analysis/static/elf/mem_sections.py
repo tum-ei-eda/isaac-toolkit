@@ -21,47 +21,50 @@ import logging
 import argparse
 from pathlib import Path
 
-# from collections import defaultdict
-
 import pandas as pd
+from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 
 
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("mem_sections")
 
 
-def collect_instructions(disass_df):
-    instrs = disass_df["instr"].value_counts().to_dict()
-    instrs_data = []
-    for instr_name, instr_count in instrs.items():
-        instr_data = {"instr": instr_name, "count": instr_count}
-        instrs_data.append(instr_data)
-    instrs_df = pd.DataFrame(instrs_data)
-    total_count = instrs_df["count"].sum()
-    instrs_df["rel_count"] = instrs_df["count"] / total_count
-    instrs_df.sort_values("count", ascending=False, inplace=True)
-
-    return instrs_df
+# TODO: move dwarf.py in elf subdir
 
 
-def create_disass_instr_hist(sess: Session, force: bool = False):
+def parse_elf(elf_path):
+    with open(elf_path, "rb") as f:
+        elffile = ELFFile(f)
+
+        data = []
+        for s in elffile.iter_sections():
+            print("s", s, dir(s))
+            name = s.name
+            data_size = s.data_size
+            new = {"name": name, "data_size": data_size}
+            data.append(new)
+        mem_sections_df = pd.DataFrame(data)
+    return mem_sections_df
+
+
+def analyze_dwarf(sess: Session, force: bool = False):
     artifacts = sess.artifacts
-    disass_table_artifacts = filter_artifacts(artifacts, lambda x: x.name == "disass")
-    assert len(disass_table_artifacts) == 1
-    disass_df = disass_table_artifacts[0].df
+    elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
+    assert len(elf_artifacts) == 1
+    elf_artifact = elf_artifacts[0]
 
-    instrs_df = collect_instructions(disass_df)
+    mem_sections_df = parse_elf(elf_artifact.path)
 
     attrs = {
-        "kind": "histogram",
-        "by": __name__,
+        "elf_file": elf_artifact.name,
+        "kind": "mapping",
+        "by": "isaac_toolkit.analysis.static.elf.mem_sections",
     }
 
-    instrs_artifact = TableArtifact("disass_instrs_hist", instrs_df, attrs=attrs)
-    sess.add_artifact(instrs_artifact, override=force)
+    mem_sections_artifact = TableArtifact("mem_sections", mem_sections_df, attrs=attrs)
+    sess.add_artifact(mem_sections_artifact, override=force)
 
 
 def handle(args):
@@ -69,7 +72,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    create_disass_instr_hist(sess, force=args.force)
+    analyze_dwarf(sess, force=args.force)
     sess.save()
 
 
@@ -82,7 +85,6 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
-    # TODO: allow overriding memgraph config?
     return parser
 
 

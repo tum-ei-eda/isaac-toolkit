@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -16,18 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import io
 import sys
-import leb128
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -82,7 +76,7 @@ def map_llvm_bbs(sess: Session, force: bool = False):
             if start is not None:
                 # print(f"SPLIT {row.index} @ {start} (start)")
                 pass
-                orig_start = row["start"]
+                # orig_start = row["start"]
                 # input(">")
             if end is not None:
                 pass
@@ -125,9 +119,7 @@ def map_llvm_bbs(sess: Session, force: bool = False):
         # x["test"] = 42
         return ret
 
-    trace_pc2bb_df["llvm_bbs"] = trace_pc2bb_df[["func_name", "start", "end"]].apply(
-        lambda x: helper(x), axis=1
-    )
+    trace_pc2bb_df["llvm_bbs"] = trace_pc2bb_df[["func_name", "start", "end"]].apply(lambda x: helper(x), axis=1)
     # print("trace_pc2bb_df new", trace_pc2bb_df)
     remain = trace_pc2bb_df[trace_pc2bb_df["llvm_bbs"].map(len) == 0]
 
@@ -151,9 +143,7 @@ def map_llvm_bbs(sess: Session, force: bool = False):
         # x["test"] = 42
         return ret
 
-    remain["llvm_bbs"] = remain[["func_name", "start", "end"]].apply(
-        lambda x: helper2(x), axis=1
-    )
+    remain["llvm_bbs"] = remain[["func_name", "start", "end"]].apply(lambda x: helper2(x), axis=1)
     # print("remain new", remain)
     # input("a1")
 
@@ -163,7 +153,7 @@ def map_llvm_bbs(sess: Session, force: bool = False):
         "by": __name__,
     }
 
-    artifact = TableArtifact(f"pc2bb_llvm", trace_pc2bb_df, attrs=attrs)
+    artifact = TableArtifact("pc2bb_llvm", trace_pc2bb_df, attrs=attrs)
     # print("artifact", artifact)
     sess.add_artifact(artifact, override=force)
 

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -19,18 +19,14 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
 from typing import Optional
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import (
     ArtifactFlag,
-    TableArtifact,
     filter_artifacts,
     InstrTraceArtifact,
 )
@@ -50,18 +46,14 @@ def trunc_trace(
 ):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     trace_df = trace_artifact.df
     assert force
 
-    func2pc_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
-    )
+    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
     if len(func2pc_artifacts) > 0:
         assert len(func2pc_artifacts) == 1
         func2pc_artifact = func2pc_artifacts[0]

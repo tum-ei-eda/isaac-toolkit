@@ -17,51 +17,43 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
+import configparser
 from pathlib import Path
-
-# from collections import defaultdict
 
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import TableArtifact
 
 
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
-
-
-def collect_instructions(disass_df):
-    instrs = disass_df["instr"].value_counts().to_dict()
-    instrs_data = []
-    for instr_name, instr_count in instrs.items():
-        instr_data = {"instr": instr_name, "count": instr_count}
-        instrs_data.append(instr_data)
-    instrs_df = pd.DataFrame(instrs_data)
-    total_count = instrs_df["count"].sum()
-    instrs_df["rel_count"] = instrs_df["count"] / total_count
-    instrs_df.sort_values("count", ascending=False, inplace=True)
-
-    return instrs_df
-
-
-def create_disass_instr_hist(sess: Session, force: bool = False):
-    artifacts = sess.artifacts
-    disass_table_artifacts = filter_artifacts(artifacts, lambda x: x.name == "disass")
-    assert len(disass_table_artifacts) == 1
-    disass_df = disass_table_artifacts[0].df
-
-    instrs_df = collect_instructions(disass_df)
-
+def load_ini(sess: Session, input_file: Path, force: bool = False):
+    assert input_file.is_file()
+    # name = input_file.name
     attrs = {
-        "kind": "histogram",
-        "by": __name__,
+        "simulator": "etiss",
+        "by": "isaac_toolkit.frontend.ini.etiss_mem_layout",
     }
+    config = configparser.ConfigParser(strict=False)
+    config.read(input_file)
 
-    instrs_artifact = TableArtifact("disass_instrs_hist", instrs_df, attrs=attrs)
-    sess.add_artifact(instrs_artifact, override=force)
+    if "IntConfigurations" not in config:
+        raise RuntimeError("Section [IntConfigurations] does not exist in config file " + input_file)
+
+    cfg = config["IntConfigurations"]
+
+    rom_start = int(cfg["simple_mem_system.memseg_origin_00"], 0)
+    rom_size = int(cfg["simple_mem_system.memseg_length_00"], 0)
+    ram_start = int(cfg["simple_mem_system.memseg_origin_01"], 0)
+    ram_size = int(cfg["simple_mem_system.memseg_length_01"], 0)
+    data = [
+        {"idx": 0, "segment": "rom", "start": rom_start, "size": rom_size},
+        {"idx": 1, "segment": "ram", "start": ram_start, "size": ram_size},
+    ]
+
+    df = pd.DataFrame(data)
+    artifact = TableArtifact("mem_layout", df, attrs=attrs)
+    sess.add_artifact(artifact, override=force)
 
 
 def handle(args):
@@ -69,12 +61,14 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    create_disass_instr_hist(sess, force=args.force)
+    input_file = Path(args.file)
+    load_ini(sess, input_file, force=args.force)
     sess.save()
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
+    parser.add_argument("file")
     parser.add_argument(
         "--log",
         default="info",
@@ -82,7 +76,6 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
-    # TODO: allow overriding memgraph config?
     return parser
 
 

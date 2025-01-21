@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,12 +17,9 @@
 # limitations under the License.
 #
 import logging
-from typing import Union, Optional
-from enum import IntFlag, auto
 from pathlib import Path
 
 import yaml
-import pandas as pd
 
 from .config import IsaacConfig, DEFAULT_CONFIG
 from .artifact import (
@@ -54,7 +51,7 @@ def load_artifacts(base):
     artifacts_yaml = base / "artifacts.yml"
     if not artifacts_yaml.is_file():
         return []
-    with open(artifacts_yaml, "r") as f:
+    with open(artifacts_yaml, "r", encoding="utf-8") as f:
         yaml_data = yaml.safe_load(f)
     artifacts = yaml_data.get("artifacts", None)
     assert artifacts is not None
@@ -91,7 +88,7 @@ def load_artifacts(base):
         else:
             logger.warning("Unhandled artifact type!")
             artifact_ = FileArtifact.from_dict(artifact)
-            raise RuntimeError(f"Unhandled case!")
+            raise RuntimeError("Unhandled case!")
         artifacts_.append(artifact_)
     # TODO: check for duplicates
     # print("artifacts", artifacts)
@@ -225,9 +222,7 @@ class Session:
         if isinstance(session_dir, str):
             session_dir = Path(session_dir)
         assert isinstance(session_dir, Path)
-        assert (
-            session_dir.parent.is_dir()
-        ), f"Parent directory does not exist: {session_dir.parent}"
+        assert session_dir.parent.is_dir(), f"Parent directory does not exist: {session_dir.parent}"
         session_dir.mkdir()
         # create_dirs(session_dir, ["inputs", "outputs", "temp", "graphs", "tables"])
         config = IsaacConfig.from_dict(DEFAULT_CONFIG)
