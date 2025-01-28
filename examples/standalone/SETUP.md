@@ -2,7 +2,7 @@
 
 The download/installation instructions for several tools are described below.
 
-It is recommended to install all tools into a directory called `install/` (can be changed via `export INSTALL_DIR=...`).
+**Hint:** It is recommended to install all tools into a directory called `install/` (can be changed via `export INSTALL_DIR=...`).
 
 #### Notes
 

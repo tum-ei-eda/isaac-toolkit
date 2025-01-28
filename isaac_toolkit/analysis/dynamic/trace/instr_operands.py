@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import re
 import sys
 import logging
@@ -13,6 +31,7 @@ import matplotlib.pyplot as plt
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 
+from isaac_toolkit.utils.pickle_printer import print_memory_footprint_dict, print_memory_footprint
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
@@ -26,6 +45,7 @@ def collect_operands(trace_df):
         instr = instr.strip()  # TODO: fix in frontend
         operands = row.operands
         instr_operands = instrs_operands[instr].append(operands)
+    del trace_df
     operands_data = []
     operand_names = set()
     for instr, instr_operands in instrs_operands.items():
@@ -33,6 +53,7 @@ def collect_operands(trace_df):
             operand_names |= set(operands.keys())
             operands_data.append({"instr": instr, **operands})
     operands_df = pd.DataFrame(operands_data)
+    del operands_data
     operands_df["instr"] = operands_df["instr"].astype("category")
     for op in operand_names:
         operands_df[op] = operands_df[op].astype("UInt32")
@@ -60,6 +81,7 @@ def analyze_instr_operands(
     # filter_operands = "imm"
 
     operands_df = collect_operands(trace_artifact.df)
+    del trace_artifact
 
     operand_names = sorted([x for x in operands_df.columns if x != "instr"])
 
@@ -133,7 +155,11 @@ def analyze_instr_operands(
             num_instrs = len(instrs)
             assert num_instrs > 0
             # VALUES
-            fig, axes = plt.subplots(nrows=num_operands, ncols=num_instrs, figsize=(3 * num_instrs, 2 * num_operands))
+            fig, axes = plt.subplots(
+                nrows=num_operands,
+                ncols=num_instrs,
+                figsize=(3 * num_instrs, 2 * num_operands),
+            )
             plt.tight_layout()
             if num_instrs == 1 and num_operands == 1:
                 axes = [[axes]]
@@ -161,7 +187,11 @@ def analyze_instr_operands(
             fig.savefig(plot_file, bbox_inches="tight")
             plt.close()
             # BITS
-            fig, axes = plt.subplots(nrows=num_operands, ncols=num_instrs, figsize=(3 * num_instrs, 2 * num_operands))
+            fig, axes = plt.subplots(
+                nrows=num_operands,
+                ncols=num_instrs,
+                figsize=(3 * num_instrs, 2 * num_operands),
+            )
             plt.tight_layout()
             if num_instrs == 1 and num_operands == 1:
                 axes = [[axes]]
@@ -274,7 +304,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

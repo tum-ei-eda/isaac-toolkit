@@ -199,7 +199,7 @@ jobs:
     - name: Archive reports
       uses: actions/upload-artifact@v4
       with:
-        name: results-${{ matrix.toolchain }}-${{ matrix.simulator }}
+        name: results-${{ matrix.toolchain }}-${{ matrix.simulator }}-${{ matrix.full }}
         path: |
           examples/standalone/coremark/sess/
           examples/standalone/coremark/*.pdf

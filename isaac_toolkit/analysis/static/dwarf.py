@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import sys
 import logging
 import argparse
@@ -16,9 +34,9 @@ logger = logging.getLogger("dwarf")
 
 
 def parse_dwarf(elf_path):
-    mapping = defaultdict(tuple)
+    func2pcs_data = []
     # the mapping between source file and its function
-    srcFile_func_dict = defaultdict(set)
+    srcFile_func_dict = defaultdict(lambda: [set(), set(), set()])
     # the mapping between program counter and source line
     pc_to_source_line_mapping = defaultdict(list)
     with open(elf_path, "rb") as f:
@@ -62,11 +80,6 @@ def parse_dwarf(elf_path):
         #### # input("123")
         #### ###
 
-        hard_coded_mapping = {}
-        # hard_coded_mapping = {
-        #     "_start": (int("0x12c", 0), int("0x183", 0))
-        # }
-
         # mapping function symbol to pc range
         for section in elffile.iter_sections():
             if section.name == ".symtab":
@@ -79,14 +92,15 @@ def parse_dwarf(elf_path):
                 start_pc = symbol["st_value"]
                 end_pc = start_pc + symbol["st_size"] - 1
                 range = (start_pc, end_pc)
-                mapping[symbol.name] = range
-            elif symbol.name in hard_coded_mapping:
-                mapping[symbol.name] = hard_coded_mapping[symbol.name]
+                # mapping[symbol.name] = range
+                new = (symbol.name, (start_pc, end_pc))
+                func2pcs_data.append(new)
+            # Warning: this mapping uses mangled func names
 
         ## mapping source file to function
         if not elffile.has_dwarf_info():
             logger.error("ELF file has no DWARF info!")
-            return mappinf, None, None
+            return func2pcs_data, None, None
 
         dwarfinfo = elffile.get_dwarf_info()
 
@@ -131,14 +145,23 @@ def parse_dwarf(elf_path):
                         func_name = DIE.attributes["DW_AT_name"].value.decode()
                     else:
                         func_name = "???"
+                    if "DW_AT_linkage_name" in DIE.attributes:
+                        linkage_name = DIE.attributes["DW_AT_linkage_name"].value.decode()
+                        from cpp_demangle import demangle
+
+                        unmangled_linkage_name = demangle(linkage_name)
+                    else:
+                        linkage_name = "???"
+                        unmangled_linkage_name = "???"
                     if "DW_AT_decl_file" in DIE.attributes:
                         file_index = DIE.attributes["DW_AT_decl_file"].value
                         filename = lpe_filename(line_program, file_index)
                     else:
                         file_name = "???"
 
-                    if func_name not in srcFile_func_dict[filename]:
-                        srcFile_func_dict[filename].add(func_name)
+                    srcFile_func_dict[filename][0].add(func_name)
+                    srcFile_func_dict[filename][1].add(linkage_name)
+                    srcFile_func_dict[filename][2].add(unmangled_linkage_name)
 
         for CU in dwarfinfo.iter_CUs():
             line_program = dwarfinfo.line_program_for_CU(CU)
@@ -156,7 +179,7 @@ def parse_dwarf(elf_path):
 
             if CU_name in pc_to_source_line_mapping:
                 pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
-    return mapping, srcFile_func_dict, pc_to_source_line_mapping
+    return func2pcs_data, srcFile_func_dict, pc_to_source_line_mapping
 
 
 def analyze_dwarf(sess: Session, force: bool = False):
@@ -168,6 +191,7 @@ def analyze_dwarf(sess: Session, force: bool = False):
     elf_artifact = elf_artifacts[0]
 
     func2pc, file2funcs, file_pc2line = parse_dwarf(elf_artifact.path)
+    file2funcs_data = [(file_name, vals[0], vals[1], vals[2]) for file_name, vals in file2funcs.items()]
     # print("func2pc", func2pc)
     # print("file2funcs", file2funcs)
     # print("file_func2line", file_pc2line)
@@ -180,8 +204,10 @@ def analyze_dwarf(sess: Session, force: bool = False):
             pc, line = pc_line
             loc = f"{file}:{line}"
             pc2locs[pc].add(loc)
-    func2pc_df = pd.DataFrame(func2pc.items(), columns=["func", "pc_range"])
-    file2funcs_df = pd.DataFrame(file2funcs.items(), columns=["file", "func_names"])
+    func2pc_df = pd.DataFrame(func2pc, columns=["func", "pc_range"])
+    file2funcs_df = pd.DataFrame(
+        file2funcs_data, columns=["file", "func_names", "linkage_names", "unmangled_linkage_names"]
+    )
     pc2locs_df = pd.DataFrame(pc2locs.items(), columns=["pc", "locs"])
     # print("func2pc_df", func2pc_df)
     # print("file2funcs_df", file2funcs_df)
@@ -216,7 +242,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

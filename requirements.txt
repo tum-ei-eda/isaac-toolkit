@@ -2,17 +2,14 @@ tqdm
 pyyaml
 pyelftools
 pandas
-# black~=24.4.2
 dacite
-networkx<3.0.0,>=2.5.1
-gqlalchemy
 pygraphviz
-neo4j>=5.8.0
 matplotlib
-m2isar @ git+https://github.com/tum-ei-eda/M2-ISA-R.git@custom_insns
 leb128
 fastparquet
 pyarrow
 mapfile-parser
 gprof2dot
 capstone
+networkx<3.0.0,>=2.5.1
+cpp-demangle

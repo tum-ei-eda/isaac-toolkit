@@ -7,7 +7,7 @@ Automated Customization Toolkit for Instruction Set Architectures (ISAs)
 
 ```python
 isaac_toolkit
-├── algorithm 
+├── algorithm
 │   └── ... # work in progress
 ├── analysis
 │   ├── dynamic  # dynamic analysis tools
@@ -53,7 +53,7 @@ isaac_toolkit
 │   │   └── spike.py
 │   ├── isa  # work in progress
 │   │   └── ...
-│   ├── linker_map.py 
+│   ├── linker_map.py
 │   ├── memgraph  # work in progress
 │   │   ├── llvm_ir_cdfg.py
 │   │   └── llvm_mir_cdfg.py
@@ -105,6 +105,10 @@ Install packages:
 
 ```sh
 pip install -r requirements.txt
+
+# Optional:
+pip install -r requirements_full.txt  # for specific backends
+pip install -r requirements_dev.txt  # for linting, testing,...
 ```
 
 ### Demo
@@ -126,6 +130,32 @@ python3 -m isaac_toolkit.session.summary --session sess/
 
 See [`Examples/standalone/coremark/README.md`](Examples/README.md) for an end-to-end example.
 
-## Testing
+## Development
 
-TODO: add unit & integration tests
+### Style
+
+We use the [`black`](https://black.readthedocs.io/en/stable/) formatter to maintain a consistent Python style (See `setup.cfg` & `pyproject.toml`)
+
+Pylint config is also available, but not enforced.
+
+### Testing
+
+First, make sure that the additional development packages are installed via:
+
+```sh
+pip install -r requirements_dev.txt
+```
+
+Run Pytest:
+
+```sh
+python3 -m pytest tests -rs -s
+```
+
+Create Coverage Report:
+
+```sh
+coverage run --source isaac_toolkit -m pytest tests
+coverage report -m
+coverage html
+```

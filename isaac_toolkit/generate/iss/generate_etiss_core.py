@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import sys
 import yaml
 import logging
@@ -57,17 +75,37 @@ def apply_etiss_overrides(sets: List[str], semihosting: bool = True):
     return ret + new
 
 
-def get_cdsl_includes(sets: List[str], base_dir: Union[str, Path] = "rv_base", tum_dir: Union[str, Path] = "."):
+def get_cdsl_includes(
+    sets: List[str],
+    base_dir: Union[str, Path] = "rv_base",
+    tum_dir: Union[str, Path] = ".",
+):
     # Reverse lookup required!
     cdsl_includes = {
         "RISCVBase.core_desc": ["RISCVBase"],
         # "RV32I.core_desc": ["RV32I", "Zicsr", "Zifencei", "RVNMode", "RVSMode", "RVDebug"],
         "RV64I.core_desc": ["RV64I"],
         "RVA.core_desc": ["RV32A", "RV64A"],
-        "RVC.core_desc": ["RV32IC", "RV32FC", "RV32DC", "RV64IC", "RV64FC", "RV64DC", "RV128IC"],
+        "RVC.core_desc": [
+            "RV32IC",
+            "RV32FC",
+            "RV32DC",
+            "RV64IC",
+            "RV64FC",
+            "RV64DC",
+            "RV128IC",
+        ],
         "RVD.core_desc": ["RV32D", "RV64D"],
         "RVF.core_desc": ["RV32F", "RV64F"],
-        "RVI.core_desc": ["RV32I", "RV64I", "Zicsr", "Zifencei", "RVNMode", "RVSMode", "RVDebug"],
+        "RVI.core_desc": [
+            "RV32I",
+            "RV64I",
+            "Zicsr",
+            "Zifencei",
+            "RVNMode",
+            "RVSMode",
+            "RVDebug",
+        ],
         "RVM.core_desc": ["RV32M", "RV64M"],
         "tum_rvm.core_desc": ["tum_rvm"],
         "tum_rva.core_desc": ["tum_rva", "tum_rva64"],
@@ -182,7 +220,9 @@ def generate_etiss_core(
     constants = {}
     memories = {}
     unencoded_instructions = {}
-    constants["XLEN"] = m2isar.metamodel.arch.Constant("XLEN", value=xlen, attributes={}, size=None, signed=False)
+    constants["XLEN"] = m2isar.metamodel.arch.Constant(
+        "XLEN", value=xlen, attributes={}, size=None, signed=False
+    )
     # if ignore_etiss:
     if True:
         main_reg = m2isar.metamodel.arch.Memory(
@@ -210,7 +250,9 @@ def generate_etiss_core(
     intrinsics = {}
     contributing_types = all_cdsl_sets
     # extra_includes = ["/work/git/students/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
-    extra_includes = ["/mnt/wd8tb/Data/students_archive/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
+    extra_includes = [
+        "/mnt/wd8tb/Data/students_archive/cecil/etiss_arch_riscv/rv_base"
+    ]  # TODO: Do not hardcode
     # print("SSSS")
     name_idx = 0
     errs = {}
@@ -235,7 +277,8 @@ def generate_etiss_core(
         instr_sets = [
             instr_set
             for instr_set in instr_sets
-            if len(instr_set.instructions) > 0 or len(instr_set.unencoded_instructions) > 0
+            if len(instr_set.instructions) > 0
+            or len(instr_set.unencoded_instructions) > 0
         ]
         # print("instr_sets", instr_sets)
         if len(instr_sets) == 1:
@@ -257,7 +300,10 @@ def generate_etiss_core(
     unencoded_instructions_ = list(unencoded_instructions.values())
     encoded_instructions_ = encode_instructions(unencoded_instructions_)
     print("encoded_instructions_", encoded_instructions_, len(encoded_instructions_))
-    encoded_instructions = {(instr_def.code, instr_def.mask): instr_def for instr_def in encoded_instructions_}
+    encoded_instructions = {
+        (instr_def.code, instr_def.mask): instr_def
+        for instr_def in encoded_instructions_
+    }
     contributing_types.append(set_name)
     print("encoded_instructions", encoded_instructions, len(encoded_instructions))
     instructions = {}
@@ -351,7 +397,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

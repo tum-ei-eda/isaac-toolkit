@@ -163,5 +163,4 @@ cython_debug/
 
 # ISAAC specifc
 *.elf
-sess/
-session/
+sess*/

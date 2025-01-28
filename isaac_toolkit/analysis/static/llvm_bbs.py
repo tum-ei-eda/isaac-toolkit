@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import io
 import sys
 import leb128
@@ -68,8 +86,6 @@ def parse_elf(elf_path):
                 # print("name", name)
                 # assert name not in func_to_addr, f"Conflict! {name} already in map: {func_to_addr}"
                 func_to_addrs[name].append((sym["st_value"], sym["st_size"]))
-        # print("func_to_addrs", func_to_addrs)
-        # input("q")
 
         addr_to_func = {}
         aliases = defaultdict(list)
@@ -82,14 +98,10 @@ def parse_elf(elf_path):
                         aliases[func_name].append(addr_to_func[func_addr])
                 else:
                     addr_to_func[func_addr] = func_name
-        # print("addr_to_func", addr_to_func)
-        # input("qq")
         llvm_bb_addr_map_raw = elffile.get_section_by_name(".llvm_bb_addr_map")
         assert llvm_bb_addr_map_raw is not None, "Missing: .llvm_bb_addr_map"
         llvm_bb_addr_map_raw = llvm_bb_addr_map_raw.data()
 
-        # print("llvm_bb_addr_map_raw", llvm_bb_addr_map_raw)
-        # input("qqq")
         def decode_map(data, addr_to_func):
             ret = {}
             unknown_count = 0
@@ -107,7 +119,9 @@ def parse_elf(elf_path):
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     # print("features", features)
                     assert features == 0
-                    func_addr = int.from_bytes(reader.read(addr_bytes), byteorder="little")
+                    func_addr = int.from_bytes(
+                        reader.read(addr_bytes), byteorder="little"
+                    )
                     # print("func_addr", func_addr)
                     func_name = addr_to_func.get(func_addr, None)
                     # print("func_name", func_name)
@@ -151,17 +165,12 @@ def parse_elf(elf_path):
                         end = cur + sz
                         pcs = [pc for pc in range(start, end + 2, 2) if pc in valid_pcs]
                         num_instrs = len(pcs)
-                        # print("sz", sz)
-                        # print("start", start)
-                        # print("end", end)
                         cur += sz
                         if GISEL:
                             tmp[str(bb_id)] = (start, end, sz, num_instrs)
                         else:
                             tmp[bb_id] = (start, end, sz, num_instrs)
-                    # print("tmp", tmp)
                     ret[func_name] = tmp
-                    # input("w")
             return ret
 
         llvm_bb_addr_map = decode_map(llvm_bb_addr_map_raw, addr_to_func)
@@ -171,8 +180,6 @@ def parse_elf(elf_path):
             for func_name in func_to_addrs.keys():
                 print(f"{func_name}:")
                 bbs = llvm_bb_addr_map.get(func_name, None)
-                # print("bbs", bbs)
-                # input("ww")
                 # PRINT_MISSING = False
                 PRINT_MISSING = True
                 if bbs is None:
@@ -183,7 +190,14 @@ def parse_elf(elf_path):
                     bbs = dict(sorted(bbs.items(), key=lambda x: int(x[0]))).values()
                 for i, bb in enumerate(bbs):
                     start, end, sz, num_instrs = bb
-                    print(f"> bb{i}", ":", hex(start), "-", hex(end), f"(len={sz}B, num={num_instrs})")
+                    print(
+                        f"> bb{i}",
+                        ":",
+                        hex(start),
+                        "-",
+                        hex(end),
+                        f"(len={sz}B, num={num_instrs})",
+                    )
                     print()
     return llvm_bb_addr_map
 
@@ -326,7 +340,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

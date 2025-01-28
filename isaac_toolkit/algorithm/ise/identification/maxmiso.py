@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import sys
 import argparse
 from pathlib import Path
@@ -73,6 +91,7 @@ def maxmiso_algo(G):
         # size = generate_max_miso(node, G, max_miso, 1, invalid, fanout, processed)
         # print("size", size)
         if size > 1:
+
             def calc_inputs(max_miso):
                 print("calc_inputs", max_miso)
                 inputs = [False] * len(topo)
@@ -80,18 +99,22 @@ def maxmiso_algo(G):
                 max_miso_nodes = [topo[i] for i, val in enumerate(max_miso) if val]
                 print("mmn", max_miso_nodes)
                 for node in max_miso_nodes:
-                  print("node", node)
-                  ins = G.in_edges(node)
-                  print("ins", ins)
-                  for in_ in ins:
-                    print("in_", in_, G.nodes[in_[0]].get("label"))
-                    src = in_[0]
-                    if not max_miso[topo.index(src)] and not inputs[topo.index(src)]:
-                      ret += 1
-                      inputs[topo.index(src)] = True
+                    print("node", node)
+                    ins = G.in_edges(node)
+                    print("ins", ins)
+                    for in_ in ins:
+                        print("in_", in_, G.nodes[in_[0]].get("label"))
+                        src = in_[0]
+                        if (
+                            not max_miso[topo.index(src)]
+                            and not inputs[topo.index(src)]
+                        ):
+                            ret += 1
+                            inputs[topo.index(src)] = True
                 print("ret", ret)
                 # input("1")
                 return ret
+
             def calc_outputs(max_miso):
                 print("calc_outputs", max_miso)
                 # outputs = [False] * len(topo)
@@ -99,19 +122,19 @@ def maxmiso_algo(G):
                 max_miso_nodes = [topo[i] for i, val in enumerate(max_miso) if val]
                 print("mmn", max_miso_nodes)
                 for node in max_miso_nodes:
-                  print("node", node)
-                  if G.nodes[node]["properties"]["op_type"] == "output":
-                    print("A")
-                    ret += 1
-                  else:
-                    print("B")
-                    outs = G.out_edges(node)
-                    print("outs", outs)
-                    for out_ in outs:
-                      print("out_", out_, G.nodes[out_[0]].get("label"))
-                      dst = out_[1]
-                      if not max_miso[topo.index(dst)]:
+                    print("node", node)
+                    if G.nodes[node]["properties"]["op_type"] == "output":
+                        print("A")
                         ret += 1
+                    else:
+                        print("B")
+                        outs = G.out_edges(node)
+                        print("outs", outs)
+                        for out_ in outs:
+                            print("out_", out_, G.nodes[out_[0]].get("label"))
+                            dst = out_[1]
+                            if not max_miso[topo.index(dst)]:
+                                ret += 1
                 print("ret", ret)
                 # input("1")
                 return ret
@@ -178,7 +201,14 @@ def handle(args):
             # TODO: module_name
             view = nx.subgraph_view(
                 G,
-                filter_node=lambda node: (bb_name is None or G.nodes[node]["properties"].get("basic_block") == bb_name) and (func_name is None or G.nodes[node]["properties"].get("func_name") == func_name)
+                filter_node=lambda node: (
+                    bb_name is None
+                    or G.nodes[node]["properties"].get("basic_block") == bb_name
+                )
+                and (
+                    func_name is None
+                    or G.nodes[node]["properties"].get("func_name") == func_name
+                )
                 and "%bb" not in G.nodes[node].get("label"),
             )
             G_ = G.subgraph([node for node in view.nodes])
@@ -196,7 +226,11 @@ def handle(args):
                 "bb_name": bb_name,
                 "by": "isaac_toolkit.algorithm.ise.identification.maxmiso",
             }
-            artifact = GraphArtifact(f"{module_name}/{func_name}/{bb_name}/maxmiso/{i}", nx.DiGraph(maxmiso), attrs=attrs)
+            artifact = GraphArtifact(
+                f"{module_name}/{func_name}/{bb_name}/maxmiso/{i}",
+                nx.DiGraph(maxmiso),
+                attrs=attrs,
+            )
             # print("artifact", artifact)
             sess.add_artifact(artifact, override=override)
     sess.save()
@@ -206,7 +240,9 @@ def get_parser():
     parser = argparse.ArgumentParser()
     # parser.add_argument("graph_name", default="memgraph_mir_cdfg")
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")

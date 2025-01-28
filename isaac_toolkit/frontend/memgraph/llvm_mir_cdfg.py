@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import sys
 import argparse
 from pathlib import Path
@@ -58,7 +76,14 @@ def get_cfg_artifacts(driver, label: str = "default"):
             props = rel._properties
             label = rel.type
             # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
-            G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props)
+            G.add_edge(
+                rel.start_node.id,
+                rel.end_node.id,
+                key=rel.id,
+                label=label,
+                type=rel.type,
+                properties=props,
+            )
         # print("G", G, dir(G))
         # print("mfn", module_func_nodes)
         ret = []
@@ -71,7 +96,9 @@ def get_cfg_artifacts(driver, label: str = "default"):
                     "module_name": module_name,
                     "func_name": func_name,
                 }
-                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
+                artifact = GraphArtifact(
+                    f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs
+                )
                 # print("artifact", artifact, dir(artifact), artifact.flags)
                 ret.append(artifact)
     finally:
@@ -124,7 +151,14 @@ def get_dfg_artifacts(driver, label: str = "default"):
             props = rel._properties
             label = rel.type
             # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
-            G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, label=label, type=rel.type, properties=props)
+            G.add_edge(
+                rel.start_node.id,
+                rel.end_node.id,
+                key=rel.id,
+                label=label,
+                type=rel.type,
+                properties=props,
+            )
         # print("G", G, dir(G))
         # print("mfbn", module_func_bb_nodes)
         ret = []
@@ -140,7 +174,9 @@ def get_dfg_artifacts(driver, label: str = "default"):
                         "bb_name": bb_name,
                     }
                     artifact = GraphArtifact(
-                        f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg", G_, attrs=attrs
+                        f"{legalize_str(module_name)}/{func_name}/{bb_name}/llvm_dfg",
+                        G_,
+                        attrs=attrs,
                     )
                     # print("artifact", artifact, dir(artifact), artifact.flags)
                     ret.append(artifact)
@@ -185,7 +221,9 @@ def handle(args):
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--log", default="info", choices=["critical", "error", "warning", "info", "debug"]
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--label", default="default", required=True)
