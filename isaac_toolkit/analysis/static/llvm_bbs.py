@@ -27,11 +27,25 @@ def parse_elf(elf_path):
         elffile = ELFFile(f)
 
         # extract disassembly to count instructions per bb
-        code = elf.get_section_by_name(".text")
+        # see https://isleem.medium.com/create-your-own-disassembler-in-python-pefile-capstone-754f863b2e1c
+        code = elffile.get_section_by_name(".text")
         ops = code.data()
-        addr = code["sh_addr"]
+        begin = code["sh_addr"]
+        sz = code["sh_size"]
+        end = begin + sz
         md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCVC)
-        valid_pcs = set(x.address for x in md.disasm(ops, addr))
+        # md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
+        valid_pcs = set()
+        while True:
+            temp = [(x.address, x.size) for x in md.disasm(ops, begin)]
+            valid_pcs_ = set(pc for pc, size in temp)
+            last = temp[-1]
+            last_pc, last_size = last
+            begin = max(last_pc, begin) + last_size
+            if begin >= end:
+                break
+            valid_pcs.update(valid_pcs_)
+            # input("!_")
 
         section = elffile.get_section_by_name(".symtab")
         xlen = elffile.elfclass
@@ -200,7 +214,13 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
             # print("bn", bb_name)
             bb_name = f"%bb.{bb_name}"
             start, end, sz, num_instrs = bb_data
-            new = {"func_name": func_name, "bb_name": bb_name, "pcs": (start, end), "size": sz, "num_instrs": num_instrs}
+            new = {
+                "func_name": func_name,
+                "bb_name": bb_name,
+                "pcs": (start, end),
+                "size": sz,
+                "num_instrs": num_instrs,
+            }
             # if trace_pc2bb_df is not None:
             #     print("trace_pc2bb_df", trace_pc2bb_df)
             #     # trace_pc2bb_df[["start", "end"]] = trace_pc2bb_df["bb"].apply(pd.Series)
