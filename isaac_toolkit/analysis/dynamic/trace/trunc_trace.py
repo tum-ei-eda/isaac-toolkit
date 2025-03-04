@@ -50,18 +50,14 @@ def trunc_trace(
 ):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     trace_df = trace_artifact.df
     assert force
 
-    func2pc_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
-    )
+    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
     if len(func2pc_artifacts) > 0:
         assert len(func2pc_artifacts) == 1
         func2pc_artifact = func2pc_artifacts[0]
@@ -99,12 +95,10 @@ def trunc_trace(
     # print("end_pc", end_pc)
     # TODO: handle multiple calls to start/end func
     def do_trunc(df, start, end):
-        # print("do_trunc", len(df), start, end)
-        # print("df", len(df))
         if start is not None:
             start_rows = df[df["pc"] == start]
         else:
-            start_rows = df.iloc[0:0]
+            start_rows = df.iloc[0:1]
         # print("start_rows", start_rows)
         start_pos = start_rows.index[0]
         # print("start_pos", start_pos)
