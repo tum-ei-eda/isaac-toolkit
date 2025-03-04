@@ -51,7 +51,10 @@ def parse_elf(elf_path):
         begin = code["sh_addr"]
         sz = code["sh_size"]
         end = begin + sz
-        md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCVC)
+        xlen = elffile.elfclass
+        assert xlen is not None
+        mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
+        md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
         # md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
         valid_pcs = set()
         while True:
@@ -60,14 +63,11 @@ def parse_elf(elf_path):
             last = temp[-1]
             last_pc, last_size = last
             begin = max(last_pc, begin) + last_size
+            valid_pcs.update(valid_pcs_)
             if begin >= end:
                 break
-            valid_pcs.update(valid_pcs_)
-            # input("!_")
 
         section = elffile.get_section_by_name(".symtab")
-        xlen = elffile.elfclass
-        assert xlen is not None
         addr_bytes = int(xlen / 8)
 
         if not section:
@@ -119,9 +119,7 @@ def parse_elf(elf_path):
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     # print("features", features)
                     assert features == 0
-                    func_addr = int.from_bytes(
-                        reader.read(addr_bytes), byteorder="little"
-                    )
+                    func_addr = int.from_bytes(reader.read(addr_bytes), byteorder="little")
                     # print("func_addr", func_addr)
                     func_name = addr_to_func.get(func_addr, None)
                     # print("func_name", func_name)
@@ -163,7 +161,7 @@ def parse_elf(elf_path):
                         assert sz >= 0
                         start = cur
                         end = cur + sz
-                        pcs = [pc for pc in range(start, end + 2, 2) if pc in valid_pcs]
+                        pcs = [pc for pc in range(start, end, 2) if pc in valid_pcs]
                         num_instrs = len(pcs)
                         cur += sz
                         if GISEL:
