@@ -55,7 +55,9 @@ def handle(args):
             150,
         ):
             print(data)
-            print(f"len={len(data)}")
+            if hasattr(data, "__len__"):
+                print(f"len={len(data)}")
+            # print("Type:", type(data), type(data).__bases__[0].__bases__)
 
     if args.memory:
         assert isinstance(
