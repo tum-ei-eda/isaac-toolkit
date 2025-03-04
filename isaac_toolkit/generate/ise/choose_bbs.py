@@ -37,6 +37,16 @@ from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_a
 logger = logging.getLogger("llvm_bbs")
 
 
+def lookup_files(file2funcs_df, func_name):
+    matches = set()
+    for _, row in file2funcs_df.iterrows():
+        func_names = row["func_names"]
+        if func_name in func_names:
+            file = Path(row["file"])
+            matches.add(file.resolve())
+    return list(matches)
+
+
 def choose_bbs(
     sess: Session,
     threshold: float = 0.9,
@@ -54,7 +64,17 @@ def choose_bbs(
     assert len(llvm_bbs_artifacts) == 1
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
     llvm_bbs_df = llvm_bbs_artifact.df.copy()
-    # print("llvm_bbs_df", llvm_bbs_df)
+
+    file2funcs_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "file2funcs"
+    )
+    if len(file2funcs_artifacts) > 0:
+        assert len(file2funcs_artifacts) == 1
+        file2funcs_artifact = file2funcs_artifacts[0]
+        file2funcs_df = file2funcs_artifact.df.copy()
+        # print("llvm_bbs_df", llvm_bbs_df)
+    else:
+        file2funcs_df = None
     sum_weights = 0.0
     choices = []
     for index, row in llvm_bbs_df.sort_values("rel_weight", ascending=False).iterrows():
@@ -67,8 +87,15 @@ def choose_bbs(
         bb_name = row["bb_name"]
         num_instrs = row["num_instrs"]
         freq = row["freq"]
+        if file2funcs_df is not None:
+            files = lookup_files(file2funcs_df, func_name)
+            assert len(files) == 1
+            file = files[0]
+        else:
+            file = None
         choice = {
             "func_name": func_name,
+            "file": file,
             "bb_name": bb_name,
             "rel_weight": rel_weight,
             "num_instrs": num_instrs,
