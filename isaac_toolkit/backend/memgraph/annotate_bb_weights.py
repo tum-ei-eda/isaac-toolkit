@@ -118,10 +118,12 @@ def annotate_bb_weights(sess: Session, label: str = "default", force: bool = Fal
             func_name = row["func_name"]
             bb_name = row["bb_name"]
             num_instrs = row["num_instrs"]
+            rel_weight = row["rel_weight"]
+            freq = row["freq"]
             if not num_instrs or pd.isna(num_instrs):
                 continue
-            freq = row["freq"]
-            rel_weight = row["rel_weight"]
+            if not rel_weight or pd.isna(rel_weight):
+                continue
             anonotate_helper(
                 driver,
                 func_name,
