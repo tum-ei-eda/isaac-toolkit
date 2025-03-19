@@ -220,9 +220,7 @@ def generate_etiss_core(
     constants = {}
     memories = {}
     unencoded_instructions = {}
-    constants["XLEN"] = m2isar.metamodel.arch.Constant(
-        "XLEN", value=xlen, attributes={}, size=None, signed=False
-    )
+    constants["XLEN"] = m2isar.metamodel.arch.Constant("XLEN", value=xlen, attributes={}, size=None, signed=False)
     # if ignore_etiss:
     if True:
         main_reg = m2isar.metamodel.arch.Memory(
@@ -250,9 +248,7 @@ def generate_etiss_core(
     intrinsics = {}
     contributing_types = all_cdsl_sets
     # extra_includes = ["/work/git/students/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
-    extra_includes = [
-        "/mnt/wd8tb/Data/students_archive/cecil/etiss_arch_riscv/rv_base"
-    ]  # TODO: Do not hardcode
+    extra_includes = ["/mnt/wd8tb/Data/students_archive/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
     # print("SSSS")
     name_idx = 0
     errs = {}
@@ -277,8 +273,7 @@ def generate_etiss_core(
         instr_sets = [
             instr_set
             for instr_set in instr_sets
-            if len(instr_set.instructions) > 0
-            or len(instr_set.unencoded_instructions) > 0
+            if len(instr_set.instructions) > 0 or len(instr_set.unencoded_instructions) > 0
         ]
         # print("instr_sets", instr_sets)
         if len(instr_sets) == 1:
@@ -300,10 +295,7 @@ def generate_etiss_core(
     unencoded_instructions_ = list(unencoded_instructions.values())
     encoded_instructions_ = encode_instructions(unencoded_instructions_)
     print("encoded_instructions_", encoded_instructions_, len(encoded_instructions_))
-    encoded_instructions = {
-        (instr_def.code, instr_def.mask): instr_def
-        for instr_def in encoded_instructions_
-    }
+    encoded_instructions = {(instr_def.code, instr_def.mask): instr_def for instr_def in encoded_instructions_}
     contributing_types.append(set_name)
     print("encoded_instructions", encoded_instructions, len(encoded_instructions))
     instructions = {}
