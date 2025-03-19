@@ -363,10 +363,12 @@ def generate_etiss_core(
 
 
 def handle(args):
-    assert args.session is not None
-    session_dir = Path(args.session)
-    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-    sess = Session.from_dir(session_dir)
+    # assert args.session is not None
+    sess = None
+    if args.session is not None:
+        session_dir = Path(args.session)
+        assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+        sess = Session.from_dir(session_dir)
     generate_etiss_core(
         sess,
         force=args.force,
@@ -383,7 +385,8 @@ def handle(args):
         tum_dir=args.tum_dir,
         skip_errors=args.skip_errors,
     )
-    sess.save()
+    if sess is not None:
+        sess.save()
 
 
 def get_parser():
@@ -393,7 +396,8 @@ def get_parser():
         default="info",
         choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
-    parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    # parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--session", "--sess", "-s", type=str, required=False)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--core-name", type=str, default="IsaacCore")
