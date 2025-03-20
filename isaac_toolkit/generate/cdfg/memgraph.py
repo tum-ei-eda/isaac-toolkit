@@ -74,9 +74,9 @@ def generate_memgraph_cdfg_via_compile_commands(
         new_command = f"{orig_command} {extra_args}"
         # print("new_command", new_command)
         # new_args = new_command.split(" ")
-        print("args", new_command)
-        print("cwd", directory)
-        input(">")
+        # print("args", new_command)
+        # print("cwd", directory)
+        # input(">")
         subprocess.run(new_command, check=True, shell=True, cwd=directory)
 
 
