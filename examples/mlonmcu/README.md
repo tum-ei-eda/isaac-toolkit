@@ -35,7 +35,7 @@ To run these examples, the MLonMCU Tools needs to be installed as explained in [
 ```sh
 python3 -m isaac_toolkit.backend.profile.callgrind --session sess/ --dump-pos --output callgrind_pos.out
 ```
-3. To generate the CFOW formatted file:
+3. To generate the CFLOW formatted file:
 ```sh
 python3 analyzer2.py callgrind_pos.out output_file_name.txt
 ```
