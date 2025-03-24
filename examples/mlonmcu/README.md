@@ -25,6 +25,21 @@ To run these examples, the MLonMCU Tools needs to be installed as explained in [
 ./mlonmcu_example.sh sess/ toycar gcc etiss tvmaotplus -f muriscvnnbyoc  # override program+toolchain+target+backend+extra_args
 ```
 
+## ECOMAI Performance Analyzer
+
+1. Run the model using MLonMCU to capture the runtime information
+```sh
+./mlonmcu_example.sh sess/ toycar gcc etiss tvmaotplus -f muriscvnnbyoc
+```
+2. If the callgrind_pos.out file was not generated automatically, run the command below:
+```sh
+python3 -m isaac_toolkit.backend.profile.callgrind --session sess/ --dump-pos --output callgrind_pos.out
+```
+3. To generate the CFOW formatted file:
+```sh
+python3 analyzer2.py callgrind_pos.out output_file_name.txt
+```
+
 ## Investigate Results
 
 ### Static Analysis
