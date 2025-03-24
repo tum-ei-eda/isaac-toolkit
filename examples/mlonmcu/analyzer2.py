@@ -99,11 +99,13 @@ def split_file_content(file1, file2, file3):
     if not os.path.exists(file1):
         print(f"Error: {file1} does not exist.")
         return
-    
-    start_marker = "ob=/nas/ei/share/TUEIEDAscratch/ge74mos/ecomai_perf_analyzer/isaac-toolkit/examples/mlonmcu/sess/elf/generic_mlonmcu"
-    lib2_start_marker = "fl=/nas/ei/share/TUEIEDAscratch/ge74mos/ecomai_perf_analyzer/isaac-toolkit/workspace/temp/sessions/10/runs/0/codegen/host/src/default_lib2.c"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    base_path = os.path.abspath(os.path.join(script_dir, "../../"))
+    mlonmcu_path = os.getenv('MLONMCU_HOME')
+    start_marker = "ob={base_path}/examples/mlonmcu/sess/elf/generic_mlonmcu"
+    lib2_start_marker = "fl={mlonmcu_path}/temp/sessions/10/runs/0/codegen/host/src/default_lib2.c"
     end_marker = "fl=???"
-    lib1_start_marker = "fl=/nas/ei/share/TUEIEDAscratch/ge74mos/ecomai_perf_analyzer/isaac-toolkit/workspace/temp/sessions/10/runs/0/codegen/host/src/default_lib1.c"
+    lib1_start_marker = "fl={mlonmcu_path}/temp/sessions/10/runs/0/codegen/host/src/default_lib1.c"
     
     with open(file1, 'r') as f:
         lines = f.readlines()
@@ -158,7 +160,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generating a CFLOW format file including runtime information.")
     parser.add_argument("input_file", help="Path to the input file", default="callgrind_pos.out")
     parser.add_argument("output_file", help="Specify the output file for results", default="cflow_output.txt")
-  
+    
     
     args = parser.parse_args()
     lib1 = "lib1.out"
@@ -177,3 +179,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
