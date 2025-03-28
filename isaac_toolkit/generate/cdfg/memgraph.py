@@ -20,7 +20,6 @@ import sys
 import logging
 import argparse
 import subprocess
-from typing import Optional, Union, List
 from pathlib import Path
 
 import pandas as pd
@@ -54,6 +53,8 @@ def generate_memgraph_cdfg_via_compile_commands(
     assert len(choices_artifacts) == 1
     choices_artifact = choices_artifacts[0]
     choices_df = choices_artifact.df
+    assert len(choices_df) > 0
+
     compile_commands_artifacts = filter_artifacts(
         artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.attrs.get("kind") == "compile_commands"
     )
