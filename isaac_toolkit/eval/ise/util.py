@@ -36,22 +36,22 @@ logger = logging.getLogger("ise_util")
 def check_util(
     sess: Session,
     force: bool = False,
-    names_csv: str = None,
+    # names_csv: str = None,
 ):
-    assert names_csv is not None
-    names_csv = Path(names_csv)
-    assert names_csv.is_file()
     artifacts = sess.artifacts
 
     # instruction names
-    names_df = pd.read_csv(names_csv)
-    ise_instrs_df = names_df
-    # ise_instrs_artifacts = filter_artifacts(
-    #     artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "ise_instrs"
-    # )
-    # assert len(ise_instrs_artifacts) == 1
-    # ise_instrs_artifact = ise_instrs_artifacts[0]
-    # ise_instrs_df = ise_instrs_artifact.df
+    # assert names_csv is not None
+    # names_csv = Path(names_csv)
+    # assert names_csv.is_file()
+    # names_df = pd.read_csv(names_csv)
+    # ise_instrs_df = names_df
+    ise_instrs_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "ise_instrs"
+    )
+    assert len(ise_instrs_artifacts) == 1
+    ise_instrs_artifact = ise_instrs_artifacts[0]
+    ise_instrs_df = ise_instrs_artifact.df
     ise_instr_names = ise_instrs_df["instr_lower"].values
     # print("ise_instr_names", ise_instr_names)
 
@@ -64,7 +64,7 @@ def check_util(
     disass_hist_custom_df = disass_hist_df[disass_hist_df["instr"].apply(lambda x: x.lower() in ise_instr_names)]
     # print("disass_hist_custom_df", disass_hist_custom_df)
 
-    merged_diass_hist_custom_df = pd.merge(
+    merged_disass_hist_custom_df = pd.merge(
         ise_instrs_df,
         disass_hist_custom_df,
         how="outer",
@@ -76,8 +76,8 @@ def check_util(
     # static_count_sum = disass_hist_df["count"].sum()
     # static_count_max = disass_hist_df["count"].max()
     # print("static_count", static_count_sum, static_count_max)
-    # static_custom_count_sum = merged_diass_hist_custom_df["count"].sum()
-    # static_custom_count_max = merged_diass_hist_custom_df["count"].max()
+    # static_custom_count_sum = merged_disass_hist_custom_df["count"].sum()
+    # static_custom_count_max = merged_disass_hist_custom_df["count"].max()
     # print("static_custom_count", static_custom_count_sum, static_custom_count_max)
 
     # dynamic counts
@@ -88,11 +88,11 @@ def check_util(
     # print("instrs_hist_df", instrs_hist_df)
     instrs_hist_custom_df = instrs_hist_df[instrs_hist_df["instr"].apply(lambda x: x.lower() in ise_instr_names)]
     # print("instrs_hist_custom_df", instrs_hist_custom_df)
+    total_instrs = instrs_hist_df["count"].sum()
 
     merged_instrs_hist_custom_df = pd.merge(
         ise_instrs_df, instrs_hist_custom_df, how="outer", left_on="instr_lower", right_on="instr", suffixes=("", "_y")
     )
-
     # dynamic_count_sum = instrs_hist_df["count"].sum()
     # dynamic_count_max = instrs_hist_df["count"].max()
     # print("dynamic_instr_count", dynamic_count_sum, dynamic_count_max)
@@ -106,30 +106,44 @@ def check_util(
         [
             {
                 "instr": None,
-                "count": merged_diass_hist_custom_df["count"].sum(),
-                "rel_count": merged_diass_hist_custom_df["rel_count"].sum(),
+                "count": merged_disass_hist_custom_df["count"].sum(),
+                "rel_count": merged_disass_hist_custom_df["rel_count"].sum(),
             }
         ]
     )
-    static_counts_custom_df = pd.concat([static_agg_df, merged_diass_hist_custom_df[["instr", "count", "rel_count"]]])
-    merged_diass_hist_custom_df["used"] = merged_diass_hist_custom_df["count"] > 0
+    static_counts_custom_df = pd.concat([static_agg_df, merged_disass_hist_custom_df[["instr", "count", "rel_count"]]])
+    merged_disass_hist_custom_df["used"] = merged_disass_hist_custom_df["count"] > 0
+    merged_disass_hist_custom_df["estimated_reduction"] = merged_disass_hist_custom_df["count"] * (
+        merged_disass_hist_custom_df["num_fused_instrs"] - 1
+    )
 
+    merged_instrs_hist_custom_df["estimated_reduction"] = merged_instrs_hist_custom_df["count"] * (
+        merged_instrs_hist_custom_df["num_fused_instrs"] - 1
+    )
+    estimated_total_reduction = merged_instrs_hist_custom_df["estimated_reduction"].sum()
+    estimated_total_instrs_without_ise = total_instrs + estimated_total_reduction
+    rel_custom_count = merged_instrs_hist_custom_df["rel_count"].sum()
+    merged_instrs_hist_custom_df["estimated_reduction_rel_scaled"] = merged_instrs_hist_custom_df["estimated_reduction"] / estimated_total_reduction
+    merged_instrs_hist_custom_df["estimated_reduction_rel"] = merged_instrs_hist_custom_df["estimated_reduction"] / estimated_total_instrs_without_ise
     dynamic_agg_df = pd.DataFrame(
         [
             {
                 "instr": None,
                 "count": merged_instrs_hist_custom_df["count"].sum(),
-                "rel_count": merged_instrs_hist_custom_df["rel_count"].sum(),
+                "rel_count": rel_custom_count,
+                "estimated_reduction":  estimated_total_reduction,
+                "estimated_reduction_rel": merged_instrs_hist_custom_df["estimated_reduction_rel"].sum(),
+                "estimated_reduction_rel_scaled": merged_instrs_hist_custom_df["estimated_reduction_rel_scaled"].sum(),
             }
         ]
     )
     dynamic_counts_custom_df = pd.concat(
-        [dynamic_agg_df, merged_instrs_hist_custom_df[["instr", "count", "rel_count"]]]
+        [dynamic_agg_df, merged_instrs_hist_custom_df[["instr", "count", "rel_count", "estimated_reduction", "estimated_reduction_rel_scaled", "estimated_reduction_rel"]]]
     )
     merged_instrs_hist_custom_df["used"] = merged_instrs_hist_custom_df["count"] > 0
 
     ise_util_df = pd.merge(
-        merged_diass_hist_custom_df, merged_instrs_hist_custom_df, on="instr", suffixes=("_static", "_dynamic")
+        merged_disass_hist_custom_df, merged_instrs_hist_custom_df, on="instr", suffixes=("_static", "_dynamic")
     )
     ise_util_df["used_only_static"] = ise_util_df["used_static"] & ~ise_util_df["used_dynamic"]
     n_instrs = len(ise_instrs_df)
@@ -338,7 +352,7 @@ def handle(args):
     check_util(
         sess,
         force=args.force,
-        names_csv=args.names_csv,
+        # names_csv=args.names_csv,
     )
     sess.save()
 
@@ -352,7 +366,7 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
-    parser.add_argument("--names-csv", required=True)
+    # parser.add_argument("--names-csv", required=True)
     # TODO: !
     return parser
 
