@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 import sys
+import yaml
 import logging
 import argparse
 import subprocess
@@ -24,12 +25,92 @@ from typing import Optional, Union
 from pathlib import Path
 
 import pandas as pd
+from neo4j import GraphDatabase, Query
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
+from isaac_toolkit.utils.graph_utils import memgraph_to_nx
+from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
 
 
 logger = logging.getLogger("llvm_bbs")
+
+
+# TODO: move to different file, make more robust, share code
+from collections import defaultdict
+import networkx as nx
+import networkx.algorithms.isomorphism as iso
+
+
+def get_unique_maxmisos(maxmisos):
+    isos_map = defaultdict(list)
+    covered = set()
+    for i, m1 in enumerate(maxmisos):
+        if i in covered:
+            continue
+        for j, m2 in enumerate(maxmisos):
+
+            if j <= i:
+                continue
+
+            def node_match(*args):
+                ret = iso.categorical_node_match("label", None)(*args)
+                return ret
+
+            def edge_match(*args):
+                return iso.categorical_edge_match("label", None)(*args)
+
+            is_iso = nx.is_isomorphic(m1, m2, node_match=node_match, edge_match=edge_match)
+            if is_iso:
+                isos_map[i].append(j)
+                covered.add(j)
+
+    print("isos_map", isos_map, len(isos_map))
+    isos_size = {k: len(v) for k, v in isos_map.items()}
+    print("isos_size", isos_size)
+    print("covered", covered, len(covered))
+    non_isos = [i for i in range(len(maxmisos)) if i not in covered]
+    print("non_isos", non_isos, len(non_isos))
+    unique_maxmisos = [maxmisos[i] for i in non_isos]
+    duplicate_maxmisos = [maxmisos[i] for i in covered]
+    print("unique_maxmisos", list(map(str, unique_maxmisos)))
+    factors = [isos_size.get(i, 1) for i in non_isos]
+    return unique_maxmisos, factors, duplicate_maxmisos
+
+
+def get_func_query(session, stage, func_name):
+    return Query(
+        f"""MATCH p0=(n00:INSTR)-[r01:DFG]->(n01:INSTR)
+        WHERE n00.func_name = '{func_name}'
+        AND n00.session = "{session}"
+        AND n00.stage = {stage}
+        AND n01.name != "PHI" AND n01.name != "G_PHI"
+        RETURN p0
+        """
+    )
+
+
+def get_bbs_query(session, stage, func_name):
+    return Query(
+        f"""MATCH (n00:INSTR)
+        WHERE n00.func_name = '{func_name}'
+        AND n00.session = "{session}"
+        AND n00.stage = {stage}
+        RETURN n00.bb_id as bb_id, count(*) as num_instrs
+        ORDER BY bb_id
+        """
+    )
+
+
+def get_update_nodes_query(maxmiso_idx, maxmiso_nodes, factor=1):
+    size = len(maxmiso_nodes)
+    return Query(
+        f"""
+        MATCH (n:INSTR)
+        WHERE id(n) IN {maxmiso_nodes}
+        SET n.maxmiso_idx = {maxmiso_idx}, n.maxmiso_factor = {factor}, n.maxmiso_size = {size};
+        """
+    )
 
 
 def query_candidates_from_db(
@@ -76,6 +157,8 @@ def query_candidates_from_db(
     HALT_ON_ERROR: bool = True,
     SORT_BY: Optional[str] = "IsoWeight",
     TOPK: Optional[int] = 100,
+    # PARTITION_WITH_MAXMISO: bool = False,
+    PARTITION_WITH_MAXMISO: bool = True,  # TODO: auto
 ):
     artifacts = sess.artifacts
     choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
@@ -112,6 +195,82 @@ def query_candidates_from_db(
         num_instrs = row["num_instrs"]
         print("func_name", func_name)
         print("bb_name", bb_name)
+
+        bbs_query = get_bbs_query(label, stage, func_name)
+
+        memgraph_config = sess.config.memgraph
+        hostname = memgraph_config.hostname
+        port = memgraph_config.port
+        user = memgraph_config.user
+        password = memgraph_config.password
+
+        driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
+        session = driver.session()
+        try:
+            func_query = get_func_query(label, stage, func_name)
+            # print("func_query", func_query)
+            func_results = session.run(func_query)
+            func = memgraph_to_nx(func_results)
+            # print("func", func)
+            # input(">>")
+            bbs_results = session.run(bbs_query)
+            bbs_df = bbs_results.to_df()
+        finally:
+            session.close()
+        # print("bbs_df", bbs_df)
+        # input(">")
+        bb_id = int(bb_name.split(".", 1)[1])
+        assert len(bbs_df) > 0
+        db_bb_ids = bbs_df["bb_id"].unique()
+        if bb_id not in db_bb_ids:
+            raise RuntimeError(f"BB ID {bb_id} not found in DB!")
+        maxmiso_idxs = []
+        # TODO: skip maxmisos which are unsuitable?
+        if PARTITION_WITH_MAXMISO:
+            bb_nodes = [node for node in func.nodes if func.nodes[node]["properties"]["bb_id"] == bb_id]
+            # print("bb_nodes", bb_nodes)
+            bb = func.subgraph(bb_nodes)
+            # print("bb", bb)
+            maxmisos = maxmiso_algo(bb)
+            # print("maxmisos", maxmisos)
+            # input(">")
+            unique_maxmisos, factors, duplicate_maxmisos = get_unique_maxmisos(maxmisos)
+            # maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in maxmisos]
+            unique_maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in unique_maxmisos]
+            duplicate_maxmiso_node_ids = [
+                [maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in duplicate_maxmisos
+            ]
+            remaining_nodes = set(bb_nodes)
+            total_idx = 0
+            session = driver.session()
+            try:
+                # TODO: make unique optional!
+                # for i, node_ids in enumerate(maxmiso_node_ids):
+                for i, node_ids in enumerate(duplicate_maxmiso_node_ids):
+                    factor = 0
+                    idx = -1
+                    # Negative -> ignore
+                    query = get_update_nodes_query(idx, node_ids, factor=0)
+                    _ = session.run(query)
+                    remaining_nodes -= set(node_ids)
+                for i, node_ids in enumerate(unique_maxmiso_node_ids):
+                    factor = factors[i]
+                    query = get_update_nodes_query(total_idx, node_ids, factor=factor)
+                    maxmiso_idxs.append(total_idx)
+                    # print("query", query)
+                    _ = session.run(query)
+                    # print("results3", results3)
+                    remaining_nodes -= set(node_ids)
+                    total_idx += 1
+                print("remaining_nodes", remaining_nodes)
+                if len(remaining_nodes) > 0:
+                    query = get_update_nodes_query(total_idx, list(remaining_nodes), factor=1)
+                    _ = session.run(query)
+                    maxmiso_idxs.append(total_idx)
+                total_idx += 1
+            finally:
+                session.close()
+
         out_name = f"{func_name}_{bb_name}_0"
         out_dir = workdir / out_name
         print("out_dir", out_dir)
@@ -213,6 +372,9 @@ def query_candidates_from_db(
             *["--write-queries"],
             *["--write-query-metrics"],
         ]
+        if PARTITION_WITH_MAXMISO and len(maxmiso_idxs) > 0:
+            maxmiso_idxs_str = ",".join(map(str, maxmiso_idxs))
+            args += ["--maxmisos", maxmiso_idxs_str]
         # args += ["--help"]
         print(">", " ".join(map(str, args)))
         subprocess.run(args, check=True)
@@ -221,6 +383,7 @@ def query_candidates_from_db(
         query_metrics_df["func"] = func_name
         query_metrics_df["basic_block"] = bb_name
         combined_query_metrics_df = pd.concat([combined_query_metrics_df, query_metrics_df])
+
     combined_query_metrics_file = workdir / "combined_query_metrics.csv"
     combined_query_metrics_df.to_csv(combined_query_metrics_file, index=False)
     combined_index_file = workdir / "combined_index.yml"
