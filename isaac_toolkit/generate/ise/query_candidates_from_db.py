@@ -156,7 +156,8 @@ def query_candidates_from_db(
     # ENABLE_VARIATION_REUSE_IO=True,
     HALT_ON_ERROR: bool = True,
     SORT_BY: Optional[str] = "IsoWeight",
-    TOPK: Optional[int] = 100,
+    # TOPK: Optional[int] = 100,
+    TOPK: Optional[int] = None,
     # PARTITION_WITH_MAXMISO: bool = False,
     PARTITION_WITH_MAXMISO: bool = True,  # TODO: auto
 ):
