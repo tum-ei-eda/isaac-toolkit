@@ -51,6 +51,7 @@ def choose_bbs(
     sess: Session,
     threshold: float = 0.9,
     min_weight: float = 0.01,
+    min_instrs: Optional[int] = 2,
     max_num: Optional[int] = None,
     force: bool = False,
 ):
@@ -79,13 +80,15 @@ def choose_bbs(
     choices = []
     for index, row in llvm_bbs_df.sort_values("rel_weight", ascending=False).iterrows():
         rel_weight = row["rel_weight"]
+        num_instrs = row["num_instrs"]
         if pd.isna(rel_weight):
             continue
         if rel_weight < min_weight:
             continue
+        if num_instrs < min_instrs:
+            continue
         func_name = row["func_name"]
         bb_name = row["bb_name"]
-        num_instrs = row["num_instrs"]
         freq = row["freq"]
         if file2funcs_df is not None:
             files = lookup_files(file2funcs_df, func_name)
