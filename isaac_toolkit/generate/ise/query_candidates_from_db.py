@@ -408,6 +408,21 @@ def query_candidates_from_db(
     combine_args += ["--overlaps", overlaps_file]
     # print("combine_args", combine_args)
     subprocess.run(combine_args, check=True)
+
+    # Extract names
+    with open(combined_index_file, "r") as f:
+        combined_index_data = yaml.safe_load(f)
+    # TODO: index and cdsl should use the same instruction names?
+    names = [f"CUSTOM{i}" for i, candidate in enumerate(combined_index_data["candidates"])]
+    num_fused_instrs = [
+        candidate["properties"]["#Instrs"] for i, candidate in enumerate(combined_index_data["candidates"])
+    ]
+    names_df = pd.DataFrame({"instr": names, "num_fused_instrs": num_fused_instrs})
+    names_df["instr_lower"] = names_df["instr"].apply(lambda x: x.lower())
+    attrs = {}
+    ise_instrs_artifact = TableArtifact("ise_instrs", names_df, attrs=attrs)
+    sess.add_artifact(ise_instrs_artifact, override=force)
+
     gen_dir = workdir / "gen"
     gen_dir.mkdir(exist_ok=True)
     generate_args = [
