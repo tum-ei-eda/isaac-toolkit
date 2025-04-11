@@ -69,6 +69,9 @@ def generate_memgraph_cdfg_via_compile_commands(
 
     for file in files:
         # print("file", file)
+        if file is None:
+            logger.warning("Unknown file. Skipping CDFG extraction...")
+            continue
         orig_command, directory = get_command_for_file(compile_commands_df, file)
         # print("orig_command", orig_command)
         # print("directory", directory)
