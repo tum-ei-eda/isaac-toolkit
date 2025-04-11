@@ -16,7 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import re
 import sys
 import argparse
 from pathlib import Path
@@ -24,11 +23,11 @@ from pathlib import Path
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, DisassArtifact, TableArtifact
+from isaac_toolkit.session.artifact import TableArtifact
 
 
 def load_table(sess: Session, input_file: Path, force: bool = False):
-    assert input_file.is_file()
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.stem
     attrs = {
         "kind": "ise_instrs",
