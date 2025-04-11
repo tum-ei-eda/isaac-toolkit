@@ -23,9 +23,13 @@ import argparse
 import subprocess
 from typing import Optional, Union
 from pathlib import Path
+from collections import defaultdict
 
 import pandas as pd
 from neo4j import GraphDatabase, Query
+import networkx as nx
+import networkx.algorithms.isomorphism as iso
+
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
@@ -34,12 +38,6 @@ from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
 
 
 logger = logging.getLogger("llvm_bbs")
-
-
-# TODO: move to different file, make more robust, share code
-from collections import defaultdict
-import networkx as nx
-import networkx.algorithms.isomorphism as iso
 
 
 def get_unique_maxmisos(maxmisos):
@@ -119,7 +117,8 @@ def query_candidates_from_db(
     label: Optional[str] = None,
     stage: int = 8,
     force: bool = False,
-    LIMIT_RESULTS: Optional[int] = None,
+    query_config_yaml: Optional[Union[str, Path]] = None,
+    limit_results: Optional[int] = None,
     # LIMIT_RESULTS: Optional[int] = 5000,
     # LIMIT_RESULTS: Optional[int] = 500,
     MIN_INPUTS: Optional[int] = 1,
@@ -138,28 +137,26 @@ def query_candidates_from_db(
     MIN_NODES: Optional[Union[int, str]] = None,
     MIN_PATH_LENGTH: Optional[int] = 1,
     # MAX_PATH_LENGTH = 3,
-    MAX_PATH_LENGTH=5,
+    MAX_PATH_LENGTH=9,
     MAX_PATH_WIDTH=2,
     # MAX_PATH_WIDTH = 4,
     INSTR_PREDICATES=511,  # ALL?
     IGNORE_NAMES=None,
     IGNORE_OP_TYPES=None,
     ALLOWED_ENC_SIZES=[32],
-    MIN_ISO_WEIGHT=0.05,
+    min_iso_weight=0.05,
+    scale_iso_weight: Union[bool, str] = "auto",
     MAX_LOADS=1,
     MAX_STORES=1,
     MAX_MEMS: Optional[int] = 0,  # TODO
     MAX_BRANCHES: Optional[int] = 1,
-    # XLEN: Optional[int] = 64,  # TODO: do not hardcode
-    XLEN: Optional[int] = 32,  # TODO: do not hardcode
+    xlen: Optional[int] = 32,  # TODO: do not hardcode
     ENABLE_VARIATION_REUSE_IO=False,
     # ENABLE_VARIATION_REUSE_IO=True,
     HALT_ON_ERROR: bool = True,
-    SORT_BY: Optional[str] = "IsoWeight",
-    # TOPK: Optional[int] = 100,
-    TOPK: Optional[int] = None,
-    # PARTITION_WITH_MAXMISO: bool = False,
-    PARTITION_WITH_MAXMISO: bool = True,  # TODO: auto
+    sort_by: Optional[str] = "IsoWeight",
+    topk: Optional[int] = None,
+    partition_with_maxmiso: Union[str, bool] = "auto",
 ):
     artifacts = sess.artifacts
     choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
@@ -183,7 +180,10 @@ def query_candidates_from_db(
         funcs_df["bb_name"] = None
         choices_df = funcs_df
 
+    print("choices_df", choices_df)
+
     combined_query_metrics_df = pd.DataFrame()
+    missing_bb_ids = set()
     for index, row in choices_df.iterrows():
         # print("index", index)
         # print("row", row)
@@ -224,10 +224,18 @@ def query_candidates_from_db(
         assert len(bbs_df) > 0
         db_bb_ids = bbs_df["bb_id"].unique()
         if bb_id not in db_bb_ids:
-            raise RuntimeError(f"BB ID {bb_id} not found in DB!")
+            logger.warning(f"BB ID {bb_id} not found in DB!")
+            missing_bb_ids.add((func_name, bb_id))
+            continue
         maxmiso_idxs = []
         # TODO: skip maxmisos which are unsuitable?
-        if PARTITION_WITH_MAXMISO:
+        if isinstance(partition_with_maxmiso, str):
+            # TODO: Handle 1/0/true/false/...
+            # TODO: if numeric parse number!
+            assert partition_with_maxmiso == "auto"
+            num_instrs_threshold = 250
+            partition_with_maxmiso = num_instrs > num_instrs_threshold
+        if partition_with_maxmiso:
             bb_nodes = [node for node in func.nodes if func.nodes[node]["properties"]["bb_id"] == bb_id]
             # print("bb_nodes", bb_nodes)
             bb = func.subgraph(bb_nodes)
@@ -279,12 +287,16 @@ def query_candidates_from_db(
         index_file = out_dir / "index.yml"
         index_files.append(index_file)
         # TODO: to not hardcode this, call directly via python
-        SCALE_WEIGHT = True
 
-        min_iso_weight = MIN_ISO_WEIGHT
-        if SCALE_WEIGHT:
+        if scale_iso_weight is not None:
+            if isinstance(scale_iso_weight, str):
+                assert scale_iso_weight == "auto"
+                scale_iso_weight = rel_weight
+            assert isinstance(scale_iso_weight, float)
+            assert scale_iso_weight > 0
+
             if min_iso_weight is not None:
-                min_iso_weight *= rel_weight
+                min_iso_weight *= scale_iso_weight
                 # TODO: div by ?
                 min_iso_weight = min(max(0.0, min_iso_weight), 1.0)
 
@@ -315,13 +327,14 @@ def query_candidates_from_db(
             *["--progress"],
             *["--times"],
             *["--log", "info"],
+            *(["--yaml", query_config_yaml] if query_config_yaml is not None else []),
             *["--session", label],
             *["--function", func_name],
             *(["--basic-block", bb_name] if bb_name is not None else []),
             *["--stage", str(stage)],
             *["--output-dir", out_dir],
             # *["--ignore-const-inputs"],
-            *(["--limit-results", str(LIMIT_RESULTS)] if LIMIT_RESULTS is not None else []),
+            *(["--limit-results", str(limit_results)] if limit_results is not None else []),
             *(["--min-inputs", str(MIN_INPUTS)] if MIN_INPUTS is not None else []),
             *(["--max-inputs", str(MAX_INPUTS)] if MAX_INPUTS is not None else []),
             *(["--min-outputs", str(MIN_OUTPUTS)] if MIN_OUTPUTS is not None else []),
@@ -343,7 +356,7 @@ def query_candidates_from_db(
             *(["--ignore-names", IGNORE_NAMES] if IGNORE_NAMES is not None else []),
             *(["--ignore-op-types", str(IGNORE_OP_TYPES)] if IGNORE_OP_TYPES is not None else []),
             *(["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))] if ALLOWED_ENC_SIZES is not None else []),
-            *(["--xlen", str(XLEN)] if XLEN is not None else []),
+            *(["--xlen", str(xlen)] if xlen is not None else []),
             *(["--enable-variation-reuse-io"] if ENABLE_VARIATION_REUSE_IO else []),  # TODO: use FLT instead?
             *(["--halt-on-error"] if HALT_ON_ERROR else []),  # TODO: use FLT instead?
             *["--write-func"],
@@ -373,7 +386,7 @@ def query_candidates_from_db(
             *["--write-queries"],
             *["--write-query-metrics"],
         ]
-        if PARTITION_WITH_MAXMISO and len(maxmiso_idxs) > 0:
+        if partition_with_maxmiso and len(maxmiso_idxs) > 0:
             maxmiso_idxs_str = ",".join(map(str, maxmiso_idxs))
             args += ["--maxmisos", maxmiso_idxs_str]
         # args += ["--help"]
@@ -385,6 +398,12 @@ def query_candidates_from_db(
         query_metrics_df["basic_block"] = bb_name
         combined_query_metrics_df = pd.concat([combined_query_metrics_df, query_metrics_df])
 
+    # allow_missing_bb_id = False
+    allow_missing_bb_id = True
+    if len(missing_bb_ids) > 0:
+        assert len(missing_bb_ids) < len(choices_df), "No matching BB IDs found in DB!"
+        assert allow_missing_bb_id, f"Missing BB ID DB entries: {missing_bb_ids}"
+
     combined_query_metrics_file = workdir / "combined_query_metrics.csv"
     combined_query_metrics_df.to_csv(combined_query_metrics_file, index=False)
     combined_index_file = workdir / "combined_index.yml"
@@ -394,8 +413,8 @@ def query_candidates_from_db(
         "tool.combine_index",
         *index_files,
         "--drop",
-        *(["--sort-by", SORT_BY] if SORT_BY is not None else []),
-        *(["--topk", str(TOPK)] if TOPK is not None else []),
+        *(["--sort-by", sort_by] if sort_by is not None else []),
+        *(["--topk", str(topk)] if topk is not None else []),
         "--out",
         combined_index_file,
     ]
@@ -409,55 +428,76 @@ def query_candidates_from_db(
     # print("combine_args", combine_args)
     subprocess.run(combine_args, check=True)
 
+    # TODO: index and cdsl should use the same instruction names?
+    # names = [f"CUSTOM{i}" for i, candidate in enumerate(combined_index_data["candidates"])]
+    # num_fused_instrs = [
+    #     candidate["properties"]["#Instrs"] for i, candidate in enumerate(combined_index_data["candidates"])
+    # ]
+    # names_df = pd.DataFrame({"instr": names, "num_fused_instrs": num_fused_instrs})
+    # names_df["instr_lower"] = names_df["instr"].apply(lambda x: x.lower())
+    names_csv = workdir / "names.csv"
+    assign_args = [
+        "python3",
+        "scripts/assign_names.py",  # TODO: move into toolkit
+        combined_index_file,
+        "--inplace",
+        "--csv",
+        names_csv,
+    ]
+    subprocess.run(assign_args, check=True)
+
+    names_df = pd.read_csv(names_csv)
+
     # Extract names
     with open(combined_index_file, "r") as f:
         combined_index_data = yaml.safe_load(f)
-    # TODO: index and cdsl should use the same instruction names?
-    names = [f"CUSTOM{i}" for i, candidate in enumerate(combined_index_data["candidates"])]
-    num_fused_instrs = [
-        candidate["properties"]["#Instrs"] for i, candidate in enumerate(combined_index_data["candidates"])
-    ]
-    names_df = pd.DataFrame({"instr": names, "num_fused_instrs": num_fused_instrs})
-    names_df["instr_lower"] = names_df["instr"].apply(lambda x: x.lower())
+
+    name2num_fused_instrs = {
+        candidate["properties"]["InstrName"]: candidate["properties"]["#Instrs"]
+        for i, candidate in enumerate(combined_index_data["candidates"])
+    }
+    names_df["num_fused_instrs"] = names_df["instr"].apply(lambda x: name2num_fused_instrs[x])
+    # print("names_df", names_df)
+    # input(">>>")
     attrs = {}
     ise_instrs_artifact = TableArtifact("ise_instrs", names_df, attrs=attrs)
     sess.add_artifact(ise_instrs_artifact, override=force)
 
-    gen_dir = workdir / "gen"
-    gen_dir.mkdir(exist_ok=True)
-    generate_args = [
-        combined_index_file,
-        "--output",
-        gen_dir,
-        "--split",
-        "--split-files",
-        "--progress",
-        "--inplace",  # TODO use gen/index.yml instead!
-    ]
-    generate_cdsl_args = [
-        "python3",
-        "-m",
-        "tool.gen.cdsl",
-        *generate_args,
-    ]
-    generate_flat_args = [
-        "python3",
-        "-m",
-        "tool.gen.flat",
-        *generate_args,
-    ]
-    generate_fuse_cdsl_args = [
-        "python3",
-        "-m",
-        "tool.gen.fuse_cdsl",
-        *generate_args,
-    ]
-    print("generate_cdsl_args", generate_cdsl_args)
-    print("generate_flat_args", generate_flat_args)
-    print("generate_fuse_cdsl_args", generate_fuse_cdsl_args)
-    subprocess.run(generate_cdsl_args, check=True)
-    subprocess.run(generate_flat_args, check=True)
-    subprocess.run(generate_fuse_cdsl_args, check=True)
+    # gen_dir = Path(gen_dir) if gen_dir is not None else workdir / "gen"
+    # gen_dir.mkdir(exist_ok=True)
+    # generate_args = [
+    #     combined_index_file,
+    #     "--output",
+    #     gen_dir,
+    #     "--split",
+    #     "--split-files",
+    #     "--progress",
+    #     "--inplace",  # TODO use gen/index.yml instead!
+    # ]
+    # generate_cdsl_args = [
+    #     "python3",
+    #     "-m",
+    #     "tool.gen.cdsl",
+    #     *generate_args,
+    # ]
+    # generate_flat_args = [
+    #     "python3",
+    #     "-m",
+    #     "tool.gen.flat",
+    #     *generate_args,
+    # ]
+    # generate_fuse_cdsl_args = [
+    #     "python3",
+    #     "-m",
+    #     "tool.gen.fuse_cdsl",
+    #     *generate_args,
+    # ]
+    # print("generate_cdsl_args", generate_cdsl_args)
+    # print("generate_flat_args", generate_flat_args)
+    # print("generate_fuse_cdsl_args", generate_fuse_cdsl_args)
+    # subprocess.run(generate_cdsl_args, check=True)
+    # subprocess.run(generate_flat_args, check=True)
+    # subprocess.run(generate_fuse_cdsl_args, check=True)
 
 
 def handle(args):
@@ -465,7 +505,21 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    query_candidates_from_db(sess, workdir=args.workdir, label=args.label, stage=args.stage, force=args.force)
+    query_candidates_from_db(
+        sess,
+        workdir=args.workdir,
+        label=args.label,
+        stage=args.stage,
+        force=args.force,
+        query_config_yaml=args.query_config_yaml,
+        limit_results=args.limit_results,
+        xlen=args.xlen,
+        min_iso_weight=args.min_iso_weight,
+        scale_iso_weight=args.scale_iso_weight,
+        sort_by=args.sort_by,
+        topk=args.topk,
+        partition_with_maxmiso=args.partition_with_maxmiso,
+    )
     sess.save()
 
 
@@ -481,6 +535,14 @@ def get_parser():
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--label", type=str, default=None)
     parser.add_argument("--stage", type=int, default=8)
+    parser.add_argument("--limit-results", type=int, default=None)
+    parser.add_argument("--query-config-yaml", type=str, default=None)
+    parser.add_argument("--xlen", type=int, default=32)
+    parser.add_argument("--min-iso-weight", type=float, default=None)
+    parser.add_argument("--scale-iso-weight", type=str, default="auto")
+    parser.add_argument("--topk", type=int, default=None)
+    parser.add_argument("--sort-by", type=str, default=None)
+    parser.add_argument("--partition-with-maxmiso", type=str, default="auto")
     # TODO: !
     return parser
 
