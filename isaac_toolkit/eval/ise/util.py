@@ -63,6 +63,7 @@ def check_util(
     # print("disass_hist_df", disass_hist_df)
     disass_hist_custom_df = disass_hist_df[disass_hist_df["instr"].apply(lambda x: x.lower() in ise_instr_names)]
     # print("disass_hist_custom_df", disass_hist_custom_df)
+    total_disass_instrs = disass_hist_df["count"].sum()
 
     merged_disass_hist_custom_df = pd.merge(
         ise_instrs_df,
@@ -102,20 +103,47 @@ def check_util(
 
     # combine
     # TODO: move counts to counts.py?
+    merged_disass_hist_custom_df["estimated_reduction"] = merged_disass_hist_custom_df["count"] * (
+        merged_disass_hist_custom_df["num_fused_instrs"] - 1
+    )
+    # TODO: consider instruction size to get memory footprints?
+    estimated_total_disass_reduction = merged_disass_hist_custom_df["estimated_reduction"].sum()
+    estimated_total_disass_without_ise = total_disass_instrs + estimated_total_disass_reduction
+    rel_custom_count = merged_disass_hist_custom_df["rel_count"].sum()
+    merged_disass_hist_custom_df["estimated_reduction_rel_scaled"] = (
+        merged_disass_hist_custom_df["estimated_reduction"] / estimated_total_disass_reduction
+    )
+    merged_disass_hist_custom_df["estimated_reduction_rel"] = (
+        merged_disass_hist_custom_df["estimated_reduction"] / estimated_total_disass_without_ise
+    )
     static_agg_df = pd.DataFrame(
         [
             {
                 "instr": None,
                 "count": merged_disass_hist_custom_df["count"].sum(),
                 "rel_count": merged_disass_hist_custom_df["rel_count"].sum(),
+                "estimated_reduction": estimated_total_disass_reduction,
+                "estimated_reduction_rel": merged_disass_hist_custom_df["estimated_reduction_rel"].sum(),
+                "estimated_reduction_rel_scaled": merged_disass_hist_custom_df["estimated_reduction_rel_scaled"].sum(),
             }
         ]
     )
-    static_counts_custom_df = pd.concat([static_agg_df, merged_disass_hist_custom_df[["instr", "count", "rel_count"]]])
-    merged_disass_hist_custom_df["used"] = merged_disass_hist_custom_df["count"] > 0
-    merged_disass_hist_custom_df["estimated_reduction"] = merged_disass_hist_custom_df["count"] * (
-        merged_disass_hist_custom_df["num_fused_instrs"] - 1
+    static_counts_custom_df = pd.concat(
+        [
+            static_agg_df,
+            merged_disass_hist_custom_df[
+                [
+                    "instr",
+                    "count",
+                    "rel_count",
+                    "estimated_reduction",
+                    "estimated_reduction_rel_scaled",
+                    "estimated_reduction_rel",
+                ]
+            ],
+        ]
     )
+    merged_disass_hist_custom_df["used"] = merged_disass_hist_custom_df["count"] > 0
 
     merged_instrs_hist_custom_df["estimated_reduction"] = merged_instrs_hist_custom_df["count"] * (
         merged_instrs_hist_custom_df["num_fused_instrs"] - 1
@@ -123,22 +151,38 @@ def check_util(
     estimated_total_reduction = merged_instrs_hist_custom_df["estimated_reduction"].sum()
     estimated_total_instrs_without_ise = total_instrs + estimated_total_reduction
     rel_custom_count = merged_instrs_hist_custom_df["rel_count"].sum()
-    merged_instrs_hist_custom_df["estimated_reduction_rel_scaled"] = merged_instrs_hist_custom_df["estimated_reduction"] / estimated_total_reduction
-    merged_instrs_hist_custom_df["estimated_reduction_rel"] = merged_instrs_hist_custom_df["estimated_reduction"] / estimated_total_instrs_without_ise
+    merged_instrs_hist_custom_df["estimated_reduction_rel_scaled"] = (
+        merged_instrs_hist_custom_df["estimated_reduction"] / estimated_total_reduction
+    )
+    merged_instrs_hist_custom_df["estimated_reduction_rel"] = (
+        merged_instrs_hist_custom_df["estimated_reduction"] / estimated_total_instrs_without_ise
+    )
     dynamic_agg_df = pd.DataFrame(
         [
             {
                 "instr": None,
                 "count": merged_instrs_hist_custom_df["count"].sum(),
                 "rel_count": rel_custom_count,
-                "estimated_reduction":  estimated_total_reduction,
+                "estimated_reduction": estimated_total_reduction,
                 "estimated_reduction_rel": merged_instrs_hist_custom_df["estimated_reduction_rel"].sum(),
                 "estimated_reduction_rel_scaled": merged_instrs_hist_custom_df["estimated_reduction_rel_scaled"].sum(),
             }
         ]
     )
     dynamic_counts_custom_df = pd.concat(
-        [dynamic_agg_df, merged_instrs_hist_custom_df[["instr", "count", "rel_count", "estimated_reduction", "estimated_reduction_rel_scaled", "estimated_reduction_rel"]]]
+        [
+            dynamic_agg_df,
+            merged_instrs_hist_custom_df[
+                [
+                    "instr",
+                    "count",
+                    "rel_count",
+                    "estimated_reduction",
+                    "estimated_reduction_rel_scaled",
+                    "estimated_reduction_rel",
+                ]
+            ],
+        ]
     )
     merged_instrs_hist_custom_df["used"] = merged_instrs_hist_custom_df["count"] > 0
 
