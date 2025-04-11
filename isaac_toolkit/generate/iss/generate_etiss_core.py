@@ -155,6 +155,8 @@ def get_includes_code(includes: List[Union[str, Path]], prefix: str = ""):
 def generate_etiss_core(
     sess: Session,
     workdir: Optional[Union[str, Path]] = None,
+    gen_dir: Optional[Union[str, Path]] = None,
+    index_file: Optional[Union[str, Path]] = None,
     core_name: str = "IsaacCore",
     set_name: str = "XIsaac",
     xlen: int = 32,
@@ -174,13 +176,18 @@ def generate_etiss_core(
     if not isinstance(workdir, Path):
         workdir = Path(workdir)
     assert workdir.is_dir()
-    combined_index_file = workdir / "combined_index.yml"
-    core_out_model_file = workdir / f"{core_name}.m2isarmodel"
-    set_out_model_file = workdir / f"{set_name}.m2isarmodel"
-    core_out_cdsl_file = workdir / f"{core_name}.core_desc"
-    set_out_cdsl_file = workdir / f"{set_name}.core_desc"
-    set_hls_out_cdsl_file = workdir / f"{set_name}.hls.core_desc"
-    errs_file = workdir / "errs.txt"
+    gen_dir = Path(gen_dir) if gen_dir is not None else workdir / "gen"
+    gen_dir.mkdir(exist_ok=True)
+    combined_index_file = workdir / "combined_index.yml" if index_file is None else Path(index_file)
+    core_out_model_file = gen_dir / f"{core_name}.m2isarmodel"
+    set_out_model_file = gen_dir / f"{set_name}.m2isarmodel"
+    set_splitted_out_model_file = gen_dir / f"{set_name}.splitted.m2isarmodel"
+    core_out_cdsl_file = gen_dir / f"{core_name}.core_desc"
+    set_out_cdsl_file = gen_dir / f"{set_name}.core_desc"
+    set_hls_out_cdsl_file = gen_dir / f"{set_name}.hls.core_desc"
+    set_splitted_out_cdsl_file = gen_dir / f"{set_name}.splitted.core_desc"
+    errs_file = gen_dir / "errs.txt"
+    assert combined_index_file.is_file()
     with open(combined_index_file, "r") as f:
         index_data = yaml.safe_load(f)
     # print("index_data", index_data)
@@ -250,7 +257,7 @@ def generate_etiss_core(
     # extra_includes = ["/work/git/students/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
     extra_includes = ["/mnt/wd8tb/Data/students_archive/cecil/etiss_arch_riscv/rv_base"]  # TODO: Do not hardcode
     # print("SSSS")
-    name_idx = 0
+    # name_idx = 0
     errs = {}
     for set_name_, set_file in generated_sets:
         # print("set_name_", set_name_)
@@ -285,10 +292,12 @@ def generate_etiss_core(
         assert len(instr_set.unencoded_instructions) > 0
         # instructions.update(instr_set.instructions)
         for instr_def in instr_set.unencoded_instructions.values():
-            name = f"CUSTOM{name_idx}"
-            name_idx += 1
-            instr_def.name = name
-            instr_def.mnemonic = name.lower()
+            name = instr_def.name
+            # name = f"CUSTOM{name_idx}"
+            # name_idx += 1
+            # instr_def.name = name
+            # instr_def.mnemonic = name.lower()
+            assert name not in unencoded_instructions, f"Duplicate instrustion name: {name}"
             unencoded_instructions[name] = instr_def
         # contributing_types.append(set_name_)
         # break  # TODO
@@ -349,6 +358,38 @@ def generate_etiss_core(
         f.write(set_includes_code)
         f.write("\n\n")
         f.write(set_cdsl_code)
+    with open(set_splitted_out_model_file, "wb") as f:
+        sets_splitted = {}
+        for instr_def in generated_set.instructions.values():
+            instr_name = instr_def.name
+            temp_set_name = f"{set_name}{instr_name}single"
+            temp_set = m2isar.metamodel.arch.InstructionSet(
+                name=temp_set_name,
+                extension=extension,
+                constants={},
+                memories={},
+                functions={},
+                instructions={(instr_def.mask, instr_def.code): instr_def},
+                unencoded_instructions={},
+            )
+            sets_splitted[temp_set_name] = temp_set
+        group_set = m2isar.metamodel.arch.InstructionSet(
+            name=set_name,
+            extension=list(sets_splitted.keys()),
+            constants={},
+            memories={},
+            functions={},
+            instructions={},
+            unencoded_instructions={},
+        )
+        sets_splitted[set_name] = group_set
+        model_obj_splitted = M2Model(M2_METAMODEL_VERSION, {}, sets_splitted, {})
+        pickle.dump(model_obj_splitted, f)
+    set_splitted_cdsl_code = gen_cdsl_code(model_obj_splitted, with_includes=False)
+    with open(set_splitted_out_cdsl_file, "w") as f:
+        f.write(set_includes_code)
+        f.write("\n\n")
+        f.write(set_splitted_cdsl_code)
     model_obj.sets[set_name].memories["X"] = main_reg
     model_obj.sets[set_name].extension = []
     set_hls_cdsl_code = gen_cdsl_code(model_obj, with_includes=False, legacy=True)
@@ -356,9 +397,10 @@ def generate_etiss_core(
         f.write(set_hls_includes_code)
         f.write("\n\n")
         f.write(set_hls_cdsl_code)
-    with open(errs_file, "w") as f:
-        errs_text = "\n".join([f"{name}: {err}" for name, err in errs.items()])
-        f.write(errs_text)
+    if len(errs) > 0:
+        with open(errs_file, "w") as f:
+            errs_text = "\n".join([f"{name}: {err}" for name, err in errs.items()])
+            f.write(errs_text)
     # input("!!")
 
 
@@ -373,6 +415,8 @@ def handle(args):
         sess,
         force=args.force,
         workdir=args.workdir,
+        gen_dir=args.gen_dir,
+        index_file=args.index,
         core_name=args.core_name,
         set_name=args.set_name,
         xlen=args.xlen,
@@ -400,6 +444,8 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=False)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--workdir", type=str, default=None)
+    parser.add_argument("--gen-dir", type=str, default=None)
+    parser.add_argument("--index", type=str, default=None)
     parser.add_argument("--core-name", type=str, default="IsaacCore")
     parser.add_argument("--set-name", type=str, default="XIsaac")
     parser.add_argument("--xlen", type=int, default=32)
