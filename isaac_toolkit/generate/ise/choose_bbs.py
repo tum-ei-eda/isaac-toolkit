@@ -92,8 +92,12 @@ def choose_bbs(
         freq = row["freq"]
         if file2funcs_df is not None:
             files = lookup_files(file2funcs_df, func_name)
-            assert len(files) == 1
-            file = files[0]
+            if len(files) == 0:
+                # func not conatined in file2funcs?
+                file = None
+            else:
+                assert len(files) == 1
+                file = files[0]
         else:
             file = None
         choice = {
