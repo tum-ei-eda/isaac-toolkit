@@ -117,6 +117,7 @@ def query_candidates_from_db(
     label: Optional[str] = None,
     stage: int = 8,
     force: bool = False,
+    progress: bool = False,
     query_config_yaml: Optional[Union[str, Path]] = None,
     limit_results: Optional[int] = None,
     # LIMIT_RESULTS: Optional[int] = 5000,
@@ -244,6 +245,7 @@ def query_candidates_from_db(
             # print("maxmisos", maxmisos)
             # input(">")
             unique_maxmisos, factors, duplicate_maxmisos = get_unique_maxmisos(maxmisos)
+            # TODO: write maxmisos to file?
             # maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in maxmisos]
             unique_maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in unique_maxmisos]
             duplicate_maxmiso_node_ids = [
@@ -324,7 +326,7 @@ def query_candidates_from_db(
             "tool.main",
         ]
         args += [
-            *["--progress"],
+            *(["--progress"] if progress else []),
             *["--times"],
             *["--log", "info"],
             *(["--yaml", query_config_yaml] if query_config_yaml is not None else []),
@@ -412,7 +414,9 @@ def query_candidates_from_db(
         "-m",
         "tool.combine_index",
         *index_files,
-        "--drop",
+        "--drop-duplicates",
+        "--drop-name-isos",  # NEW
+        *(["--progress"] if progress else []),
         *(["--sort-by", sort_by] if sort_by is not None else []),
         *(["--topk", str(topk)] if topk is not None else []),
         "--out",
@@ -511,6 +515,7 @@ def handle(args):
         label=args.label,
         stage=args.stage,
         force=args.force,
+        progress=args.progress,
         query_config_yaml=args.query_config_yaml,
         limit_results=args.limit_results,
         xlen=args.xlen,
@@ -534,6 +539,7 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--label", type=str, default=None)
+    parser.add_argument("--progress", action="store_true", default=None)
     parser.add_argument("--stage", type=int, default=8)
     parser.add_argument("--limit-results", type=int, default=None)
     parser.add_argument("--query-config-yaml", type=str, default=None)
