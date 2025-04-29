@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -19,12 +19,9 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -91,7 +88,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         llvm_bbs_df.loc[index, "num_instrs"] = num_instrs
         total_weight += weight
     trace_length = len(trace_df)
-    coverage = total_weight / trace_length
+    # coverage = total_weight / trace_length
     # print("trace_length", trace_length)
     # print("total_weight", total_weight)
     # print("coverage", coverage)
@@ -105,7 +102,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         "by": __name__,
     }
 
-    artifact = TableArtifact(f"llvm_bbs_new", llvm_bbs_df, attrs=attrs)
+    artifact = TableArtifact("llvm_bbs_new", llvm_bbs_df, attrs=attrs)
     # print("artifact", artifact)
     sess.add_artifact(artifact, override=force)
 

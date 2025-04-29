@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -89,6 +89,7 @@ def analyze_instr_operands(
         "kind": "histogram",
         "by": __name__,
     }
+
     del trace_artifact
 
     operand_names = sorted([x for x in operands_df.columns if x != "instr"])

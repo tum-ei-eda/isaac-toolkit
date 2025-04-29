@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -21,12 +21,8 @@ import argparse
 from pathlib import Path
 
 from neo4j import GraphDatabase
-import networkx as nx
-from networkx.drawing.nx_agraph import write_dot
-import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
 
 
 def handle(args):

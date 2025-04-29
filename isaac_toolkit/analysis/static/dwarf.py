@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -41,44 +41,6 @@ def parse_dwarf(elf_path):
     pc_to_source_line_mapping = defaultdict(list)
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
-        #### ###
-        #### from elftools.elf.sections import SymbolTableSection
-        #### # print('  %s sections' % elffile.num_sections())
-        #### section = elffile.get_section_by_name('.symtab')
-
-        #### assert section, "Symbol Table not found!"
-        #### # print('  Section name: %s, type: %s' %(section.name, section['sh_type']))
-        #### if isinstance(section, SymbolTableSection):
-        ####    num_symbols = section.num_symbols()
-        ####    # print("  It's a symbol section with %s symbols" % num_symbols)
-        ####    start_symbol = section.get_symbol_by_name("_start")
-        ####    assert len(start_symbol) == 1
-        ####    start_symbol = start_symbol[0]
-        ####    # print("start_symbol", start_symbol, start_symbol.entry, start_symbol.name)
-        ####    start_addr = start_symbol.entry["st_value"]
-        ####    # print("start_addr", start_addr)
-        ####    total_footprint = 0
-        ####    func_footprint = {}
-        ####    for i, sym in enumerate(section.iter_symbols()):
-        ####        # print("i", s]ym.entry)
-        ####        ty = sym.entry["st_info"]["type"]
-        ####        if ty != "STT_FUNC":
-        ####            continue
-        ####        func = sym.name
-        ####        sz = sym.entry["st_size"]
-        ####        # print("ty", ty)
-        ####        # print("sz", sz)
-        ####        func_footprint[func] = sz
-        ####        total_footprint += sz
-        ####    # print("total_footprint", total_footprint)
-        ####    # print("func_footprint", func_footprint)
-        ####    footprint_df = pd.DataFrame(func_footprint.items(), columns=["func", "bytes"])
-        ####    footprint_df.sort_values("bytes", inplace=True, ascending=False)
-        ####    footprint_df["rel_bytes"] = footprint_df["bytes"] / total_footprint
-        ####    # print("footprint_df", footprint_df)
-        ####    # print("  The name of the last symbol in the section is: %s" % (section.get_symbol(num_symbols - 1).name))
-        #### # input("123")
-        #### ###
 
         # mapping function symbol to pc range
         for section in elffile.iter_sections():
@@ -91,13 +53,13 @@ def parse_dwarf(elf_path):
             if symbol_type == "STT_FUNC":
                 start_pc = symbol["st_value"]
                 end_pc = start_pc + symbol["st_size"] - 1
-                range = (start_pc, end_pc)
+                # range = (start_pc, end_pc)
                 # mapping[symbol.name] = range
                 new = (symbol.name, (start_pc, end_pc))
                 func2pcs_data.append(new)
             # Warning: this mapping uses mangled func names
 
-        ## mapping source file to function
+        # mapping source file to function
         if not elffile.has_dwarf_info():
             logger.error("ELF file has no DWARF info!")
             return func2pcs_data, None, None
@@ -157,7 +119,7 @@ def parse_dwarf(elf_path):
                         file_index = DIE.attributes["DW_AT_decl_file"].value
                         filename = lpe_filename(line_program, file_index)
                     else:
-                        file_name = "???"
+                        filename = "???"
 
                     srcFile_func_dict[filename][0].add(func_name)
                     srcFile_func_dict[filename][1].add(linkage_name)
@@ -206,7 +168,8 @@ def analyze_dwarf(sess: Session, force: bool = False):
             pc2locs[pc].add(loc)
     func2pc_df = pd.DataFrame(func2pc, columns=["func", "pc_range"])
     file2funcs_df = pd.DataFrame(
-        file2funcs_data, columns=["file", "func_names", "linkage_names", "unmangled_linkage_names"]
+        file2funcs_data,
+        columns=["file", "func_names", "linkage_names", "unmangled_linkage_names"],
     )
     pc2locs_df = pd.DataFrame(pc2locs.items(), columns=["pc", "locs"])
     # print("func2pc_df", func2pc_df)
@@ -219,9 +182,9 @@ def analyze_dwarf(sess: Session, force: bool = False):
         "by": "isaac_toolkit.analysis.static.dwarf",
     }
 
-    func2pc_artifact = TableArtifact(f"func2pc", func2pc_df, attrs=attrs)
-    file2funcs_artifact = TableArtifact(f"file2funcs", file2funcs_df, attrs=attrs)
-    pc2locs_artifact = TableArtifact(f"pc2locs", pc2locs_df, attrs=attrs)
+    func2pc_artifact = TableArtifact("func2pc", func2pc_df, attrs=attrs)
+    file2funcs_artifact = TableArtifact("file2funcs", file2funcs_df, attrs=attrs)
+    pc2locs_artifact = TableArtifact("pc2locs", pc2locs_df, attrs=attrs)
     # print("artifact1", func2pc_artifact)
     # print("artifact2", file2funcs_artifact)
     # print("artifact3", pc2locs_artifact)

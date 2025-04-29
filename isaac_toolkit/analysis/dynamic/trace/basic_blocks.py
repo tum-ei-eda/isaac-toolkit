@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -19,12 +19,9 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -147,18 +144,17 @@ class BasicBlock(object):
             self.__initialized = True
 
     def __repr__(self) -> str:
-        return f"start:{hex(self.first_pc)}, end:{hex(self.last_pc)}, num_instrs:{self.num_instrs}, size:{self.size}, end_instr:{self.end_instr}, func:{self.func}\n"
+        return (
+            f"start:{hex(self.first_pc)}, end:{hex(self.last_pc)}, num_instrs:{self.num_instrs}, "
+            "size:{self.size}, end_instr:{self.end_instr}, func:{self.func}\n"
+        )
 
     def __eq__(self, other) -> bool:
         # print("__eq__", self, other, end="")
         if not isinstance(other, BasicBlock):
             # print(" -> False1")
             return False
-        ret = (
-            self.first_pc == other.first_pc
-            and self.last_pc == other.last_pc
-            and self.func == other.func
-        )
+        ret = self.first_pc == other.first_pc and self.last_pc == other.last_pc and self.func == other.func
         # print(f" -> {ret}2")
         return ret
 
@@ -177,7 +173,7 @@ def collect_bbs(trace_df):
     # bbs = []
     prev_pc = None
     prev_size = None
-    prev_instr = None
+    # prev_instr = None
     bb_instrs = []
     bb_size = 0
     for row in trace_df.itertuples(index=False):
@@ -209,9 +205,7 @@ def collect_bbs(trace_df):
                     pass
                 else:
                     # assert False, f"Sub basic block not found at: pc = {prev_pc:x} -> {pc:x}"
-                    logger.warning(
-                        "Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc
-                    )
+                    logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
                     # input("OOPS")
                     if True:
                         func = None
@@ -264,7 +258,7 @@ def collect_bbs(trace_df):
             #     bbs.append(bb)
             first_pc = None
         prev_pc = pc
-        prev_instr = instr
+        # prev_instr = instr
         prev_size = sz
         bb_instrs.append(instr)
         bb_size += sz
@@ -300,18 +294,14 @@ def collect_bbs(trace_df):
 def analyze_basic_blocks(sess: Session, force: bool = False):
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
 
     pc2bb = collect_bbs(trace_artifact.df)
     # print("pc2bb", pc2bb)
-    func2pc_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
-    )
+    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
     if len(func2pc_artifacts) > 0:
         assert len(func2pc_artifacts) == 1
         func2pc_artifact = func2pc_artifacts[0]
@@ -349,7 +339,7 @@ def analyze_basic_blocks(sess: Session, force: bool = False):
         "by": __name__,
     }
 
-    pc2bb_artifact = TableArtifact(f"pc2bb", pc2bb, attrs=attrs)
+    pc2bb_artifact = TableArtifact("pc2bb", pc2bb, attrs=attrs)
     sess.add_artifact(pc2bb_artifact, override=force)
 
 

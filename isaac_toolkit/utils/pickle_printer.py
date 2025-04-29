@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -30,9 +30,7 @@ def print_memory_footprint(df):
     print("================")
     print("Memory Footprint")
     print("================")
-    mem = pd.concat([df.dtypes, df.memory_usage(deep=True)], axis=1).sort_values(
-        1, ascending=False
-    )
+    mem = pd.concat([df.dtypes, df.memory_usage(deep=True)], axis=1).sort_values(1, ascending=False)
     mem.rename(columns={0: "dtype", 1: "mem"}, inplace=True)
     total = mem["mem"].sum()
     print(mem)
@@ -60,9 +58,7 @@ def handle(args):
             # print("Type:", type(data), type(data).__bases__[0].__bases__)
 
     if args.memory:
-        assert isinstance(
-            data, (pd.DataFrame, pd.Series)
-        ), "Memory footprint only available for pandas types"
+        assert isinstance(data, (pd.DataFrame, pd.Series)), "Memory footprint only available for pandas types"
         print_memory_footprint(data)
 
 

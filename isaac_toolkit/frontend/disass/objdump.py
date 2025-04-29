@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -16,7 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import re
 import sys
 import argparse
 from pathlib import Path
@@ -24,7 +23,7 @@ from pathlib import Path
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, DisassArtifact, TableArtifact
+from isaac_toolkit.session.artifact import DisassArtifact, TableArtifact
 
 
 def load_disass(sess: Session, input_file: Path, force: bool = False):
@@ -59,6 +58,7 @@ def load_disass(sess: Session, input_file: Path, force: bool = False):
         # print("addr", addr)
         word = splitted[0]
         word = word.strip()
+        word = word.replace(" ", "")
         word = int(word, 16)
         # print("word", word)
         insn = splitted[1]

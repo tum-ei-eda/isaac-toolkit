@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -16,7 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import time
+
+# import time
 import sys
 import pandas as pd
 import argparse
@@ -31,16 +32,14 @@ from isaac_toolkit.session.artifact import InstrTraceArtifact
 # TODO: logger
 
 
-def load_instr_trace(
-    sess: Session, input_file: Path, force: bool = False, operands: bool = False
-):
+def load_instr_trace(sess: Session, input_file: Path, force: bool = False, operands: bool = False):
     assert input_file.is_file()
     name = input_file.name
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
     with pd.read_csv(input_file, sep="@", header=None, chunksize=2**22) as reader:
         for df in tqdm(reader, disable=False):
-            df = df[df[0].str.contains(" \(0x")]
+            df = df[df[0].str.contains(" (0x")]
             df[["core", "rest"]] = df[0].str.split(":", n=1, expand=True)
             df.drop(columns=[0], inplace=True)
             df["core"] = df["core"].apply(lambda x: int(x.split(" ", 1)[-1].strip()))

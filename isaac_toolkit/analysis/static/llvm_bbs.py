@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -21,7 +21,6 @@ import sys
 import leb128
 import logging
 import argparse
-import posixpath
 from pathlib import Path
 from collections import defaultdict
 
@@ -53,9 +52,11 @@ def parse_elf(elf_path):
         end = begin + sz
         xlen = elffile.elfclass
         assert xlen is not None
+
         mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
         md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
         # md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
+        # valid_pcs = set(x.address for x in md.disasm(ops, addr))
         valid_pcs = set()
         while True:
             temp = [(x.address, x.size) for x in md.disasm(ops, begin)]
@@ -151,7 +152,8 @@ def parse_elf(elf_path):
                         assert end_offset >= 0
                         # TODO: leb128?
                         # metadata = int.from_bytes(reader.read(1), byteorder="little")
-                        metadata = leb128.u.decode_reader(reader)[0]
+                        # metadata = leb128.u.decode_reader(reader)[0]
+                        _ = leb128.u.decode_reader(reader)[0]
                         # print("metadata", metadata)
                         # TODO: decode metadata (is_return, is_call, ...)
                         # rest = reader.read(1000)
@@ -207,15 +209,16 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
     # print("elf_artifacts", elf_artifacts)
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
-    trace_pc2bb_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
-    )  # TODO: optional or different pass
-    if len(trace_pc2bb_artifacts) > 0:
-        assert len(trace_pc2bb_artifacts) == 1
-        trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
-        trace_pc2bb_df = trace_pc2bb_artifact.df
-    else:
-        trace_pc2bb_df = None
+    # trace_pc2bb_artifacts = filter_artifacts(
+    #     artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
+    # )  # TODO: optional or different pass
+    # if len(trace_pc2bb_artifacts) > 0:
+    #     assert len(trace_pc2bb_artifacts) == 1
+    #     trace_pc2bb_artifact = trace_pc2bb_artifacts[0]
+    #     # trace_pc2bb_df = trace_pc2bb_artifact.df
+    # else:
+    #     pass
+    #     # trace_pc2bb_df = None
 
     llvm_bbs = parse_elf(elf_artifact.path)
     # print("llvm_bbs", llvm_bbs)
@@ -286,8 +289,14 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
             #                 trace_pc2bb_df.loc[idx, "weight"] = weight_ * (sz / size_)
             #                 trace_pc2bb_df.loc[idx, "rel_weight"] = rel_weight_ * (sz / size_)
             #                 trace_pc2bb_df.loc[idx, "num_instrs"] = sz / default_enc_size
-            #                 # new2 = {"start": end + default_enc_size, "end": end_, "freq": freq_, "size": size_ - sz, "weight": weight_ * (1 - sz / size_), "rel_weight": rel_weight_ * (1 - sz / size_), "num_instrs": (size_ - sz) / default_enc_size}
-            #                 new2 = {"start": end, "end": end_, "freq": freq_, "size": size_ - sz, "weight": weight_ * (1 - sz / size_), "rel_weight": rel_weight_ * (1 - sz / size_), "num_instrs": (size_ - sz) / default_enc_size}
+            #                 # new2 = {"start": end + default_enc_size, "end": end_, "freq": freq_,
+            #                     "size": size_ - sz, "weight": weight_ * (1 - sz / size_),
+            #                     "rel_weight": rel_weight_ * (1 - sz / size_),
+            #                     "num_instrs": (size_ - sz) / default_enc_size}
+            #                 new2 = {"start": end, "end": end_, "freq": freq_, "size": size_ - sz,
+            #                     "weight": weight_ * (1 - sz / size_),
+            #                     "rel_weight": rel_weight_ * (1 - sz / size_),
+            #                     "num_instrs": (size_ - sz) / default_enc_size}
             #                 trace_pc2bb_df = pd.concat([trace_pc2bb_df, pd.DataFrame([new2])])
             #                 # TODO: export as updated artifact?
             #                 new["num_trace_bbs"] = 1
@@ -321,7 +330,7 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
         "by": "isaac_toolkit.analysis.static.llvm_bbs",
     }
 
-    llvm_bbs_artifact = TableArtifact(f"llvm_bbs", llvm_bbs_df, attrs=attrs)
+    llvm_bbs_artifact = TableArtifact("llvm_bbs", llvm_bbs_df, attrs=attrs)
     # print("llvm_bbs_artifact", llvm_bbs_artifact)
     sess.add_artifact(llvm_bbs_artifact, override=force)
 
