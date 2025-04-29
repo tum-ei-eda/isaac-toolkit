@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -19,9 +19,7 @@
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
 from elftools.elf.elffile import ELFFile
@@ -34,11 +32,6 @@ logger = logging.getLogger("dwarf")
 
 
 def parse_elf(elf_path):
-    mapping = defaultdict(tuple)
-    # the mapping between source file and its function
-    srcFile_func_dict = defaultdict(set)
-    # the mapping between program counter and source line
-    pc_to_source_line_mapping = defaultdict(list)
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
         ###
@@ -50,15 +43,6 @@ def parse_elf(elf_path):
         assert section, "Symbol Table not found!"
         # print('  Section name: %s, type: %s' %(section.name, section['sh_type']))
         if isinstance(section, SymbolTableSection):
-            num_symbols = section.num_symbols()
-            # print("  It's a symbol section with %s symbols" % num_symbols)
-            ### TODO: extract somewhere else
-            ### start_symbol = section.get_symbol_by_name("_start")
-            ### assert len(start_symbol) == 1
-            ### start_symbol = start_symbol[0]
-            ### # print("start_symbol", start_symbol, start_symbol.entry, start_symbol.name)
-            ### start_addr = start_symbol.entry["st_value"]
-            ### # print("start_addr", start_addr)
             total_footprint = 0
             func_footprint = {}
             for i, sym in enumerate(section.iter_symbols()):
@@ -74,9 +58,7 @@ def parse_elf(elf_path):
                 total_footprint += sz
             # print("total_footprint", total_footprint)
             # print("func_footprint", func_footprint)
-            footprint_df = pd.DataFrame(
-                func_footprint.items(), columns=["func", "bytes"]
-            )
+            footprint_df = pd.DataFrame(func_footprint.items(), columns=["func", "bytes"])
             footprint_df.sort_values("bytes", inplace=True, ascending=False)
             footprint_df["rel_bytes"] = footprint_df["bytes"] / total_footprint
             # print("footprint_df", footprint_df)
@@ -102,7 +84,7 @@ def analyze_mem_footprint(sess: Session, force: bool = False):
         "by": "isaac_toolkit.analysis.static.mem_footprint",
     }
 
-    artifact = TableArtifact(f"mem_footprint", footprint_df, attrs=attrs)
+    artifact = TableArtifact("mem_footprint", footprint_df, attrs=attrs)
     sess.add_artifact(artifact, override=force)
 
 

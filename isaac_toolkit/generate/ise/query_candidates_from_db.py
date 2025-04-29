@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -76,9 +76,7 @@ def query_candidates_from_db(
     TOPK: Optional[int] = 100,
 ):
     artifacts = sess.artifacts
-    choices_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices"
-    )
+    choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
     assert len(choices_artifacts) == 1
     choices_artifact = choices_artifacts[0]
     choices_df = choices_artifact.df
@@ -152,11 +150,7 @@ def query_candidates_from_db(
             *["--stage", str(stage)],
             *["--output-dir", out_dir],
             # *["--ignore-const-inputs"],
-            *(
-                ["--limit-results", str(LIMIT_RESULTS)]
-                if LIMIT_RESULTS is not None
-                else []
-            ),
+            *(["--limit-results", str(LIMIT_RESULTS)] if LIMIT_RESULTS is not None else []),
             *(["--min-inputs", str(MIN_INPUTS)] if MIN_INPUTS is not None else []),
             *(["--max-inputs", str(MAX_INPUTS)] if MAX_INPUTS is not None else []),
             *(["--min-outputs", str(MIN_OUTPUTS)] if MIN_OUTPUTS is not None else []),
@@ -166,66 +160,20 @@ def query_candidates_from_db(
             *(["--max-loads", str(MAX_LOADS)] if MAX_LOADS is not None else []),
             *(["--max-loads", str(MAX_STORES)] if MAX_STORES is not None else []),
             *(["--max-mems", str(MAX_MEMS)] if MAX_MEMS is not None else []),
-            *(
-                ["--max-branches", str(MAX_BRANCHES)]
-                if MAX_BRANCHES is not None
-                else []
-            ),
-            *(
-                ["--max-enc-footprint", str(MAX_ENC_FOOTPRINT)]
-                if MAX_ENC_FOOTPRINT is not None
-                else []
-            ),
-            *(
-                ["--max-enc-weight", str(MAX_ENC_WEIGHT)]
-                if MAX_ENC_WEIGHT is not None
-                else []
-            ),
-            *(
-                ["--min-enc-bits-left", str(MIN_ENC_BITS_LEFT)]
-                if MIN_ENC_BITS_LEFT is not None
-                else []
-            ),
-            *(
-                ["--min-path-length", str(MIN_PATH_LENGTH)]
-                if MIN_PATH_LENGTH is not None
-                else []
-            ),
-            *(
-                ["--max-path-length", str(MAX_PATH_LENGTH)]
-                if MAX_PATH_LENGTH is not None
-                else []
-            ),
-            *(
-                ["--max-path-width", str(MAX_PATH_WIDTH)]
-                if MAX_PATH_WIDTH is not None
-                else []
-            ),
-            *(
-                ["--min-iso-weight", str(min_iso_weight)]
-                if min_iso_weight is not None
-                else []
-            ),
-            *(
-                ["--instr-predicates", str(INSTR_PREDICATES)]
-                if INSTR_PREDICATES is not None
-                else []
-            ),
+            *(["--max-branches", str(MAX_BRANCHES)] if MAX_BRANCHES is not None else []),
+            *(["--max-enc-footprint", str(MAX_ENC_FOOTPRINT)] if MAX_ENC_FOOTPRINT is not None else []),
+            *(["--max-enc-weight", str(MAX_ENC_WEIGHT)] if MAX_ENC_WEIGHT is not None else []),
+            *(["--min-enc-bits-left", str(MIN_ENC_BITS_LEFT)] if MIN_ENC_BITS_LEFT is not None else []),
+            *(["--min-path-length", str(MIN_PATH_LENGTH)] if MIN_PATH_LENGTH is not None else []),
+            *(["--max-path-length", str(MAX_PATH_LENGTH)] if MAX_PATH_LENGTH is not None else []),
+            *(["--max-path-width", str(MAX_PATH_WIDTH)] if MAX_PATH_WIDTH is not None else []),
+            *(["--min-iso-weight", str(min_iso_weight)] if min_iso_weight is not None else []),
+            *(["--instr-predicates", str(INSTR_PREDICATES)] if INSTR_PREDICATES is not None else []),
             *(["--ignore-names", IGNORE_NAMES] if IGNORE_NAMES is not None else []),
-            *(
-                ["--ignore-op-types", str(IGNORE_OP_TYPES)]
-                if IGNORE_OP_TYPES is not None
-                else []
-            ),
-            *(
-                ["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))]
-                if ALLOWED_ENC_SIZES is not None
-                else []
-            ),
+            *(["--ignore-op-types", str(IGNORE_OP_TYPES)] if IGNORE_OP_TYPES is not None else []),
+            *(["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))] if ALLOWED_ENC_SIZES is not None else []),
             *(["--xlen", str(XLEN)] if XLEN is not None else []),
-            *(
-                ["--enable-variation-reuse-io"] if ENABLE_VARIATION_REUSE_IO else []
-            ),  # TODO: use FLT instead?
+            *(["--enable-variation-reuse-io"] if ENABLE_VARIATION_REUSE_IO else []),  # TODO: use FLT instead?
             *(["--halt-on-error"] if HALT_ON_ERROR else []),  # TODO: use FLT instead?
             *["--write-func"],
             # *["--write-func-fmt", WRITE_FUNC_FMT],
@@ -318,9 +266,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    query_candidates_from_db(
-        sess, workdir=args.workdir, label=args.label, stage=args.stage, force=args.force
-    )
+    query_candidates_from_db(sess, workdir=args.workdir, label=args.label, stage=args.stage, force=args.force)
     sess.save()
 
 

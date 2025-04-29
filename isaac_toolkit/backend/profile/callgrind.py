@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -30,7 +30,7 @@ from cpp_demangle import demangle
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 
 
@@ -65,7 +65,7 @@ def collect_bbs(trace_df, mapping):
     bb_freq = defaultdict(int)
     prev_pc = None
     prev_size = None
-    prev_instr = None
+    # prev_instr = None
     bbs = []
     bb_instrs = []
     bb_size = 0
@@ -130,7 +130,7 @@ def collect_bbs(trace_df, mapping):
                 bb_freq[bb] += 1
             first_pc = None
         prev_pc = pc
-        prev_instr = instr
+        # prev_instr = instr
         prev_size = sz
     if first_pc is not None:
         func = None

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -18,8 +18,8 @@
 #
 import logging
 from pathlib import Path
-from dataclasses import dataclass, field, asdict, fields
-from typing import List, Union, Optional, Dict
+from dataclasses import dataclass, asdict, fields
+from typing import Union, Optional
 
 import yaml
 from dacite import from_dict
@@ -114,12 +114,8 @@ class YAMLSettings:
                                 for dict_key, dict_val in v1.items():
                                     if dict_key in v2:
                                         if isinstance(dict_val, YAMLSettings):
-                                            assert isinstance(
-                                                v2[dict_key], YAMLSettings
-                                            )
-                                            v2[dict_key].merge(
-                                                dict_val, overwrite=overwrite
-                                            )
+                                            assert isinstance(v2[dict_key], YAMLSettings)
+                                            v2[dict_key].merge(dict_val, overwrite=overwrite)
                                     else:
                                         v2[dict_key] = dict_val
                         elif isinstance(v1, list):

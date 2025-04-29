@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -30,8 +30,6 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
-
-from isaac_toolkit.utils.pickle_printer import print_memory_footprint_dict, print_memory_footprint
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
@@ -81,6 +79,17 @@ def analyze_instr_operands(
     # filter_operands = "imm"
 
     operands_df = collect_operands(trace_artifact.df)
+    attrs = {
+        "trace": trace_artifact.name,
+        "kind": "table",
+        "by": __name__,
+    }
+    attrs2 = {
+        "trace": trace_artifact.name,
+        "kind": "histogram",
+        "by": __name__,
+    }
+
     del trace_artifact
 
     operand_names = sorted([x for x in operands_df.columns if x != "instr"])
@@ -114,11 +123,6 @@ def analyze_instr_operands(
 
     instrs = sorted(operands_df["instr"].unique())
 
-    attrs = {
-        "trace": trace_artifact.name,
-        "kind": "table",
-        "by": __name__,
-    }
     operands_artifact = TableArtifact("instr_operands", operands_df, attrs=attrs)
     sess.add_artifact(operands_artifact, override=force)
 
@@ -271,12 +275,6 @@ def analyze_instr_operands(
                 fig.savefig(plot_file, bbox_inches="tight")
                 plt.close()
     operands_hist_df = pd.DataFrame(operands_hist_data)
-
-    attrs2 = {
-        "trace": trace_artifact.name,
-        "kind": "histogram",
-        "by": __name__,
-    }
 
     operands_hist_artifact = TableArtifact("instr_operands_hist", operands_hist_df, attrs=attrs2)
     sess.add_artifact(operands_hist_artifact, override=force)
