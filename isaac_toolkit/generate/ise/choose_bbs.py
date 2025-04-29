@@ -16,19 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import io
 import sys
-import leb128
 import logging
 import argparse
-import posixpath
 from typing import Optional
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -51,6 +45,7 @@ def choose_bbs(
     sess: Session,
     threshold: float = 0.9,
     min_weight: float = 0.01,
+    min_supported_weight: Optional[float] = None,
     min_instrs: Optional[int] = 2,
     max_num: Optional[int] = None,
     force: bool = False,
@@ -65,6 +60,14 @@ def choose_bbs(
     assert len(llvm_bbs_artifacts) == 1
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
     llvm_bbs_df = llvm_bbs_artifact.df.copy()
+    ise_potential_per_llvm_bb_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "ise_potential_per_llvm_bb"
+    )
+    ise_potential_per_llvm_bb_df = None
+    if len(ise_potential_per_llvm_bb_artifacts) > 0:
+        assert len(ise_potential_per_llvm_bb_artifacts) == 1
+        ise_potential_per_llvm_bb_artifact = ise_potential_per_llvm_bb_artifacts[0]
+        ise_potential_per_llvm_bb_df = ise_potential_per_llvm_bb_artifact.df.copy()
 
     file2funcs_artifacts = filter_artifacts(
         artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "file2funcs"
@@ -79,14 +82,32 @@ def choose_bbs(
     sum_weights = 0.0
     choices = []
     for index, row in llvm_bbs_df.sort_values("rel_weight", ascending=False).iterrows():
+        func_name = row["func_name"]
+        bb_name = row["bb_name"]
         rel_weight = row["rel_weight"]
         num_instrs = row["num_instrs"]
         if pd.isna(rel_weight):
             continue
         if rel_weight < min_weight:
             continue
-        if num_instrs < min_instrs:
-            continue
+        if min_supported_weight is not None:
+            assert (
+                ise_potential_per_llvm_bb_df is not None
+            ), "Run isaac_toolkit.generate.ise.check_ise_potential_per_llvm_bb first!"
+
+            def lookup_supported(df, func_name, bb_name):
+                filtered = df[(df["func_name"] == func_name) & (df["bb_name"] == bb_name)]
+                assert len(filtered) == 1
+                rel_supported_count = filtered["supported_rel_count"].iloc[0]
+                return rel_supported_count
+
+            rel_supported_count = lookup_supported(ise_potential_per_llvm_bb_df, func_name, bb_name)
+            rel_supported_weight = rel_supported_count * rel_weight
+            if rel_supported_weight < min_supported_weight:
+                continue
+        if min_instrs is not None:
+            if num_instrs < min_instrs:
+                continue
         func_name = row["func_name"]
         bb_name = row["bb_name"]
         freq = row["freq"]
@@ -139,6 +160,7 @@ def handle(args):
         sess,
         threshold=args.threshold,
         min_weight=args.min_weight,
+        min_supported_weight=args.min_supported_weight,
         max_num=args.max_num,
         force=args.force,
     )
@@ -155,6 +177,7 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--min-weight", type=float, default=0.01)
+    parser.add_argument("--min-supported-weight", type=float, default=None)
     parser.add_argument("--max-num", type=int, default=None)
     parser.add_argument("--threshold", type=float, default=0.9)
     # TODO: !
