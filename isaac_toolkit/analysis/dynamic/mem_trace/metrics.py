@@ -21,6 +21,7 @@ import logging
 import argparse
 import humanize
 from pathlib import Path
+from collections import defaultdict
 
 import pandas as pd
 
@@ -54,11 +55,20 @@ class MemRange:
         self.max = max
         assert self.min <= self.max, "Invalid MemRange"
         self.num_reads = 0
+        self.num_reads_per_size = defaultdict(int)
+        self.read_alignments_per_size = defaultdict(lambda: defaultdict(int))
         self.num_writes = 0
+        self.num_writes_per_size = defaultdict(int)
+        self.write_alignments_per_size = defaultdict(lambda: defaultdict(int))
         self.read_bytes = 0
+        self.read_bytes_per_size = defaultdict(int)
+        self.read_bytes_alignments_per_size = defaultdict(lambda: defaultdict(int))
         self.written_bytes = 0
+        self.written_bytes_per_size = defaultdict(int)
+        self.written_bytes_alignments_per_size = defaultdict(lambda: defaultdict(int))
         self.low = 0xFFFFFFFF
         self.high = 0
+        self.alignments = set()
 
     def contains(self, adr):
         return adr >= self.min and adr < self.max
@@ -66,18 +76,37 @@ class MemRange:
     def trace(self, adr, mode, pc, sz):
         self.low = min(adr, self.low)
         self.high = max(adr, self.high)
+        alignment = adr % sz
+        self.alignments.add(alignment)
         if mode == "r":
             self.num_reads += 1
+            self.num_reads_per_size[sz] += 1
+            self.read_alignments_per_size[sz][alignment] += 1
             self.read_bytes += sz
+            self.read_bytes_per_size[sz] += sz
+            self.read_bytes_alignments_per_size[sz][alignment] += sz
         elif mode == "w":
             self.num_writes += 1
+            self.num_writes_per_size[sz] += 1
+            self.write_alignments_per_size[sz][alignment] += 1
             self.written_bytes += sz
+            self.written_bytes_per_size[sz] += sz
+            self.written_bytes_alignments_per_size[sz][alignment] += sz
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
     @property
+    def sizes(self):
+        sizes = sorted(list(set(self.num_reads_per_size.keys()) | set(self.num_writes_per_size.keys())))
+        return sizes
+
+    @property
     def count(self):
         return self.num_reads + self.num_writes
+
+    @property
+    def count_per_size(self):
+        return {size: self.num_reads_per_size.get(size, 0) + self.num_writes_per_size(size, 0) for size in self.sizes}
 
     def usage(self):
         if self.low > self.high:
@@ -89,8 +118,8 @@ class MemRange:
             return self.name + "\t[not accessed]"
         return (
             f"{self.name}\t[0x{self.low:x}-0x{self.high:x}] \t({self.count} times, "
-            "reads: {self.num_reads} <{self.read_bytes}B>, "
-            "writes: {self.num_writes} <{self.written_bytes}B>)"
+            f"reads: {self.num_reads} <{self.read_bytes}B>, "
+            f"writes: {self.num_writes} <{self.written_bytes}B>)"
         )
 
 
@@ -163,15 +192,17 @@ def collect_mem_metrics(
     static_sizes = process_sections(mem_sections_df)
     heap_start = process_symbol_table(symbol_table_df)
 
+    rom_start = mem_layout_df[mem_layout_df["segment"] == "rom"]["start"].iloc[0]
     ram_start = mem_layout_df[mem_layout_df["segment"] == "ram"]["start"].iloc[0]
     ram_size = mem_layout_df[mem_layout_df["segment"] == "ram"]["size"].iloc[0]
     # heap_start = mem_layout_df["heap_start"].iloc[0]
     stack_size = max_stack
 
+    r = MemRange("ROM", rom_start, ram_start)
     d = MemRange("Data", ram_start, heap_start)
     h = MemRange("Heap", heap_start, ram_start + ram_size - stack_size)
     s = MemRange("Stack", ram_start + ram_size - stack_size, ram_start + ram_size)
-    mems = [d, h, s]
+    mems = [r, d, h, s]
 
     for row in mem_trace_df.itertuples(index=False):
         # print("row", row)
@@ -230,13 +261,39 @@ def collect_mem_metrics(
             "num_reads": r.num_reads,
             "num_writes": r.num_writes,
             "read_bytes": r.read_bytes,
-            "writted_bytes": r.written_bytes,
+            "written_bytes": r.written_bytes,
         }
         for r in mems
     ]
     mem_access_df = pd.DataFrame(results2)
 
-    return mem_metrics_df, mem_access_df
+    results3 = []
+    for r in mems:
+        temp = {
+            "name": r.name,
+            "low": r.low,
+            "high": r.high,
+        }
+        for size in r.sizes:
+            for align in sorted(list(r.alignments)):
+                temp_ = {
+                    **temp,
+                    "size": size,
+                    "alignment": align,
+                    "count": r.count,
+                    # "num_reads": r.num_reads_per_size.get(size, 0),
+                    "num_reads": r.read_alignments_per_size.get(size, {}).get(align),
+                    # "num_writes": r.num_writes_per_size.get(size, 0),
+                    "num_writes": r.write_alignments_per_size.get(size, {}).get(align),
+                    # "read_bytes": r.read_bytes_per_size.get(size, 0),
+                    "read_bytes": r.read_bytes_alignments_per_size.get(size, {}).get(align),
+                    # "written_bytes": r.written_bytes_per_size.get(size, 0),
+                    "written_bytes": r.written_bytes_alignments_per_size.get(size, {}).get(align),
+                }
+                results3.append(temp_)
+    mem_access_df2 = pd.DataFrame(results3)
+
+    return mem_metrics_df, mem_access_df, mem_access_df2
 
 
 def analyze_mem_trace(
