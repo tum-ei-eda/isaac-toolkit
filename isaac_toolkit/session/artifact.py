@@ -43,6 +43,7 @@ class ArtifactFlag(IntFlag):
     M2ISAR = auto()
     PYTHON = auto()
     DISASS = auto()
+    TRACE = auto()
 
 
 def filter_artifacts(artifacts, func):
@@ -286,7 +287,15 @@ class TableArtifact(PythonArtifact):
         return f"{self.name}: pd.DataFrame(shape={self.df.shape}, columns={list(self.df.columns)})"
 
 
-class InstrTraceArtifact(TableArtifact):
+class TraceArtifact(TableArtifact):
+    # TODO: csv instead of pickle?
+
+    @property
+    def flags(self):
+        return super().flags | ArtifactFlag.TRACE
+
+
+class InstrTraceArtifact(TraceArtifact):
     # TODO: csv instead of pickle?
 
     @property
