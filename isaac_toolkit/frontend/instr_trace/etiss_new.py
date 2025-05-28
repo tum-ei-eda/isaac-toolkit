@@ -81,6 +81,9 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                 def convert(x):
                     ret = {}
                     for y in x:
+                        if "]" in y:  # WORKAROUND
+                            y = y.split("]", 1)[0]
+                            y = y.strip()
                         if len(y.strip()) == 0:
                             continue
                         assert "=" in y
@@ -98,6 +101,7 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                 # print("I", time.time())
                 dfs.append(df)
     df = pd.concat(dfs, axis=0)
+    df.reset_index(inplace=True, drop=True)
     df["instr"] = df["instr"].astype("category")
     df["size"] = df["size"].astype("category")
 
