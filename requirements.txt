@@ -1,7 +1,7 @@
 tqdm
 pyyaml
 pyelftools
-pandas
+pandas>=2.1
 dacite
 pygraphviz
 matplotlib
@@ -13,3 +13,4 @@ gprof2dot
 capstone
 networkx<3.0.0,>=2.5.1
 cpp-demangle
+humanize
