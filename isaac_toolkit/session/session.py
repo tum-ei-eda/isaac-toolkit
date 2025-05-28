@@ -25,7 +25,8 @@ from .config import IsaacConfig, DEFAULT_CONFIG, ArtifactsSettings, TableArtifac
 from .artifact import (
     FileArtifact,
     ElfArtifact,
-    InstrTraceArtifact,
+    InstrTraceArtifact,  # TODO: drop
+    TraceArtifact,
     SourceArtifact,
     TableArtifact,
     M2ISARArtifact,
@@ -127,8 +128,10 @@ def load_artifacts(base):
         if flags_ & ArtifactFlag.ELF:
             artifact_ = ElfArtifact.from_dict(artifact)
             # (name, dest, flags=flags, attrs=attrs)
-        elif flags_ & ArtifactFlag.INSTR_TRACE:
+        elif flags_ & ArtifactFlag.INSTR_TRACE:  # TODO: drop
             artifact_ = InstrTraceArtifact.from_dict(artifact)
+        elif flags_ & ArtifactFlag.TRACE:
+            artifact_ = TraceArtifact.from_dict(artifact)
         elif flags_ & (ArtifactFlag.SOURCE | ArtifactFlag.DISASS):
             artifact_ = SourceArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.GRAPH:
@@ -237,6 +240,8 @@ class Session:
                 dest_dir = self.directory / "elf"
             elif isinstance(artifact, InstrTraceArtifact):
                 dest_dir = self.directory / "instr_trace"
+            elif isinstance(artifact, TraceArtifact):
+                dest_dir = self.directory / "trace"
             elif isinstance(artifact, SourceArtifact):
                 dest_dir = self.directory / "source"
             elif isinstance(artifact, GraphArtifact):
