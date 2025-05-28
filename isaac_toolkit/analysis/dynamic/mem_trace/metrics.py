@@ -42,6 +42,33 @@ logger = logging.getLogger(__name__)
 DEFAULT_STACK_SIZE = 0x4000
 
 
+def helper(x):
+    return int(x, 16)
+
+
+def init_mems(romStart, ramStart, heapStart, ramSize, stackSize):
+    r = MemRange("ROM", romStart, ramStart)
+    d = MemRange("Data", ramStart, heapStart)
+    h = MemRange("Heap", heapStart, ramStart + ramSize - stackSize)
+    s = MemRange("Stack", ramStart + ramSize - stackSize, ramStart + ramSize)
+    mems = [r, d, h, s]
+    return mems
+
+
+def worker(args):
+    addrs, romStart, ramStart, heapStart, ramSize, stackSize = args
+    mems = init_mems(romStart, ramStart, heapStart, ramSize, stackSize)
+    for addr, mode, pc, sz in addrs:
+        # addr = int(addr, 16)
+        for mem in mems:
+            if mem.contains(addr):
+                mem.trace(addr, mode, pc, sz)
+    mems_ = []
+    for mem in mems:
+        mems_.append(mem.freeze())
+    return mems_
+
+
 def print_sz(sz, unknown_msg=""):
     if sz is None:
         return f"unknown [{unknown_msg}]" if unknown_msg else "unknown"
@@ -72,6 +99,23 @@ class MemRange:
 
     def contains(self, adr):
         return adr >= self.min and adr < self.max
+
+    def update(self, other):
+        self.low = min(other.low, self.low)
+        self.high = max(other.high, self.high)
+        self.num_reads += other.num_reads
+        self.num_writes += other.num_writes
+        self.read_bytes += other.read_bytes
+        self.written_bytes += other.written_bytes
+        self.alignments |= other.alignments
+        for sz, num in other.num_reads_per_size.items():
+            self.num_reads_per_size[sz] += num
+        for sz, num in other.num_writes_per_size.items():
+            self.num_writes_per_size[sz] += num
+        for sz, num in other.read_bytes_per_size.items():
+            self.read_bytes_per_size[sz] += num
+        for sz, num in other.written_bytes_per_size.items():
+            self.written_bytes_per_size[sz] += num
 
     def trace(self, adr, mode, pc, sz):
         self.low = min(adr, self.low)
@@ -121,6 +165,36 @@ class MemRange:
             f"reads: {self.num_reads} <{self.read_bytes}B>, "
             f"writes: {self.num_writes} <{self.written_bytes}B>)"
         )
+
+    def freeze(self):
+        return FrozenMemRange(self)
+
+
+class FrozenMemRange:
+    def __init__(self, mem: MemRange):
+        self.name = mem.name
+        self.min = mem.min
+        self.max = mem.max
+        self.num_reads = mem.num_reads
+        self.num_reads_per_size = dict(mem.num_reads_per_size)
+        self.read_alignments_per_size = {k: dict(v) for k, v in mem.read_alignments_per_size.items()}
+        self.num_writes = mem.num_writes
+        self.num_writes_per_size = dict(mem.num_writes_per_size)
+        self.write_alignments_per_size = {k: dict(v) for k, v in mem.write_alignments_per_size.items()}
+        self.read_bytes = mem.read_bytes
+        self.read_bytes_per_size = dict(mem.read_bytes_per_size)
+        self.read_bytes_alignments_per_size = {k: dict(v) for k, v in mem.read_bytes_alignments_per_size.items()}
+        self.written_bytes = mem.written_bytes
+        self.written_bytes_per_size = dict(mem.written_bytes_per_size)
+        self.written_bytes_alignments_per_size = {k: dict(v) for k, v in mem.written_bytes_alignments_per_size.items()}
+        self.low = mem.low
+        self.high = mem.high
+        self.alignments = mem.alignments
+
+    def usage(self):
+        if self.low > self.high:
+            return 0
+        return self.high - self.low
 
 
 def process_symbol_table(symbol_table_df):
@@ -198,20 +272,46 @@ def collect_mem_metrics(
     # heap_start = mem_layout_df["heap_start"].iloc[0]
     stack_size = max_stack
 
-    r = MemRange("ROM", rom_start, ram_start)
-    d = MemRange("Data", ram_start, heap_start)
-    h = MemRange("Heap", heap_start, ram_start + ram_size - stack_size)
-    s = MemRange("Stack", ram_start + ram_size - stack_size, ram_start + ram_size)
-    mems = [r, d, h, s]
+    mems = init_mems(rom_start, ram_start, heap_start, ram_size, stack_size)
+    _, _, h, s = mems
 
-    for row in mem_trace_df.itertuples(index=False):
-        # print("row", row)
-        # input(">")
-        for mem in mems:
-            # print("mem", mem)
-            if mem.contains(row.addr):
-                # print("trace")
-                mem.trace(row.addr, row.mode, row.pc, row.bytes)
+    addrs = mem_trace_df[["addr", "mode", "pc", "bytes"]].values
+    import multiprocessing as mp
+    import os
+
+    USE_POOL = False
+
+    if USE_POOL:
+        num_threads = os.cpu_count()
+        with mp.Pool(num_threads) as p:
+            num_chunks = num_threads
+
+            def iter_chunks(lst, n):
+                """Yield successive n-sized chunks from lst."""
+                for i in range(0, len(lst), n):
+                    yield lst[i : i + n]
+
+            n = len(addrs) // num_chunks
+            chunked_addrs = iter_chunks(addrs, n)
+            args = [(chunk, rom_start, ram_start, heap_start, ram_size, stack_size) for chunk in chunked_addrs]
+            for mems_ in p.imap_unordered(worker, args):
+                for i, mem_ in enumerate(mems_):
+                    if mem_.usage() == 0:
+                        continue
+                    mem = mems[i]
+                    mem.update(mem_)
+                    # mem.trace(mem_.high)
+                    # mem.trace(mem_.low)
+                    # mem.count += mem_.count
+    else:
+        for row in mem_trace_df.itertuples(index=False):
+            # print("row", row)
+            # input(">")
+            for mem in mems:
+                # print("mem", mem)
+                if mem.contains(row.addr):
+                    # print("trace")
+                    mem.trace(row.addr, row.mode, row.pc, row.bytes)
     if verbose:
         for mem in mems:
             print(mem.stats())
@@ -332,7 +432,7 @@ def analyze_mem_trace(
     assert len(mem_layout_artifacts) == 1
     mem_layout_artifact = mem_layout_artifacts[0]
 
-    mem_metrics_df, mem_access_df = collect_mem_metrics(
+    mem_metrics_df, mem_access_df, mem_access_df2 = collect_mem_metrics(
         mem_trace_artifact.df,
         mem_sections_artifact.df,
         symbol_table_artifact.df,
@@ -358,6 +458,8 @@ def analyze_mem_trace(
 
     mem_access_artifact = TableArtifact("mem_access", mem_access_df, attrs=attrs2)
     sess.add_artifact(mem_access_artifact, override=force)
+    mem_access_artifact2 = TableArtifact("mem_access2", mem_access_df2, attrs=attrs2)
+    sess.add_artifact(mem_access_artifact2, override=force)
 
 
 def handle(args):
