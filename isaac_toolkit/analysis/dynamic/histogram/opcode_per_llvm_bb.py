@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -34,15 +34,13 @@ logger = logging.getLogger(__name__)
 
 def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
     artifacts = sess.artifacts
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     trace_df = trace_artifact.df
 
     llvm_bbs_artifacts = filter_artifacts(
-          artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs"
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs"
     )  # TODO: optional or different pass
     assert len(llvm_bbs_artifacts) == 1
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
