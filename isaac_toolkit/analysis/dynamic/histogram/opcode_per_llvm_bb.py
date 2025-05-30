@@ -25,24 +25,20 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from .opcode import collect_opcodes
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
 
 
-def map_llvm_bbs_new(sess: Session, force: bool = False):
+def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
     artifacts = sess.artifacts
-    # print("artifacts", artifacts)
-    elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
-    # print("elf_artifacts", elf_artifacts)
-    assert len(elf_artifacts) == 1
-    elf_artifact = elf_artifacts[0]
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
-    # print("trace_artifact", trace_artifact)
     trace_df = trace_artifact.df
+
     llvm_bbs_artifacts = filter_artifacts(
         artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs"
     )  # TODO: optional or different pass
@@ -51,60 +47,34 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
     llvm_bbs_df = llvm_bbs_artifact.df.copy()
     llvm_bbs_df[["start", "end"]] = llvm_bbs_df["pcs"].apply(pd.Series)
     # print("llvm_bbs_df", llvm_bbs_df)
-    total_weight = 0
-    for index, row in llvm_bbs_df.sort_values("start").iterrows():
-        # print("row", row)
+
+    dfs = []
+    for _, row in llvm_bbs_df.iterrows():
+        func_name = row["func_name"]
+        bb_name = row["bb_name"]
         start = row["start"]
         end = row["end"]
-        size = row["size"]
-        num_instrs = row["num_instrs"]
-        if size == 0:
+        # print("func_name", func_name)
+        # print("bb_name", bb_name)
+        trace_df_ = trace_df.where(lambda x: x["pc"] >= start).dropna().where(lambda x: x["pc"] < end).dropna()
+        if len(trace_df_) == 0:
             continue
-        # assert num_instrs != 0  # TODO: handle pcs missing in capstone disassembly?
-        assert size > 0, "Encountered basic block with negative size"
-        # num_instrs = row["num_instrs"]
-
-        def get_bb_freq_weight(df, start, end, num_instrs):
-            # print("get_bb_freq", start, end, num_instrs)
-            if num_instrs == 0:
-                return 0, 0.0
-            assert num_instrs > 0
-            matches = df.where(lambda x: x["pc"] >= start).dropna()
-            # print("m1", matches)
-            matches = matches.where(lambda x: x["pc"] < end).dropna()
-            # print("m2", matches)
-            # print("matches", matches)
-            count = len(matches)
-            # print("count", count)
-            bb_count = count // num_instrs
-            # print("bb_count", bb_count)
-            bb_weight = bb_count * num_instrs
-            # print("bb_weight", bb_weight)
-            return bb_count, bb_weight
-
-        freq, weight = get_bb_freq_weight(trace_df, start, end, num_instrs)
-        llvm_bbs_df.loc[index, "freq"] = freq
-        llvm_bbs_df.loc[index, "weight"] = weight
-        llvm_bbs_df.loc[index, "num_instrs"] = num_instrs
-        total_weight += weight
-    trace_length = len(trace_df)
-    # coverage = total_weight / trace_length
-    # print("trace_length", trace_length)
-    # print("total_weight", total_weight)
-    # print("coverage", coverage)
-    llvm_bbs_df.sort_values("freq", inplace=True, ascending=False)
-    llvm_bbs_df["rel_weight"] = llvm_bbs_df["weight"] / trace_length
-    # input(">")
+        # print("trace_df_", trace_df_)
+        opcodes_df_ = collect_opcodes(trace_df_)
+        opcodes_df_.insert(0, "func_name", func_name)
+        opcodes_df_.insert(1, "bb_name", bb_name)
+        # print("opcodes_df_", opcodes_df_)
+        # input()
+        dfs.append(opcodes_df_)
+    df = pd.concat(dfs)
 
     attrs = {
-        "elf_file": elf_artifact.name,
-        "kind": "mapping",
+        "kind": "histogram",
         "by": __name__,
     }
 
-    artifact = TableArtifact("llvm_bbs_new", llvm_bbs_df, attrs=attrs)
-    # print("artifact", artifact)
-    sess.add_artifact(artifact, override=force)
+    opcodes_artifact = TableArtifact("opcodes_per_llvm_bb_hist", df, attrs=attrs)
+    sess.add_artifact(opcodes_artifact, override=force)
 
 
 def handle(args):
@@ -112,7 +82,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    map_llvm_bbs_new(sess, force=args.force)
+    create_opcode_per_llvm_bb_hist(sess, force=args.force)
     sess.save()
 
 

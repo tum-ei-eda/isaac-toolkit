@@ -91,12 +91,10 @@ def trunc_trace(
     # print("end_pc", end_pc)
     # TODO: handle multiple calls to start/end func
     def do_trunc(df, start, end):
-        # print("do_trunc", len(df), start, end)
-        # print("df", len(df))
         if start is not None:
             start_rows = df[df["pc"] == start]
         else:
-            start_rows = df.iloc[0:0]
+            start_rows = df.iloc[0:1]
         # print("start_rows", start_rows)
         start_pos = start_rows.index[0]
         # print("start_pos", start_pos)
