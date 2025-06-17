@@ -136,7 +136,6 @@ def get_parser():
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
-    parser.add_argument("--operands", action="store_true")
     return parser
 
 
