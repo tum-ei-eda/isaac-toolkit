@@ -26,7 +26,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import InstrTraceArtifact
+from isaac_toolkit.session.artifact import InstrTraceArtifact, TableArtifact
 
 
 # TODO: logger
@@ -37,13 +37,14 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False, opera
     name = input_file.name
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
+    operands_dfs = []
     with pd.read_csv(input_file, sep=":", names=["pc", "rest"], chunksize=2**22) as reader:
         for df in tqdm(reader, disable=False):
             # print("A", time.time())
             df["pc"] = df["pc"].apply(lambda x: int(x, 0))
             df["pc"] = pd.to_numeric(df["pc"])
             # print("B", time.time())
-            # TODO: normalize instr names
+            # TODO: normalize instr names (handle pseudos?)
             df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
             df["instr"] = df["instr"].apply(lambda x: x.strip())
             df["instr"] = df["instr"].astype("category")
@@ -82,9 +83,12 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False, opera
                 return ret
 
             if operands:
+                # TODO: use actual csv and usecols to filter operands while parsing
                 df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
-            else:
-                df.drop(columns=["operands"], inplace=True)
+                operands_df = pd.json_normalize(df.operands).astype("UInt32").astype("category")
+                operands_dfs.append(operands_df)
+            # else:
+            df.drop(columns=["operands"], inplace=True)
             df.drop(columns=["rest"], inplace=True)
             # print("I", time.time())
             dfs.append(df)
@@ -99,6 +103,17 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False, opera
     }
     artifact = InstrTraceArtifact(name, df, attrs=attrs)
     sess.add_artifact(artifact, override=force)
+    if operands:
+        operands_df = pd.concat(operands_dfs, axis=0)
+        operands_df.reset_index(inplace=True, drop=True)
+        assert len(df) == len(operands_df)
+        attrs = {
+            "simulator": "etiss",
+            "cpu_arch": "unknown",
+            "by": "isaac_toolkit.frontend.instr_trace.etiss",
+        }
+        operands_artifact = TableArtifact("operands", operands_df, attrs=attrs)
+        sess.add_artifact(operands_artifact, override=force)
 
 
 def handle(args):
