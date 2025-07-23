@@ -19,6 +19,7 @@
 import os
 import sys
 import shutil
+import subprocess
 
 # import yaml
 import logging
@@ -44,7 +45,7 @@ def run_nailgun_hls(
     mount_dir: Union[str, Path] = None,
     docker_image: Optional[str] = None,
     fix_permissions: bool = True,  # Only for docker mode
-    # gurubi_license: TODO
+    # gurubi_license_file: TODO
     isaxes: Optional[List[str]] = None,
     label: Optional[str] = None,
     core_name: Optional[str] = None,
@@ -157,11 +158,16 @@ def run_nailgun_hls(
         nailgun_command_env = " ".join([f"{key}={val}" for key, val in nailgun_env.items()])
         command += f' "{prepare} && {nailgun_command_env} {nailgun_command}"'
         print("command", command)
+        subprocess.run(command, shell=True)
     else:
         env = os.environ.copy()
         env.update(nailgun_env)
         command = nailgun_command
+        cwd = tools_dir
         print("command", command)
+        subprocess.run(command, cwd=cwd, env=env, shell=True)
+    if copy_files:
+        raise NotImplementedError
 
 
 def handle(args):
@@ -198,7 +204,24 @@ def get_parser():
     parser.add_argument("--tools-dir", type=str, required=True)  # TODO: define via settings?
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--isaxes", type=str, default=None)
-    parser.add_argument("--index", type=str, default=None)
+    # parser.add_argument("--index", type=str, default=None)
+    # gurubi_license_file: TODO
+    # isaxes: Optional[List[str]] = None,
+    # label: Optional[str] = None,
+    # core_name: Optional[str] = None,
+    # copy_files: bool = True,
+    # ilp_solver: str = "gurobi",
+    # cell_library: Optional[str] = None,
+    # # cell_library = "$(pwd)/cfg/longnail/library.yaml",
+    # clock_ns: int = 100,
+    # schedule_timeout: int = 10,
+    # refine_timeout: int = 10,
+    # sched_algo_ms: bool = False,
+    # sched_algo_pa: bool = False,
+    # sched_algo_ra: bool = False,
+    # sched_algo_mi: bool = False,
+    # share_resources: bool = False,
+    # mlir_file: Optional[Union[str, Path]] = None,
 
     return parser
 
