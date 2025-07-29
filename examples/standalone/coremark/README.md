@@ -41,16 +41,49 @@ export PK=$INSTALL_DIR/spike/pk_rv32gc
 For the profiling step, additional Python packages should be installed:
 
 ```sh
-pip install -r requirements.txt
+pip install -r ../requirements.txt
 ```
+
+
+## NEW: Simplified Usage via Makefile
+
+Examples:
+
+```sh
+# End-to-End Flow
+make all
+make SIMULATOR=etiss all
+
+# Clean Artifacts
+make clean
+
+# Override Artifacts
+make all FORCE=1
+
+# Single steps
+make init
+make compile
+make run
+make load
+make analyze
+make visualize
+make profile
+make callgraph
+
+# Extra options
+make compile RISCV_ARCH=rv32gc RISCV_ABI=ilp32d
+make compile OPTIMIZE=s
+
+```
+
+
+## Usage (OLD)
 
 Setup empty ISAAC session:
 
 ```sh
 python3 -m isaac_toolkit.session.create --session $SESS
 ```
-
-## Usage
 
 ### 1. Compilation
 

@@ -121,6 +121,8 @@ Make sure to add the top level directory of this repository to your Python path:
 export PYTHONPATH=$(pwd):$PYTHONPATH
 ```
 
+For Python v3.10+ you can also just use `pip install -e .`!
+
 Minimal example:
 
 ```sh
