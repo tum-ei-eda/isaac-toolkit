@@ -1,2 +1,7 @@
 install/
 dl/
+build/
+*.pdf
+*.dot
+*.log
+*.out
