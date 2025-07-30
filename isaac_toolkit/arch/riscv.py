@@ -36,6 +36,7 @@ riscv_branch_instrs = [
     "bge",  # pseudo
     "bgez",  # pseudo
     "ble",
+    "blez",  # new?
     "bltu",
     "bgtu",  # pseudo
     "bgtu",  # pseudo
