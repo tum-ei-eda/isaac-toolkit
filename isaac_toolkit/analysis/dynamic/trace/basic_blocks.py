@@ -146,7 +146,7 @@ class BasicBlock(object):
     def __repr__(self) -> str:
         return (
             f"start:{hex(self.first_pc)}, end:{hex(self.last_pc)}, num_instrs:{self.num_instrs}, "
-            "size:{self.size}, end_instr:{self.end_instr}, func:{self.func}\n"
+            f"size:{self.size}, end_instr:{self.end_instr}, func:{self.func}\n"
         )
 
     def __eq__(self, other) -> bool:
