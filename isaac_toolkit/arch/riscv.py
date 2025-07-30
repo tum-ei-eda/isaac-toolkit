@@ -56,4 +56,4 @@ riscv_branch_instrs = [
     "c.jalr",
     "c.jal",
 ]
-riscv_return_instrs = ["jalr", "cjalr", "cjr"]  # TODO
+riscv_return_instrs = ["jalr", "cjalr", "cjr", "c.jr", "c.jalr", "ret", "mret", "sret", "uret"]  # TODO
