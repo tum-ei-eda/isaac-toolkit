@@ -27,9 +27,13 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
+
+logger = get_logger()
 
 
 def maxmiso_algo(G):
+    logger.info("Running MaxMISO algorithm...")
     # print("algo")
     # print("G", G, dir(G))
     G = G.copy()
@@ -187,6 +191,7 @@ def handle(args):
     override = args.force
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     graphs = sess.graphs
     # print("graphs", graphs)
     # cdfg = filter_artifacts(graphs, lambda x: x.name == args.graph_name)

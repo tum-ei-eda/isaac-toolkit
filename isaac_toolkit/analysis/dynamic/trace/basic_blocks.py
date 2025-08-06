@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 import posixpath
 from pathlib import Path
@@ -29,10 +28,9 @@ from elftools.elf.elffile import ELFFile
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 # def find_sub_bbs(bbs, first_pc, last_pc):
@@ -170,6 +168,7 @@ class BasicBlock(object):
 
 
 def collect_bbs(trace_df):
+    logger.info("Collecting BBs...")
     # print("trace_df", len(trace_df))
     # input("{}{}{}{}")
     first_pc = None
@@ -358,6 +357,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     analyze_basic_blocks(sess, force=args.force)
     sess.save()
 

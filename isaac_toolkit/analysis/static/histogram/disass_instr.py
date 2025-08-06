@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -27,10 +26,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def collect_instructions(disass_df):
@@ -48,6 +46,7 @@ def collect_instructions(disass_df):
 
 
 def create_disass_instr_hist(sess: Session, force: bool = False):
+    logger.info("Creating disass histogram...")
     artifacts = sess.artifacts
     disass_table_artifacts = filter_artifacts(artifacts, lambda x: x.name == "disass")
     assert len(disass_table_artifacts) == 1
@@ -69,6 +68,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     create_disass_instr_hist(sess, force=args.force)
     sess.save()
 

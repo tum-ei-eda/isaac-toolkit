@@ -19,7 +19,6 @@
 import io
 import sys
 import leb128
-import logging
 import argparse
 import posixpath
 from pathlib import Path
@@ -31,12 +30,13 @@ from elftools.elf.sections import SymbolTableSection
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("map_llvm_bbs")
+logger = get_logger()
 
 
 def map_llvm_bbs(sess: Session, force: bool = False):
+    logger.info("Mapping LLVM BBs (old)...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -173,6 +173,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     map_llvm_bbs(sess, force=args.force)
     sess.save()
 

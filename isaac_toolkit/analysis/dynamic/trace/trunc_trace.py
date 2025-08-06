@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 import posixpath
 from pathlib import Path
@@ -34,10 +33,9 @@ from isaac_toolkit.session.artifact import (
     filter_artifacts,
     InstrTraceArtifact,
 )
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def trunc_trace(
@@ -48,6 +46,7 @@ def trunc_trace(
     end_func: Optional[str] = None,
     force: bool = False,
 ):
+    logger.info("Truncating trace...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
@@ -149,6 +148,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     trunc_trace(
         sess,
         start_pc=args.start_pc,

@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -26,15 +25,13 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 # TODO: share with other pie scripts
-def plot_pie_data(
-    series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True
-):
+def plot_pie_data(series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True):
 
     def make_autopct(values):
         def my_autopct(pct):
@@ -81,6 +78,7 @@ def create_disass_counts_pie_plots(
     legend: bool = True,
     force: bool = False,
 ):
+    logger.info("Visualizing static (disass) counts via pie charts...")
     artifacts = sess.artifacts
     # TODO: allow missing files!
     disass_instrs_hist_artifacts = filter_artifacts(
@@ -108,9 +106,7 @@ def create_disass_counts_pie_plots(
     # TODO: use threshold
 
     if disass_instrs_hist_df is not None:
-        pie_data = generate_pie_data(
-            disass_instrs_hist_df, x="instr", y="rel_count", topk=topk
-        )
+        pie_data = generate_pie_data(disass_instrs_hist_df, x="instr", y="rel_count", topk=topk)
         pie_plot = plot_pie_data(
             pie_data,
             "rel_count",
@@ -128,9 +124,7 @@ def create_disass_counts_pie_plots(
         )
         plt.close()
     if disass_opcodes_hist_df is not None:
-        pie_data = generate_pie_data(
-            disass_opcodes_hist_df, x="opcode", y="rel_count", topk=topk
-        )
+        pie_data = generate_pie_data(disass_opcodes_hist_df, x="opcode", y="rel_count", topk=topk)
         pie_plot = plot_pie_data(
             pie_data,
             "rel_count",
@@ -154,6 +148,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     create_disass_counts_pie_plots(
         sess,
         threshold=args.threshold,

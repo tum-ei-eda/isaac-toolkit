@@ -1,11 +1,10 @@
-import logging
 from pathlib import Path
 
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot
+from isaac_toolkit.logging import get_logger
 
-
-logger = logging.getLogger("graph_utils")
+logger = get_logger()
 
 
 def graph_to_file(graph, dest, fmt="auto"):
@@ -36,7 +35,9 @@ def memgraph_to_nx(results):
         else:
             label = "?!"
         name = node._properties.get("name", "?")
-        graph.add_node(int(node.element_id), key=int(node.element_id), xlabel=label, label=name, properties=node._properties)
+        graph.add_node(
+            int(node.element_id), key=int(node.element_id), xlabel=label, label=name, properties=node._properties
+        )
 
     rels = list(results.graph()._relationships.values())
     for rel in rels:
@@ -74,7 +75,7 @@ def calc_inputs(G, sub):
             # print("src", src, G.nodes[src].get("label"))
             # print("src in sub_nodes", src in sub_nodes)
             # print("src not in inputs", src not in inputs)
-            op_type = G.nodes[src]["properties"]["op_type"]
+            # op_type = G.nodes[src]["properties"]["op_type"]
             if not (src in sub_nodes) and (src not in inputs):
                 # print("IN")
                 if G.nodes[src]["properties"]["op_type"] == "constant":

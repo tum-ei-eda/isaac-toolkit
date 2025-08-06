@@ -18,7 +18,6 @@
 #
 import sys
 import yaml
-import logging
 import argparse
 import subprocess
 from typing import Optional, Union
@@ -35,9 +34,9 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
 from isaac_toolkit.utils.graph_utils import memgraph_to_nx
 from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("llvm_bbs")
+logger = get_logger()
 
 
 def get_unique_maxmisos(maxmisos):
@@ -63,15 +62,15 @@ def get_unique_maxmisos(maxmisos):
                 isos_map[i].append(j)
                 covered.add(j)
 
-    print("isos_map", isos_map, len(isos_map))
+    logger.debug("isos_map", isos_map, len(isos_map))
     isos_size = {k: len(v) for k, v in isos_map.items()}
-    print("isos_size", isos_size)
-    print("covered", covered, len(covered))
+    logger.debug("isos_size", isos_size)
+    logger.debug("covered", covered, len(covered))
     non_isos = [i for i in range(len(maxmisos)) if i not in covered]
-    print("non_isos", non_isos, len(non_isos))
+    logger.debug("non_isos", non_isos, len(non_isos))
     unique_maxmisos = [maxmisos[i] for i in non_isos]
     duplicate_maxmisos = [maxmisos[i] for i in covered]
-    print("unique_maxmisos", list(map(str, unique_maxmisos)))
+    logger.debug("unique_maxmisos", list(map(str, unique_maxmisos)))
     factors = [isos_size.get(i, 1) for i in non_isos]
     return unique_maxmisos, factors, duplicate_maxmisos
 
@@ -159,12 +158,13 @@ def query_candidates_from_db(
     topk: Optional[int] = None,
     partition_with_maxmiso: Union[str, bool] = "auto",
 ):
+    logger.info("Querying candidates from DB...")
     artifacts = sess.artifacts
     choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
     assert len(choices_artifacts) == 1
     choices_artifact = choices_artifacts[0]
     choices_df = choices_artifact.df
-    print("choices_df", choices_df)
+    logger.debug("choices_df", choices_df)
     if workdir is None:
         raise NotImplementedError("automatic workdir not supported yet!")
     if isinstance(workdir, str):
@@ -181,13 +181,13 @@ def query_candidates_from_db(
         funcs_df["bb_name"] = None
         choices_df = funcs_df
 
-    print("choices_df", choices_df)
+    logger.debug("choices_df", choices_df)
 
     combined_query_metrics_df = pd.DataFrame()
     missing_bb_ids = set()
     for index, row in choices_df.iterrows():
-        # print("index", index)
-        # print("row", row)
+        # logger.debug("index", index)
+        # logger.debug("row", row)
         # if index != 1:
         #     continue
         # input(">")
@@ -195,8 +195,8 @@ def query_candidates_from_db(
         bb_name = row["bb_name"]
         rel_weight = row["rel_weight"]
         num_instrs = row["num_instrs"]
-        print("func_name", func_name)
-        print("bb_name", bb_name)
+        logger.debug("func_name", func_name)
+        logger.debug("bb_name", bb_name)
 
         bbs_query = get_bbs_query(label, stage, func_name)
 
@@ -210,16 +210,16 @@ def query_candidates_from_db(
         session = driver.session()
         try:
             func_query = get_func_query(label, stage, func_name)
-            # print("func_query", func_query)
+            # logger.debug("func_query", func_query)
             func_results = session.run(func_query)
             func = memgraph_to_nx(func_results)
-            # print("func", func)
+            # logger.debug("func", func)
             # input(">>")
             bbs_results = session.run(bbs_query)
             bbs_df = bbs_results.to_df()
         finally:
             session.close()
-        # print("bbs_df", bbs_df)
+        # logger.debug("bbs_df", bbs_df)
         # input(">")
         bb_id = int(bb_name.split(".", 1)[1])
         assert len(bbs_df) > 0
@@ -238,11 +238,11 @@ def query_candidates_from_db(
             partition_with_maxmiso = num_instrs > num_instrs_threshold
         if partition_with_maxmiso:
             bb_nodes = [node for node in func.nodes if func.nodes[node]["properties"]["bb_id"] == bb_id]
-            # print("bb_nodes", bb_nodes)
+            # logger.debug("bb_nodes", bb_nodes)
             bb = func.subgraph(bb_nodes)
-            # print("bb", bb)
+            # logger.debug("bb", bb)
             maxmisos = maxmiso_algo(bb)
-            # print("maxmisos", maxmisos)
+            # logger.debug("maxmisos", maxmisos)
             # input(">")
             unique_maxmisos, factors, duplicate_maxmisos = get_unique_maxmisos(maxmisos)
             # TODO: write maxmisos to file?
@@ -268,12 +268,12 @@ def query_candidates_from_db(
                     factor = factors[i]
                     query = get_update_nodes_query(total_idx, node_ids, factor=factor)
                     maxmiso_idxs.append(total_idx)
-                    # print("query", query)
+                    # logger.debug("query", query)
                     _ = session.run(query)
-                    # print("results3", results3)
+                    # logger.debug("results3", results3)
                     remaining_nodes -= set(node_ids)
                     total_idx += 1
-                print("remaining_nodes", remaining_nodes)
+                logger.debug("remaining_nodes", remaining_nodes)
                 if len(remaining_nodes) > 0:
                     query = get_update_nodes_query(total_idx, list(remaining_nodes), factor=1)
                     _ = session.run(query)
@@ -284,7 +284,7 @@ def query_candidates_from_db(
 
         out_name = f"{func_name}_{bb_name}_0"
         out_dir = workdir / out_name
-        print("out_dir", out_dir)
+        logger.debug("out_dir", out_dir)
         out_dir.mkdir(exist_ok=True)
         index_file = out_dir / "index.yml"
         index_files.append(index_file)
@@ -392,7 +392,7 @@ def query_candidates_from_db(
             maxmiso_idxs_str = ",".join(map(str, maxmiso_idxs))
             args += ["--maxmisos", maxmiso_idxs_str]
         # args += ["--help"]
-        print(">", " ".join(map(str, args)))
+        logger.debug(">", " ".join(map(str, args)))
         subprocess.run(args, check=True)
         query_metrics_file = out_dir / "query_metrics.csv"
         query_metrics_df = pd.read_csv(query_metrics_file)
@@ -429,7 +429,7 @@ def query_candidates_from_db(
     combine_args += ["--sankey", sankey_diagram_file]
     overlaps_file = workdir / "overlaps.csv"
     combine_args += ["--overlaps", overlaps_file]
-    # print("combine_args", combine_args)
+    # logger.debug("combine_args", combine_args)
     subprocess.run(combine_args, check=True)
 
     # TODO: index and cdsl should use the same instruction names?
@@ -461,7 +461,7 @@ def query_candidates_from_db(
         for i, candidate in enumerate(combined_index_data["candidates"])
     }
     names_df["num_fused_instrs"] = names_df["instr"].apply(lambda x: name2num_fused_instrs[x])
-    # print("names_df", names_df)
+    # logger.debug("names_df", names_df)
     # input(">>>")
     attrs = {}
     ise_instrs_artifact = TableArtifact("ise_instrs", names_df, attrs=attrs)
@@ -496,9 +496,9 @@ def query_candidates_from_db(
     #     "tool.gen.fuse_cdsl",
     #     *generate_args,
     # ]
-    # print("generate_cdsl_args", generate_cdsl_args)
-    # print("generate_flat_args", generate_flat_args)
-    # print("generate_fuse_cdsl_args", generate_fuse_cdsl_args)
+    # logger.debug("generate_cdsl_args", generate_cdsl_args)
+    # logger.debug("generate_flat_args", generate_flat_args)
+    # logger.debug("generate_fuse_cdsl_args", generate_fuse_cdsl_args)
     # subprocess.run(generate_cdsl_args, check=True)
     # subprocess.run(generate_flat_args, check=True)
     # subprocess.run(generate_fuse_cdsl_args, check=True)
@@ -509,6 +509,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     query_candidates_from_db(
         sess,
         workdir=args.workdir,

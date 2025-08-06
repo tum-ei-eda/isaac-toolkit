@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -26,15 +25,13 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 # TODO: share with other pie scripts
-def plot_pie_data(
-    series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True
-):
+def plot_pie_data(series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True):
 
     def make_autopct(values):
         def my_autopct(pct):
@@ -74,12 +71,8 @@ def generate_pie_data(df, x: str, y: str, topk: int = 9):
 
 
 # TODO: share with other pie scripts
-def agg_library_runtime(
-    runtime_df, symbol_map_df, by: str = "library", col: str = "rel_weight"
-):
-    ret = runtime_df.set_index("func_name").join(
-        symbol_map_df.set_index("symbol"), how="left"
-    )
+def agg_library_runtime(runtime_df, symbol_map_df, by: str = "library", col: str = "rel_weight"):
+    ret = runtime_df.set_index("func_name").join(symbol_map_df.set_index("symbol"), how="left")
     ret = ret[[by, col]]
     ret = ret.groupby(by, as_index=False, dropna=False).sum()
     return ret
@@ -93,11 +86,10 @@ def create_runtime_pie_plots(
     legend: bool = True,
     force: bool = False,
 ):
+    logger.info("Visualizing runtime via pie chars...")
     artifacts = sess.artifacts
     # TODO: allow missing files!
-    pc2bb_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
-    )
+    pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")
     assert len(pc2bb_artifacts) == 1
     pc2bb_artifact = pc2bb_artifacts[0]
     pc2bb_df = pc2bb_artifact.df
@@ -158,9 +150,7 @@ def create_runtime_pie_plots(
         runtime_df["func_name"] = runtime_df["func_name"].apply(helper)
         runtime_df = runtime_df[["func_name", "rel_weight"]]
         runtime_df = runtime_df.groupby("func_name", as_index=False, dropna=False).sum()
-        runtime_per_func_data = generate_pie_data(
-            runtime_df, x="func_name", y="rel_weight", topk=topk
-        )
+        runtime_per_func_data = generate_pie_data(runtime_df, x="func_name", y="rel_weight", topk=topk)
         runtime_per_func_plot = plot_pie_data(
             runtime_per_func_data,
             "rel_weight",
@@ -178,12 +168,8 @@ def create_runtime_pie_plots(
         )
         plt.close()
         if llvm_bbs_df is not None:
-            llvm_bbs_df["func_bb"] = (
-                llvm_bbs_df["func_name"] + "-" + llvm_bbs_df["bb_name"]
-            )
-            runtime_per_llvm_bb_data = generate_pie_data(
-                llvm_bbs_df, x="func_bb", y="rel_weight", topk=topk
-            )
+            llvm_bbs_df["func_bb"] = llvm_bbs_df["func_name"] + "-" + llvm_bbs_df["bb_name"]
+            runtime_per_llvm_bb_data = generate_pie_data(llvm_bbs_df, x="func_bb", y="rel_weight", topk=topk)
             runtime_per_llvm_bb_plot = plot_pie_data(
                 runtime_per_llvm_bb_data,
                 "rel_weight",
@@ -202,12 +188,8 @@ def create_runtime_pie_plots(
             plt.close()
         if symbol_map_df is not None:
             # library
-            library_runtime_df = agg_library_runtime(
-                runtime_df, symbol_map_df, by="library", col="rel_weight"
-            )
-            runtime_per_library_data = generate_pie_data(
-                library_runtime_df, x="library", y="rel_weight", topk=topk
-            )
+            library_runtime_df = agg_library_runtime(runtime_df, symbol_map_df, by="library", col="rel_weight")
+            runtime_per_library_data = generate_pie_data(library_runtime_df, x="library", y="rel_weight", topk=topk)
             runtime_per_library_plot = plot_pie_data(
                 runtime_per_library_data,
                 "rel_weight",
@@ -225,12 +207,8 @@ def create_runtime_pie_plots(
             )
             plt.close()
             # object
-            object_runtime_df = agg_library_runtime(
-                runtime_df, symbol_map_df, by="object", col="rel_weight"
-            )
-            runtime_per_object_data = generate_pie_data(
-                object_runtime_df, x="object", y="rel_weight", topk=topk
-            )
+            object_runtime_df = agg_library_runtime(runtime_df, symbol_map_df, by="object", col="rel_weight")
+            runtime_per_object_data = generate_pie_data(object_runtime_df, x="object", y="rel_weight", topk=topk)
             runtime_per_object_plot = plot_pie_data(
                 runtime_per_object_data,
                 "rel_weight",
@@ -248,9 +226,7 @@ def create_runtime_pie_plots(
             )
             plt.close()
     if instrs_hist_df is not None:
-        instrs_hist_data = generate_pie_data(
-            instrs_hist_df, x="instr", y="rel_count", topk=topk
-        )
+        instrs_hist_data = generate_pie_data(instrs_hist_df, x="instr", y="rel_count", topk=topk)
         instrs_hist_plot = plot_pie_data(
             instrs_hist_data,
             "rel_count",
@@ -268,9 +244,7 @@ def create_runtime_pie_plots(
         )
         plt.close()
     if opcodes_hist_df is not None:
-        opcodes_hist_data = generate_pie_data(
-            opcodes_hist_df, x="opcode", y="rel_count", topk=topk
-        )
+        opcodes_hist_data = generate_pie_data(opcodes_hist_df, x="opcode", y="rel_count", topk=topk)
         opcodes_hist_plot = plot_pie_data(
             opcodes_hist_data,
             "rel_count",
@@ -303,6 +277,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     create_runtime_pie_plots(
         sess,
         threshold=args.threshold,

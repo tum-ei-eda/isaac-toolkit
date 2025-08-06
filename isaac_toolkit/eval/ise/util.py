@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -25,9 +24,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TableArtifact, filter_artifacts, ArtifactFlag
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("ise_util")
+logger = get_logger()
 
 
 # TODO: get names from artifacts?
@@ -38,6 +37,7 @@ def check_util(
     force: bool = False,
     # names_csv: str = None,
 ):
+    logger.info("Checking ISE utilization...")
     artifacts = sess.artifacts
 
     # instruction names
@@ -393,6 +393,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     check_util(
         sess,
         force=args.force,

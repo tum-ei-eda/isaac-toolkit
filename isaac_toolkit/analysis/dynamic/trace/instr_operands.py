@@ -18,7 +18,6 @@
 #
 import re
 import sys
-import logging
 import argparse
 from typing import Optional
 from math import ceil, log2
@@ -30,9 +29,9 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def collect_operands(trace_df):
@@ -71,6 +70,7 @@ def analyze_instr_operands(
     filter_instrs: Optional[str] = None,
     filter_operands: Optional[str] = None,
 ):
+    logger.info("Analyzing instruction operands...")
     artifacts = sess.artifacts
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
@@ -284,6 +284,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     analyze_instr_operands(
         sess,
         force=args.force,

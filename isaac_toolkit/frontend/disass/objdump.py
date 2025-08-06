@@ -25,9 +25,13 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, DisassArtifact, TableArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
+
+logger = get_logger()
 
 
 def load_disass(sess: Session, input_file: Path, force: bool = False):
+    logger.info("Loading Disassembly...")
     assert input_file.is_file()
     name = input_file.name
     attrs = {
@@ -84,6 +88,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     input_file = Path(args.file)
     load_disass(sess, input_file, force=args.force)
     sess.save()

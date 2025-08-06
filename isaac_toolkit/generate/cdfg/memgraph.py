@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 import subprocess
 from pathlib import Path
@@ -26,9 +25,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def get_command_for_file(compile_commands_df: pd.DataFrame, file: str):
@@ -48,6 +47,7 @@ def generate_memgraph_cdfg_via_compile_commands(
     stage: int = 32,
     force: bool = False,
 ):
+    logger.info("Generating Memgraph CDFG via compile commands...")
     artifacts = sess.artifacts
     choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
     assert len(choices_artifacts) == 1
@@ -89,6 +89,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     generate_memgraph_cdfg_via_compile_commands(sess, label=args.label, stage=args.stage, force=args.force)
     sess.save()
 

@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 import posixpath
 from pathlib import Path
@@ -28,10 +27,9 @@ from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
@@ -71,6 +69,7 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
 
 
 def track_unused_functions(sess: Session, force: bool = False):
+    logger.info("Tracking unused functions...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
@@ -107,6 +106,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     track_unused_functions(sess, force=args.force)
     sess.save()
 

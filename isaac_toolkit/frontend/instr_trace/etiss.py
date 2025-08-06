@@ -26,6 +26,9 @@ from tqdm import tqdm
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import InstrTraceArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
+
+logger = get_logger()
 
 
 # TODO: logger
@@ -34,6 +37,7 @@ from isaac_toolkit.session.artifact import InstrTraceArtifact
 def load_instr_trace(
     sess: Session, input_file: Path, force: bool = False, operands: bool = False
 ):
+    logger.info("Loading ETISS intruction trace...")
     assert input_file.is_file()
     name = input_file.name
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
@@ -113,6 +117,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     input_file = Path(args.file)
     load_instr_trace(sess, input_file, force=args.force, operands=args.operands)
     sess.save()

@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from typing import Optional
 from pathlib import Path
@@ -26,9 +25,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("compare_sess")
+logger = get_logger()
 
 
 # TODO: share codes
@@ -50,6 +49,7 @@ def compare_with_sess(
     other_sess: Session,
     force: bool = False,
 ):
+    logger.info("Comparing ISEs between sessions...")
     artifacts = sess.artifacts
     artifacts_ = other_sess.artifacts
     pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")
@@ -397,6 +397,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     assert args.with_session is not None
     session_dir_ = Path(args.with_session)
     assert session_dir_.is_dir(), f"Session dir does not exist: {session_dir}"

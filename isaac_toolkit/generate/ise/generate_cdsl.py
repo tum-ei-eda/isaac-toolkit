@@ -35,9 +35,9 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
 from isaac_toolkit.utils.graph_utils import memgraph_to_nx
 from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("generate_cdsl")
+logger = get_logger()
 
 
 def generate_cdsl(
@@ -47,6 +47,7 @@ def generate_cdsl(
     gen_dir: Optional[Union[str, Path]] = None,
     force: bool = False,
 ):
+    logger.info("Generating CDSL...")
     combined_index_file = workdir / "combined_index.yml" if index_file is None else Path(index_file)
     assert combined_index_file.is_file()
     # with open(combined_index_file, "r") as f:
@@ -94,6 +95,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     generate_cdsl(
         sess,
         workdir=args.workdir,

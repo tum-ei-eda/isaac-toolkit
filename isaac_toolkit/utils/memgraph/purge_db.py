@@ -27,6 +27,9 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
+
+logger = get_logger()
 
 
 def handle(args):
@@ -34,6 +37,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     # override = args.force
     memgraph_config = sess.config.memgraph
     hostname = memgraph_config.hostname
@@ -41,6 +45,7 @@ def handle(args):
     user = memgraph_config.user
     password = memgraph_config.password
     # TODO: database?
+    logger.info("Purging Memgraph DB...")
 
     driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
     try:

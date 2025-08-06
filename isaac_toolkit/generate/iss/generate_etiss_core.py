@@ -18,7 +18,6 @@
 #
 import sys
 import yaml
-import logging
 import pickle
 import argparse
 from typing import Optional, Union, List
@@ -33,9 +32,9 @@ from m2isar.backends.coredsl2_set.writer import gen_cdsl_code
 from m2isar.transforms.encode_instructions.encoder import encode_instructions
 
 from isaac_toolkit.session import Session
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("llvm_bbs")
+logger = get_logger()
 
 
 def get_cdsl_sets(ext: str, xlen: int = 32, compressed: bool = False):
@@ -172,6 +171,7 @@ def generate_etiss_core(
     extra_includes: Optional[List[Union[str, Path]]] = None,
     add_mnemonic_prefix: bool = False,
 ):
+    logger.info("Generating ETISS core...")
     # artifacts = sess.artifacts
     # TODO: get combined_index.yml from artifacts!
     assert workdir is not None
@@ -435,6 +435,7 @@ def handle(args):
         session_dir = Path(args.session)
         assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
         sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     generate_etiss_core(
         sess,
         force=args.force,

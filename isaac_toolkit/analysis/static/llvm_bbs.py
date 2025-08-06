@@ -19,7 +19,6 @@
 import io
 import sys
 import leb128
-import logging
 import argparse
 import posixpath
 from pathlib import Path
@@ -33,9 +32,9 @@ from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV32, CS_MODE_RISCV64, CS_MOD
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("llvm_bbs")
+logger = get_logger()
 
 
 def parse_elf(elf_path):
@@ -182,13 +181,13 @@ def parse_elf(elf_path):
                 PRINT_MISSING = True
                 if bbs is None:
                     if PRINT_MISSING:
-                        print("> no bb addr info found")
+                        logger.debug("> no bb addr info found")
                     continue
                 if GISEL:
                     bbs = dict(sorted(bbs.items(), key=lambda x: int(x[0]))).values()
                 for i, bb in enumerate(bbs):
                     start, end, sz, num_instrs = bb
-                    print(
+                    logger.debug(
                         f"> bb{i}",
                         ":",
                         hex(start),
@@ -196,11 +195,12 @@ def parse_elf(elf_path):
                         hex(end),
                         f"(len={sz}B, num={num_instrs})",
                     )
-                    print()
+                    # print()
     return llvm_bb_addr_map
 
 
 def analyze_llvm_bbs(sess: Session, force: bool = False):
+    logger.info("Analyzing LLVM BBs...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -331,6 +331,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     analyze_llvm_bbs(sess, force=args.force)
     sess.save()
 

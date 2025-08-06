@@ -16,13 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import logging
-from typing import Union, Optional
-from enum import IntFlag, auto
 from pathlib import Path
 
 import yaml
-import pandas as pd
 
 from .config import IsaacConfig, DEFAULT_CONFIG
 from .artifact import (
@@ -37,11 +33,9 @@ from .artifact import (
     PythonArtifact,
     filter_artifacts,
 )
+from isaac_toolkit.logging import get_logger, set_log_level, set_log_file
 
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("session")
-# logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 # def create_dirs(base, dirnames):
@@ -91,7 +85,7 @@ def load_artifacts(base):
         else:
             logger.warning("Unhandled artifact type!")
             artifact_ = FileArtifact.from_dict(artifact)
-            raise RuntimeError(f"Unhandled case!")
+            raise RuntimeError("Unhandled case!")
         artifacts_.append(artifact_)
     # TODO: check for duplicates
     # print("artifacts", artifacts)
@@ -111,11 +105,11 @@ class Session:
         return self._artifacts
 
     def add_artifact(self, artifact, override=False):
-        logger.info("Adding artifact to session")
+        logger.debug("Adding artifact to session")
         artifact_names = [x.name for x in self._artifacts]
         if artifact.name in artifact_names:
             if override:
-                logger.info("Overriding artifact")
+                logger.debug("Overriding artifact")
                 idx = artifact_names.index(artifact.name)
                 del self._artifacts[idx]
             else:
@@ -172,7 +166,8 @@ class Session:
         # self.config.validate()
 
     def save_artifacts(self):
-        logger.info("Saving artifacts...")
+        # print("save_artifacts")
+        logger.debug("Saving artifacts...")
         artifacts_ = []
         for artifact in self.artifacts:
             dest_dir = None
@@ -217,6 +212,7 @@ class Session:
             yaml.dump(yaml_data, f)
 
     def save(self):
+        # print("save")
         self.config.to_yaml_file(self.directory / "config.yml")
         self.save_artifacts()
 
@@ -225,13 +221,13 @@ class Session:
         if isinstance(session_dir, str):
             session_dir = Path(session_dir)
         assert isinstance(session_dir, Path)
-        assert (
-            session_dir.parent.is_dir()
-        ), f"Parent directory does not exist: {session_dir.parent}"
+        assert session_dir.parent.is_dir(), f"Parent directory does not exist: {session_dir.parent}"
         session_dir.mkdir()
         # create_dirs(session_dir, ["inputs", "outputs", "temp", "graphs", "tables"])
         config = IsaacConfig.from_dict(DEFAULT_CONFIG)
         sess = Session(session_dir, config)
+        log_file = session_dir / "session.log"
+        set_log_file(log_file)
         sess.save()
         return sess
 
@@ -244,6 +240,9 @@ class Session:
         config_file = session_dir / "config.yml"
         assert config_file.is_file(), f"Missing config file: {config_file}"
         config = IsaacConfig.from_yaml_file(config_file)
+        log_file = session_dir / "session.log"
+        set_log_file(log_file)
+        set_log_level(console_level=config.logging.console.level, file_level=config.logging.file.level)
         sess = Session(session_dir, config)
         sess.validate()
         sess.save()

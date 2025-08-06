@@ -27,12 +27,15 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
+
+logger = get_logger()
 
 
 def legalize_str(x):
-    # print("legalize_str", x, type(x))
+    # logger.debug("legalize_str", x, type(x))
     legalized = x.replace("/", "_")
-    # print("legalized", legalized)
+    # logger.debug("legalized", legalized)
     return legalized
 
 
@@ -48,12 +51,12 @@ def get_cfg_artifacts(driver, label: str = "default"):
     session = driver.session()
     try:
         results = session.run(query)
-        # print("results", results)
+        # logger.debug("results", results)
 
         G = nx.MultiDiGraph()
 
         nodes = list(results.graph()._nodes.values())
-        # print("nodes", nodes, len(nodes))
+        # logger.debug("nodes", nodes, len(nodes))
         module_func_nodes = {}
         for node in nodes:
             props = node._properties
@@ -84,8 +87,8 @@ def get_cfg_artifacts(driver, label: str = "default"):
                 type=rel.type,
                 properties=props,
             )
-        # print("G", G, dir(G))
-        # print("mfn", module_func_nodes)
+        # logger.debug("G", G, dir(G))
+        # logger.debug("mfn", module_func_nodes)
         ret = []
         for module_name, func_nodes in module_func_nodes.items():
             for func_name, nodes in func_nodes.items():
@@ -96,15 +99,13 @@ def get_cfg_artifacts(driver, label: str = "default"):
                     "module_name": module_name,
                     "func_name": func_name,
                 }
-                artifact = GraphArtifact(
-                    f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs
-                )
-                # print("artifact", artifact, dir(artifact), artifact.flags)
+                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
+                # logger.debug("artifact", artifact, dir(artifact), artifact.flags)
                 ret.append(artifact)
     finally:
         session.close()
 
-    # print("ret", ret)
+    # logger.debug("ret", ret)
     return ret
 
 
@@ -120,12 +121,12 @@ def get_dfg_artifacts(driver, label: str = "default"):
     session = driver.session()
     try:
         results = session.run(query)
-        # print("results", results)
+        # logger.debug("results", results)
 
         G = nx.MultiDiGraph()
 
         nodes = list(results.graph()._nodes.values())
-        # print("nodes", nodes, len(nodes))
+        # logger.debug("nodes", nodes, len(nodes))
         module_func_bb_nodes = {}
         for node in nodes:
             props = node._properties
@@ -159,8 +160,8 @@ def get_dfg_artifacts(driver, label: str = "default"):
                 type=rel.type,
                 properties=props,
             )
-        # print("G", G, dir(G))
-        # print("mfbn", module_func_bb_nodes)
+        # logger.debug("G", G, dir(G))
+        # logger.debug("mfbn", module_func_bb_nodes)
         ret = []
         for module_name, func_bb_nodes in module_func_bb_nodes.items():
             for func_name, bb_nodes in func_bb_nodes.items():
@@ -178,16 +179,17 @@ def get_dfg_artifacts(driver, label: str = "default"):
                         G_,
                         attrs=attrs,
                     )
-                    # print("artifact", artifact, dir(artifact), artifact.flags)
+                    # logger.debug("artifact", artifact, dir(artifact), artifact.flags)
                     ret.append(artifact)
     finally:
         session.close()
 
-    # print("ret", ret)
+    # logger.debug("ret", ret)
     return ret
 
 
 def load_cdfg(sess: Session, label: str = "default", force: bool = False):
+    logger.info("Loading LLVM CDFG...")
     memgraph_config = sess.config.memgraph
     hostname = memgraph_config.hostname
     port = memgraph_config.port
@@ -198,11 +200,11 @@ def load_cdfg(sess: Session, label: str = "default", force: bool = False):
     driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
     try:
         cfgs = get_cfg_artifacts(driver, label=label)
-        print("cfgs", cfgs)
+        logger.debug("cfgs", cfgs)
         for cfg in cfgs:
             sess.add_artifact(cfg, override=force)
         dfgs = get_dfg_artifacts(driver, label=label)
-        print("dfgs", dfgs)
+        logger.debug("dfgs", dfgs)
         for dfg in dfgs:
             sess.add_artifact(dfg, override=force)
     finally:
@@ -214,6 +216,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     load_cdfg(sess, label=args.label, force=args.force)
     sess.save()
 
