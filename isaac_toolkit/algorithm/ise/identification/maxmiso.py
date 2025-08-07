@@ -112,7 +112,10 @@ def maxmiso_algo(G):
                     for in_ in ins:
                         # print("in_", in_, G.nodes[in_[0]].get("label"))
                         src = in_[0]
-                        if not max_miso[topo.index(src)] and not inputs[topo.index(src)]:
+                        if (
+                            not max_miso[topo.index(src)]
+                            and not inputs[topo.index(src)]
+                        ):
                             ret += 1
                             inputs[topo.index(src)] = True
                 # print("ret", ret)
@@ -162,7 +165,9 @@ def maxmiso_algo(G):
     max_misos__ = [G.subgraph(max_miso) for max_miso in max_misos_]
     reverse_mapping = {v: k for k, v in mapping.items()}
     G = nx.relabel_nodes(G, reverse_mapping)
-    max_misos__ = [nx.relabel_nodes(max_miso, reverse_mapping) for max_miso in max_misos__]
+    max_misos__ = [
+        nx.relabel_nodes(max_miso, reverse_mapping) for max_miso in max_misos__
+    ]
     # print("max_misos__", max_misos__)
     # for i, mig in enumerate(max_misos__):
     #     print("i,mig", i, mig)
@@ -209,8 +214,14 @@ def handle(args):
             # TODO: module_name
             view = nx.subgraph_view(
                 G,
-                filter_node=lambda node: (bb_name is None or G.nodes[node]["properties"].get("basic_block") == bb_name)
-                and (func_name is None or G.nodes[node]["properties"].get("func_name") == func_name)
+                filter_node=lambda node: (
+                    bb_name is None
+                    or G.nodes[node]["properties"].get("basic_block") == bb_name
+                )
+                and (
+                    func_name is None
+                    or G.nodes[node]["properties"].get("func_name") == func_name
+                )
                 and "%bb" not in G.nodes[node].get("label"),
             )
             G_ = G.subgraph([node for node in view.nodes])

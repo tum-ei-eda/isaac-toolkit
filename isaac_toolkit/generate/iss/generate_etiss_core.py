@@ -183,7 +183,9 @@ def generate_etiss_core(
     core_out_model_file = gen_dir / f"{core_name}.m2isarmodel"
     core_out_cdsl_file = gen_dir / f"{core_name}.core_desc"
     if index_files is None:
-        combined_index_file = workdir / "combined_index.yml"  # if index_file is None else Path(index_file)
+        combined_index_file = (
+            workdir / "combined_index.yml"
+        )  # if index_file is None else Path(index_file)
         index_files = [combined_index_file]
     else:
         assert isinstance(index_files, list)
@@ -225,7 +227,9 @@ def generate_etiss_core(
     core_includes_code = get_includes_code(core_includes)
     constants = {}
     memories = {}
-    constants["XLEN"] = m2isar.metamodel.arch.Constant("XLEN", value=xlen, attributes={}, size=None, signed=False)
+    constants["XLEN"] = m2isar.metamodel.arch.Constant(
+        "XLEN", value=xlen, attributes={}, size=None, signed=False
+    )
     # if ignore_etiss:
     if True:
         main_reg = m2isar.metamodel.arch.Memory(
@@ -284,7 +288,8 @@ def generate_etiss_core(
         instr_sets = [
             instr_set
             for instr_set in instr_sets
-            if len(instr_set.instructions) > 0 or len(instr_set.unencoded_instructions) > 0
+            if len(instr_set.instructions) > 0
+            or len(instr_set.unencoded_instructions) > 0
         ]
         # print("instr_sets", instr_sets)
         if len(instr_sets) == 1:
@@ -306,7 +311,9 @@ def generate_etiss_core(
             # name_idx += 1
             # instr_def.name = name
             # instr_def.mnemonic = name.lower()
-            assert name not in unencoded_instructions_per_set, f"Duplicate instrustion name: {name}"
+            assert (
+                name not in unencoded_instructions_per_set
+            ), f"Duplicate instrustion name: {name}"
             unencoded_instructions_per_set[set_name][name] = instr_def
         # contributing_types.append(set_name_)
         # break  # TODO
@@ -316,7 +323,10 @@ def generate_etiss_core(
         unencoded_instructions_ = list(unencoded_instructions.values())
         encoded_instructions_ = encode_instructions(unencoded_instructions_)
         # print("encoded_instructions_", encoded_instructions_, len(encoded_instructions_))
-        encoded_instructions = {(instr_def.code, instr_def.mask): instr_def for instr_def in encoded_instructions_}
+        encoded_instructions = {
+            (instr_def.code, instr_def.mask): instr_def
+            for instr_def in encoded_instructions_
+        }
         # print("encoded_instructions", encoded_instructions, len(encoded_instructions))
         instructions_per_set[set_name] = encoded_instructions
         contributing_types.append(set_name)
@@ -453,7 +463,9 @@ def handle(args):
         base_dir=args.base_dir,
         tum_dir=args.tum_dir,
         skip_errors=args.skip_errors,
-        extra_includes=args.extra_includes.split(";") if args.extra_includes is not None else None,
+        extra_includes=(
+            args.extra_includes.split(";") if args.extra_includes is not None else None
+        ),
         add_mnemonic_prefix=args.add_mnemonic_prefix,
     )
     if sess is not None:
@@ -483,7 +495,9 @@ def get_parser():
     parser.add_argument("--split", action="store_true")
     parser.add_argument("--base-dir", type=str, default="rv_base")
     parser.add_argument("--tum-dir", type=str, default=".")
-    parser.add_argument("--extra-includes", type=str, default=None)  # semicolon separated
+    parser.add_argument(
+        "--extra-includes", type=str, default=None
+    )  # semicolon separated
     parser.add_argument("--skip-errors", action="store_true")
     parser.add_argument("--add-mnemonic-prefix", action="store_true")
 

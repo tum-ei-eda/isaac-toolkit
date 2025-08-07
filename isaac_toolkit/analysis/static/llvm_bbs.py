@@ -118,7 +118,9 @@ def parse_elf(elf_path):
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     # print("features", features)
                     assert features == 0
-                    func_addr = int.from_bytes(reader.read(addr_bytes), byteorder="little")
+                    func_addr = int.from_bytes(
+                        reader.read(addr_bytes), byteorder="little"
+                    )
                     # print("func_addr", func_addr)
                     func_name = addr_to_func.get(func_addr, None)
                     # print("func_name", func_name)

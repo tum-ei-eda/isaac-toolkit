@@ -45,7 +45,9 @@ def check_ise_potential_per_llvm_bb(
 ):
     logger.info("Checking ISE potential per LLVM BB...")
     artifacts = sess.artifacts
-    opcodes_hist_artifacts = filter_artifacts(artifacts, lambda x: x.name == "opcodes_per_llvm_bb_hist")
+    opcodes_hist_artifacts = filter_artifacts(
+        artifacts, lambda x: x.name == "opcodes_per_llvm_bb_hist"
+    )
     assert len(opcodes_hist_artifacts) == 1
     opcodes_hist_artifact = opcodes_hist_artifacts[0]
 
@@ -62,13 +64,17 @@ def check_ise_potential_per_llvm_bb(
     )
 
     dfs = []
-    for group, opcodes_hist_df in opcodes_per_llvm_bb_hist_df.groupby(["func_name", "bb_name"]):
+    for group, opcodes_hist_df in opcodes_per_llvm_bb_hist_df.groupby(
+        ["func_name", "bb_name"]
+    ):
         func_name, bb_name = group
         # print("func_name", func_name)
         # print("bb_name", bb_name)
         # print("opcodes_hist_df")
         print(opcodes_hist_df)
-        ise_potential_df = get_ise_potential_df(opcodes_hist_df, unsupported_opcodes, min_supported)
+        ise_potential_df = get_ise_potential_df(
+            opcodes_hist_df, unsupported_opcodes, min_supported
+        )
         ise_potential_df.insert(0, "func_name", func_name)
         ise_potential_df.insert(1, "bb_name", bb_name)
         # print("ise_potential_df")
@@ -83,7 +89,9 @@ def check_ise_potential_per_llvm_bb(
         "by": __name__,
     }
 
-    artifact = TableArtifact("ise_potential_per_llvm_bb", ise_potential_per_llvm_bb_df, attrs=attrs)
+    artifact = TableArtifact(
+        "ise_potential_per_llvm_bb", ise_potential_per_llvm_bb_df, attrs=attrs
+    )
     sess.add_artifact(artifact, override=force)
 
 

@@ -35,7 +35,11 @@ logger = get_logger()
 
 
 def load_instr_trace(
-    sess: Session, input_file: Path, force: bool = False, operands: bool = False
+    sess: Session,
+    input_file: Path,
+    force: bool = False,
+    operands: bool = False,
+    progress: bool = False,
 ):
     logger.info("Loading Spike instruction trace...")
     assert input_file.is_file()
@@ -43,7 +47,7 @@ def load_instr_trace(
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
     with pd.read_csv(input_file, sep="@", header=None, chunksize=2**22) as reader:
-        for df in tqdm(reader, disable=False):
+        for df in tqdm(reader, disable=not progress):
             df = df[df[0].str.contains(" \(0x")]
             df[["core", "rest"]] = df[0].str.split(":", n=1, expand=True)
             df.drop(columns=[0], inplace=True)
@@ -101,7 +105,13 @@ def handle(args):
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
     input_file = Path(args.file)
-    load_instr_trace(sess, input_file, force=args.force, operands=args.operands)
+    load_instr_trace(
+        sess,
+        input_file,
+        force=args.force,
+        operands=args.operands,
+        progress=args.progress,
+    )
     sess.save()
 
 

@@ -73,7 +73,9 @@ def parse_elf(elf_path):
                 total_footprint += sz
             # print("total_footprint", total_footprint)
             # print("func_footprint", func_footprint)
-            footprint_df = pd.DataFrame(func_footprint.items(), columns=["func", "bytes"])
+            footprint_df = pd.DataFrame(
+                func_footprint.items(), columns=["func", "bytes"]
+            )
             footprint_df.sort_values("bytes", inplace=True, ascending=False)
             footprint_df["rel_bytes"] = footprint_df["bytes"] / total_footprint
             # print("footprint_df", footprint_df)

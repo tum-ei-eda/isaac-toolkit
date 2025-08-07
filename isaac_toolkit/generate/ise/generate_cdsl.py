@@ -48,7 +48,9 @@ def generate_cdsl(
     force: bool = False,
 ):
     logger.info("Generating CDSL...")
-    combined_index_file = workdir / "combined_index.yml" if index_file is None else Path(index_file)
+    combined_index_file = (
+        workdir / "combined_index.yml" if index_file is None else Path(index_file)
+    )
     assert combined_index_file.is_file()
     # with open(combined_index_file, "r") as f:
     #     index_data = yaml.safe_load(f)

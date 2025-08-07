@@ -99,7 +99,9 @@ def get_cfg_artifacts(driver, label: str = "default"):
                     "module_name": module_name,
                     "func_name": func_name,
                 }
-                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
+                artifact = GraphArtifact(
+                    f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs
+                )
                 # logger.debug("artifact", artifact, dir(artifact), artifact.flags)
                 ret.append(artifact)
     finally:

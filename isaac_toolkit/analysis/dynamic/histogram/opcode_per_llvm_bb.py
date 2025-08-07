@@ -41,7 +41,7 @@ def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
     trace_df = trace_artifact.df
 
     llvm_bbs_artifacts = filter_artifacts(
-          artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs"
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs"
     )  # TODO: optional or different pass
     assert len(llvm_bbs_artifacts) == 1
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
@@ -57,7 +57,12 @@ def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
         end = row["end"]
         # print("func_name", func_name)
         # print("bb_name", bb_name)
-        trace_df_ = trace_df.where(lambda x: x["pc"] >= start).dropna().where(lambda x: x["pc"] < end).dropna()
+        trace_df_ = (
+            trace_df.where(lambda x: x["pc"] >= start)
+            .dropna()
+            .where(lambda x: x["pc"] < end)
+            .dropna()
+        )
         if len(trace_df_) == 0:
             continue
         # print("trace_df_", trace_df_)

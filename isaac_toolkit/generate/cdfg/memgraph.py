@@ -49,19 +49,25 @@ def generate_memgraph_cdfg_via_compile_commands(
 ):
     logger.info("Generating Memgraph CDFG via compile commands...")
     artifacts = sess.artifacts
-    choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
+    choices_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices"
+    )
     assert len(choices_artifacts) == 1
     choices_artifact = choices_artifacts[0]
     choices_df = choices_artifact.df
     assert len(choices_df) > 0
 
     compile_commands_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.attrs.get("kind") == "compile_commands"
+        artifacts,
+        lambda x: x.flags & ArtifactFlag.TABLE
+        and x.attrs.get("kind") == "compile_commands",
     )
     assert len(compile_commands_artifacts) == 1
     compile_commands_artifact = compile_commands_artifacts[0]
     compile_commands_df = compile_commands_artifact.df
-    compile_commands_df["file_resolved"] = compile_commands_df["file"].apply(lambda x: Path(x).resolve())
+    compile_commands_df["file_resolved"] = compile_commands_df["file"].apply(
+        lambda x: Path(x).resolve()
+    )
 
     files = choices_df["file"].unique()
 
@@ -90,7 +96,9 @@ def handle(args):
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
-    generate_memgraph_cdfg_via_compile_commands(sess, label=args.label, stage=args.stage, force=args.force)
+    generate_memgraph_cdfg_via_compile_commands(
+        sess, label=args.label, stage=args.stage, force=args.force
+    )
     sess.save()
 
 

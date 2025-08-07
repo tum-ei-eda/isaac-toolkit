@@ -61,7 +61,9 @@ def choose_bbs(
     llvm_bbs_artifact = llvm_bbs_artifacts[0]
     llvm_bbs_df = llvm_bbs_artifact.df.copy()
     ise_potential_per_llvm_bb_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "ise_potential_per_llvm_bb"
+        artifacts,
+        lambda x: x.flags & ArtifactFlag.TABLE
+        and x.name == "ise_potential_per_llvm_bb",
     )
     ise_potential_per_llvm_bb_df = None
     if len(ise_potential_per_llvm_bb_artifacts) > 0:
@@ -96,12 +98,16 @@ def choose_bbs(
             ), "Run isaac_toolkit.generate.ise.check_ise_potential_per_llvm_bb first!"
 
             def lookup_supported(df, func_name, bb_name):
-                filtered = df[(df["func_name"] == func_name) & (df["bb_name"] == bb_name)]
+                filtered = df[
+                    (df["func_name"] == func_name) & (df["bb_name"] == bb_name)
+                ]
                 assert len(filtered) == 1
                 rel_supported_count = filtered["supported_rel_count"].iloc[0]
                 return rel_supported_count
 
-            rel_supported_count = lookup_supported(ise_potential_per_llvm_bb_df, func_name, bb_name)
+            rel_supported_count = lookup_supported(
+                ise_potential_per_llvm_bb_df, func_name, bb_name
+            )
             rel_supported_weight = rel_supported_count * rel_weight
             if rel_supported_weight < min_supported_weight:
                 continue

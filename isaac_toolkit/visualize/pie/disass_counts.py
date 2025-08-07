@@ -31,7 +31,9 @@ logger = get_logger()
 
 
 # TODO: share with other pie scripts
-def plot_pie_data(series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True):
+def plot_pie_data(
+    series, y, threshold: float = 0.1, title: str = "Pie Chart", legend: bool = True
+):
 
     def make_autopct(values):
         def my_autopct(pct):
@@ -106,7 +108,9 @@ def create_disass_counts_pie_plots(
     # TODO: use threshold
 
     if disass_instrs_hist_df is not None:
-        pie_data = generate_pie_data(disass_instrs_hist_df, x="instr", y="rel_count", topk=topk)
+        pie_data = generate_pie_data(
+            disass_instrs_hist_df, x="instr", y="rel_count", topk=topk
+        )
         pie_plot = plot_pie_data(
             pie_data,
             "rel_count",
@@ -124,7 +128,9 @@ def create_disass_counts_pie_plots(
         )
         plt.close()
     if disass_opcodes_hist_df is not None:
-        pie_data = generate_pie_data(disass_opcodes_hist_df, x="opcode", y="rel_count", topk=topk)
+        pie_data = generate_pie_data(
+            disass_opcodes_hist_df, x="opcode", y="rel_count", topk=topk
+        )
         pie_plot = plot_pie_data(
             pie_data,
             "rel_count",

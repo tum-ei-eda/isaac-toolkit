@@ -56,12 +56,16 @@ def check_util(
     # print("ise_instr_names", ise_instr_names)
 
     # static counts
-    disass_hist_artifacts = filter_artifacts(artifacts, lambda x: x.name == "disass_instrs_hist")
+    disass_hist_artifacts = filter_artifacts(
+        artifacts, lambda x: x.name == "disass_instrs_hist"
+    )
     assert len(disass_hist_artifacts) == 1
     disass_hist_artifact = disass_hist_artifacts[0]
     disass_hist_df = disass_hist_artifact.df
     # print("disass_hist_df", disass_hist_df)
-    disass_hist_custom_df = disass_hist_df[disass_hist_df["instr"].apply(lambda x: x.lower() in ise_instr_names)]
+    disass_hist_custom_df = disass_hist_df[
+        disass_hist_df["instr"].apply(lambda x: x.lower() in ise_instr_names)
+    ]
     # print("disass_hist_custom_df", disass_hist_custom_df)
     total_disass_instrs = disass_hist_df["count"].sum()
 
@@ -82,17 +86,26 @@ def check_util(
     # print("static_custom_count", static_custom_count_sum, static_custom_count_max)
 
     # dynamic counts
-    instrs_hist_artifacts = filter_artifacts(artifacts, lambda x: x.name == "instrs_hist")
+    instrs_hist_artifacts = filter_artifacts(
+        artifacts, lambda x: x.name == "instrs_hist"
+    )
     assert len(instrs_hist_artifacts) == 1
     instrs_hist_artifact = instrs_hist_artifacts[0]
     instrs_hist_df = instrs_hist_artifact.df
     # print("instrs_hist_df", instrs_hist_df)
-    instrs_hist_custom_df = instrs_hist_df[instrs_hist_df["instr"].apply(lambda x: x.lower() in ise_instr_names)]
+    instrs_hist_custom_df = instrs_hist_df[
+        instrs_hist_df["instr"].apply(lambda x: x.lower() in ise_instr_names)
+    ]
     # print("instrs_hist_custom_df", instrs_hist_custom_df)
     total_instrs = instrs_hist_df["count"].sum()
 
     merged_instrs_hist_custom_df = pd.merge(
-        ise_instrs_df, instrs_hist_custom_df, how="outer", left_on="instr_lower", right_on="instr", suffixes=("", "_y")
+        ise_instrs_df,
+        instrs_hist_custom_df,
+        how="outer",
+        left_on="instr_lower",
+        right_on="instr",
+        suffixes=("", "_y"),
     )
     # dynamic_count_sum = instrs_hist_df["count"].sum()
     # dynamic_count_max = instrs_hist_df["count"].max()
@@ -103,18 +116,24 @@ def check_util(
 
     # combine
     # TODO: move counts to counts.py?
-    merged_disass_hist_custom_df["estimated_reduction"] = merged_disass_hist_custom_df["count"] * (
-        merged_disass_hist_custom_df["num_fused_instrs"] - 1
-    )
+    merged_disass_hist_custom_df["estimated_reduction"] = merged_disass_hist_custom_df[
+        "count"
+    ] * (merged_disass_hist_custom_df["num_fused_instrs"] - 1)
     # TODO: consider instruction size to get memory footprints?
-    estimated_total_disass_reduction = merged_disass_hist_custom_df["estimated_reduction"].sum()
-    estimated_total_disass_without_ise = total_disass_instrs + estimated_total_disass_reduction
+    estimated_total_disass_reduction = merged_disass_hist_custom_df[
+        "estimated_reduction"
+    ].sum()
+    estimated_total_disass_without_ise = (
+        total_disass_instrs + estimated_total_disass_reduction
+    )
     rel_custom_count = merged_disass_hist_custom_df["rel_count"].sum()
     merged_disass_hist_custom_df["estimated_reduction_rel_scaled"] = (
-        merged_disass_hist_custom_df["estimated_reduction"] / estimated_total_disass_reduction
+        merged_disass_hist_custom_df["estimated_reduction"]
+        / estimated_total_disass_reduction
     )
     merged_disass_hist_custom_df["estimated_reduction_rel"] = (
-        merged_disass_hist_custom_df["estimated_reduction"] / estimated_total_disass_without_ise
+        merged_disass_hist_custom_df["estimated_reduction"]
+        / estimated_total_disass_without_ise
     )
     static_agg_df = pd.DataFrame(
         [
@@ -123,8 +142,12 @@ def check_util(
                 "count": merged_disass_hist_custom_df["count"].sum(),
                 "rel_count": merged_disass_hist_custom_df["rel_count"].sum(),
                 "estimated_reduction": estimated_total_disass_reduction,
-                "estimated_reduction_rel": merged_disass_hist_custom_df["estimated_reduction_rel"].sum(),
-                "estimated_reduction_rel_scaled": merged_disass_hist_custom_df["estimated_reduction_rel_scaled"].sum(),
+                "estimated_reduction_rel": merged_disass_hist_custom_df[
+                    "estimated_reduction_rel"
+                ].sum(),
+                "estimated_reduction_rel_scaled": merged_disass_hist_custom_df[
+                    "estimated_reduction_rel_scaled"
+                ].sum(),
             }
         ]
     )
@@ -145,17 +168,20 @@ def check_util(
     )
     merged_disass_hist_custom_df["used"] = merged_disass_hist_custom_df["count"] > 0
 
-    merged_instrs_hist_custom_df["estimated_reduction"] = merged_instrs_hist_custom_df["count"] * (
-        merged_instrs_hist_custom_df["num_fused_instrs"] - 1
-    )
-    estimated_total_reduction = merged_instrs_hist_custom_df["estimated_reduction"].sum()
+    merged_instrs_hist_custom_df["estimated_reduction"] = merged_instrs_hist_custom_df[
+        "count"
+    ] * (merged_instrs_hist_custom_df["num_fused_instrs"] - 1)
+    estimated_total_reduction = merged_instrs_hist_custom_df[
+        "estimated_reduction"
+    ].sum()
     estimated_total_instrs_without_ise = total_instrs + estimated_total_reduction
     rel_custom_count = merged_instrs_hist_custom_df["rel_count"].sum()
     merged_instrs_hist_custom_df["estimated_reduction_rel_scaled"] = (
         merged_instrs_hist_custom_df["estimated_reduction"] / estimated_total_reduction
     )
     merged_instrs_hist_custom_df["estimated_reduction_rel"] = (
-        merged_instrs_hist_custom_df["estimated_reduction"] / estimated_total_instrs_without_ise
+        merged_instrs_hist_custom_df["estimated_reduction"]
+        / estimated_total_instrs_without_ise
     )
     dynamic_agg_df = pd.DataFrame(
         [
@@ -164,8 +190,12 @@ def check_util(
                 "count": merged_instrs_hist_custom_df["count"].sum(),
                 "rel_count": rel_custom_count,
                 "estimated_reduction": estimated_total_reduction,
-                "estimated_reduction_rel": merged_instrs_hist_custom_df["estimated_reduction_rel"].sum(),
-                "estimated_reduction_rel_scaled": merged_instrs_hist_custom_df["estimated_reduction_rel_scaled"].sum(),
+                "estimated_reduction_rel": merged_instrs_hist_custom_df[
+                    "estimated_reduction_rel"
+                ].sum(),
+                "estimated_reduction_rel_scaled": merged_instrs_hist_custom_df[
+                    "estimated_reduction_rel_scaled"
+                ].sum(),
             }
         ]
     )
@@ -187,9 +217,14 @@ def check_util(
     merged_instrs_hist_custom_df["used"] = merged_instrs_hist_custom_df["count"] > 0
 
     ise_util_df = pd.merge(
-        merged_disass_hist_custom_df, merged_instrs_hist_custom_df, on="instr", suffixes=("_static", "_dynamic")
+        merged_disass_hist_custom_df,
+        merged_instrs_hist_custom_df,
+        on="instr",
+        suffixes=("_static", "_dynamic"),
     )
-    ise_util_df["used_only_static"] = ise_util_df["used_static"] & ~ise_util_df["used_dynamic"]
+    ise_util_df["used_only_static"] = (
+        ise_util_df["used_static"] & ~ise_util_df["used_dynamic"]
+    )
     n_instrs = len(ise_instrs_df)
     n_used_static = ise_util_df["used_static"].sum()
     n_used_dynamic = ise_util_df["used_dynamic"].sum()
@@ -208,12 +243,19 @@ def check_util(
         ]
     )
     ise_util_df = pd.concat(
-        [ise_util_agg_df, ise_util_df[["instr", "used_static", "used_dynamic", "used_only_static"]]]
+        [
+            ise_util_agg_df,
+            ise_util_df[["instr", "used_static", "used_dynamic", "used_only_static"]],
+        ]
     )
 
     attrs = {}
-    static_counts_custom_artifact = TableArtifact("static_counts_custom", static_counts_custom_df, attrs=attrs)
-    dynamic_counts_custom_artifact = TableArtifact("dynamic_counts_custom", dynamic_counts_custom_df, attrs=attrs)
+    static_counts_custom_artifact = TableArtifact(
+        "static_counts_custom", static_counts_custom_df, attrs=attrs
+    )
+    dynamic_counts_custom_artifact = TableArtifact(
+        "dynamic_counts_custom", dynamic_counts_custom_df, attrs=attrs
+    )
     ise_util_artifact = TableArtifact("ise_util", ise_util_df, attrs=attrs)
 
     sess.add_artifact(static_counts_custom_artifact, override=force)
@@ -247,14 +289,18 @@ def check_util(
     # plots_dir = sess.directory / "plots"
     # plots_dir.mkdir(exist_ok=True)
     # # TODO: use threshold
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     trace_df = trace_artifact.df.copy()
     trace_len = len(trace_df)
 
-    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
+    func2pc_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
+    )
     assert len(func2pc_artifacts) == 1
     func2pc_artifact = func2pc_artifacts[0]
     func2pc_df = func2pc_artifact.df.copy()
@@ -324,11 +370,17 @@ def check_util(
     }
     # print("func_ise_rel_counts", func_ise_rel_counts)
     dynamic_counts_custom_per_func_df = pd.DataFrame(
-        [{"func_name": func_name, **counts} for func_name, counts in func_ise_counts.items()]
+        [
+            {"func_name": func_name, **counts}
+            for func_name, counts in func_ise_counts.items()
+        ]
     ).fillna(0)
     # print("dynamic_counts_custom_per_func_df", dynamic_counts_custom_per_func_df)
     dynamic_rel_counts_custom_per_func_df = pd.DataFrame(
-        [{"func_name": func_name, **counts} for func_name, counts in func_ise_rel_counts.items()]
+        [
+            {"func_name": func_name, **counts}
+            for func_name, counts in func_ise_rel_counts.items()
+        ]
     ).fillna(0)
     # print("dynamic_rel_counts_custom_per_func_df", dynamic_rel_counts_custom_per_func_df)
 
@@ -336,7 +388,9 @@ def check_util(
         "dynamic_counts_custom_per_func", dynamic_counts_custom_per_func_df, attrs=attrs
     )
     dynamic_rel_counts_custom_per_func_artifact = TableArtifact(
-        "dynamic_rel_counts_custom_per_func", dynamic_rel_counts_custom_per_func_df, attrs=attrs
+        "dynamic_rel_counts_custom_per_func",
+        dynamic_rel_counts_custom_per_func_df,
+        attrs=attrs,
     )
 
     sess.add_artifact(dynamic_counts_custom_per_func_artifact, override=force)
@@ -349,7 +403,9 @@ def check_util(
     disass_len = len(disass_df)
     CUSTOM_ONLY = True
     if CUSTOM_ONLY:
-        disass_df = disass_df[disass_df["instr"].apply(lambda x: x.lower() in ise_instr_names)]
+        disass_df = disass_df[
+            disass_df["instr"].apply(lambda x: x.lower() in ise_instr_names)
+        ]
 
     static_pc_df = disass_df
     static_pc_df["func_name"] = static_pc_df["pc"].apply(helper)
@@ -369,11 +425,17 @@ def check_util(
     }
     # print("static_func_ise_rel_counts", static_func_ise_rel_counts)
     static_counts_custom_per_func_df = pd.DataFrame(
-        [{"func_name": func_name, **counts} for func_name, counts in static_func_ise_counts.items()]
+        [
+            {"func_name": func_name, **counts}
+            for func_name, counts in static_func_ise_counts.items()
+        ]
     ).fillna(0)
     # print("static_counts_custom_per_func_df", static_counts_custom_per_func_df)
     static_rel_counts_custom_per_func_df = pd.DataFrame(
-        [{"func_name": func_name, **counts} for func_name, counts in static_func_ise_rel_counts.items()]
+        [
+            {"func_name": func_name, **counts}
+            for func_name, counts in static_func_ise_rel_counts.items()
+        ]
     ).fillna(0)
     # print("static_rel_counts_custom_per_func_df", static_rel_counts_custom_per_func_df)
 
@@ -381,7 +443,9 @@ def check_util(
         "static_counts_custom_per_func", static_counts_custom_per_func_df, attrs=attrs
     )
     static_rel_counts_custom_per_func_artifact = TableArtifact(
-        "static_rel_counts_custom_per_func", static_rel_counts_custom_per_func_df, attrs=attrs
+        "static_rel_counts_custom_per_func",
+        static_rel_counts_custom_per_func_df,
+        attrs=attrs,
     )
 
     sess.add_artifact(static_counts_custom_per_func_artifact, override=force)

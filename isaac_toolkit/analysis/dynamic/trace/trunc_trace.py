@@ -49,14 +49,18 @@ def trunc_trace(
     logger.info("Truncating trace...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
+    )
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     trace_df = trace_artifact.df
     assert force
 
-    func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc")
+    func2pc_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "func2pc"
+    )
     if len(func2pc_artifacts) > 0:
         assert len(func2pc_artifacts) == 1
         func2pc_artifact = func2pc_artifacts[0]

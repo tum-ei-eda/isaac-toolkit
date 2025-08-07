@@ -66,7 +66,10 @@ def set_log_level(console_level=None, file_level=None):
     for handler in logger.handlers[:]:
         # print("handler", handler, type(handler))
         if (
-            isinstance(handler, (logging.FileHandler, logging.handlers.TimedRotatingFileHandler))
+            isinstance(
+                handler,
+                (logging.FileHandler, logging.handlers.TimedRotatingFileHandler),
+            )
             and file_level is not None
         ):
             if isinstance(file_level, str):
@@ -87,7 +90,9 @@ def set_log_file(path, level=logging.DEBUG, rotate=False):
     logger = logging.getLogger("isaac-toolkit")
     logger.setLevel(logging.DEBUG)
     if rotate:
-        file_handler = logging.handlers.TimedRotatingFileHandler(filename=path, when="midnight", backupCount=30)
+        file_handler = logging.handlers.TimedRotatingFileHandler(
+            filename=path, when="midnight", backupCount=30
+        )
     else:
         file_handler = logging.FileHandler(path, mode="a")
     file_handler.setFormatter(get_formatter())

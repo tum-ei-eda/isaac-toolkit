@@ -52,11 +52,15 @@ def compare_with_sess(
     logger.info("Comparing ISEs between sessions...")
     artifacts = sess.artifacts
     artifacts_ = other_sess.artifacts
-    pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")
+    pc2bb_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
+    )
     assert len(pc2bb_artifacts) == 1
     pc2bb_artifact = pc2bb_artifacts[0]
     pc2bb_df = pc2bb_artifact.df
-    pc2bb_artifacts_ = filter_artifacts(artifacts_, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")
+    pc2bb_artifacts_ = filter_artifacts(
+        artifacts_, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb"
+    )
     assert len(pc2bb_artifacts_) == 1
     pc2bb_artifact_ = pc2bb_artifacts_[0]
     pc2bb_df_ = pc2bb_artifact_.df
@@ -133,14 +137,18 @@ def compare_with_sess(
         runtime_df_["func_name"] = runtime_df_["func_name"].apply(helper)
 
         if runtime_rel <= 1:
-            temp = pd.DataFrame([{"func_name": "DIFF", "weight": (1 - runtime_rel) * runtime_}])
+            temp = pd.DataFrame(
+                [{"func_name": "DIFF", "weight": (1 - runtime_rel) * runtime_}]
+            )
             runtime_df = pd.concat([runtime_df, temp])
             runtime_df["rel_weight"] = runtime_df["weight"] / runtime_
             temp_ = pd.DataFrame([{"func_name": "DIFF", "weight": 0, "rel_weight": 0}])
             runtime_df_ = pd.concat([runtime_df_, temp_])
         else:
             # TODO: check if ok?
-            temp_ = pd.DataFrame([{"func_name": "DIFF", "weight": (1 - (1 / runtime_rel)) * runtime}])
+            temp_ = pd.DataFrame(
+                [{"func_name": "DIFF", "weight": (1 - (1 / runtime_rel)) * runtime}]
+            )
             runtime_df_ = pd.concat([runtime_df_, temp_])
             runtime_df_["rel_weight"] = runtime_df_["weight"] / runtime
             temp = pd.DataFrame([{"func_name": "DIFF", "weight": 0, "rel_weight": 0}])
@@ -151,13 +159,21 @@ def compare_with_sess(
 
         runtime_df = runtime_df[["func_name", "rel_weight"]]
         runtime_df = runtime_df.groupby("func_name", as_index=False, dropna=False).sum()
-        runtime_per_func_data = generate_pie_data(runtime_df, x="func_name", y="rel_weight")
+        runtime_per_func_data = generate_pie_data(
+            runtime_df, x="func_name", y="rel_weight"
+        )
         runtime_df_ = runtime_df_[["func_name", "rel_weight"]]
-        runtime_df_ = runtime_df_.groupby("func_name", as_index=False, dropna=False).sum()
-        runtime_per_func_data_ = generate_pie_data(runtime_df_, x="func_name", y="rel_weight")
+        runtime_df_ = runtime_df_.groupby(
+            "func_name", as_index=False, dropna=False
+        ).sum()
+        runtime_per_func_data_ = generate_pie_data(
+            runtime_df_, x="func_name", y="rel_weight"
+        )
         # print("runtime_per_func_data", runtime_per_func_data)
         # print("runtime_per_func_data_", runtime_per_func_data_)
-        merged_runtime_per_func_data = runtime_per_func_data.to_frame(name="rel_weight").merge(
+        merged_runtime_per_func_data = runtime_per_func_data.to_frame(
+            name="rel_weight"
+        ).merge(
             runtime_per_func_data_.to_frame(name="rel_weight"),
             on="func_name",
             how="outer",
@@ -165,33 +181,57 @@ def compare_with_sess(
             # indicator=True,
         )
         # print("merged_runtime_per_func_data", merged_runtime_per_func_data)
-        merged_runtime_per_func_data.sort_values("rel_weight", inplace=True, ascending=False)
+        merged_runtime_per_func_data.sort_values(
+            "rel_weight", inplace=True, ascending=False
+        )
         merged_runtime_per_func_data["diff"] = (
-            (merged_runtime_per_func_data["rel_weight"] - merged_runtime_per_func_data["rel_weight_"])
+            (
+                merged_runtime_per_func_data["rel_weight"]
+                - merged_runtime_per_func_data["rel_weight_"]
+            )
             .fillna(0)
             .round(5)
         )
         merged_runtime_per_func_data["diff_rel"] = (
-            (merged_runtime_per_func_data["diff"] / merged_runtime_per_func_data["rel_weight_"]).fillna(0).round(5)
+            (
+                merged_runtime_per_func_data["diff"]
+                / merged_runtime_per_func_data["rel_weight_"]
+            )
+            .fillna(0)
+            .round(5)
         )
-        merged_runtime_per_func_data = merged_runtime_per_func_data[merged_runtime_per_func_data["diff"] != 0]
+        merged_runtime_per_func_data = merged_runtime_per_func_data[
+            merged_runtime_per_func_data["diff"] != 0
+        ]
         # print("merged_runtime_per_func_data", merged_runtime_per_func_data)
         # input(">>>")
         attrs = {}
-        artifact = TableArtifact("compare_runtime_per_func", merged_runtime_per_func_data, attrs=attrs)
+        artifact = TableArtifact(
+            "compare_runtime_per_func", merged_runtime_per_func_data, attrs=attrs
+        )
         sess.add_artifact(artifact, override=force)
         if llvm_bbs_df is not None and llvm_bbs_df_ is not None:
-            llvm_bbs_df["func_bb"] = llvm_bbs_df["func_name"] + "-" + llvm_bbs_df["bb_name"]
-            llvm_bbs_df_["func_bb"] = llvm_bbs_df_["func_name"] + "-" + llvm_bbs_df_["bb_name"]
+            llvm_bbs_df["func_bb"] = (
+                llvm_bbs_df["func_name"] + "-" + llvm_bbs_df["bb_name"]
+            )
+            llvm_bbs_df_["func_bb"] = (
+                llvm_bbs_df_["func_name"] + "-" + llvm_bbs_df_["bb_name"]
+            )
             if runtime_rel <= 1:
-                temp = pd.DataFrame([{"func_bb": "DIFF", "weight": (1 - runtime_rel) * runtime_}])
+                temp = pd.DataFrame(
+                    [{"func_bb": "DIFF", "weight": (1 - runtime_rel) * runtime_}]
+                )
                 llvm_bbs_df = pd.concat([llvm_bbs_df, temp])
                 llvm_bbs_df["rel_weight"] = llvm_bbs_df["weight"] / runtime_
-                temp_ = pd.DataFrame([{"func_bb": "DIFF", "weight": 0, "rel_weight": 0}])
+                temp_ = pd.DataFrame(
+                    [{"func_bb": "DIFF", "weight": 0, "rel_weight": 0}]
+                )
                 llvm_bbs_df_ = pd.concat([llvm_bbs_df_, temp_])
             else:
                 # TODO: check if ok?
-                temp_ = pd.DataFrame([{"func_bb": "DIFF", "weight": (1 - (1 / runtime_rel)) * runtime}])
+                temp_ = pd.DataFrame(
+                    [{"func_bb": "DIFF", "weight": (1 - (1 / runtime_rel)) * runtime}]
+                )
                 llvm_bbs_df_ = pd.concat([llvm_bbs_df_, temp_])
                 llvm_bbs_df_["rel_weight"] = llvm_bbs_df_["weight"] / runtime
                 temp = pd.DataFrame([{"func_bb": "DIFF", "weight": 0, "rel_weight": 0}])
@@ -208,21 +248,31 @@ def compare_with_sess(
             )
             # print("runtime_per_llvm_bb_data", runtime_per_llvm_bb_data)
             # print("runtime_per_llvm_bb_data_", runtime_per_llvm_bb_data_)
-            merged_runtime_per_llvm_bb_data = runtime_per_llvm_bb_data.to_frame(name="rel_weight").merge(
+            merged_runtime_per_llvm_bb_data = runtime_per_llvm_bb_data.to_frame(
+                name="rel_weight"
+            ).merge(
                 runtime_per_llvm_bb_data_.to_frame(name="rel_weight"),
                 on="func_bb",
                 how="outer",
                 suffixes=("", "_"),
                 # indicator=True,
             )
-            merged_runtime_per_llvm_bb_data.sort_values("rel_weight", inplace=True, ascending=False)
+            merged_runtime_per_llvm_bb_data.sort_values(
+                "rel_weight", inplace=True, ascending=False
+            )
             merged_runtime_per_llvm_bb_data["diff"] = (
-                (merged_runtime_per_llvm_bb_data["rel_weight"] - merged_runtime_per_llvm_bb_data["rel_weight_"])
+                (
+                    merged_runtime_per_llvm_bb_data["rel_weight"]
+                    - merged_runtime_per_llvm_bb_data["rel_weight_"]
+                )
                 .fillna(0)
                 .round(5)
             )
             merged_runtime_per_llvm_bb_data["diff_rel"] = (
-                (merged_runtime_per_llvm_bb_data["diff"] / merged_runtime_per_llvm_bb_data["rel_weight_"])
+                (
+                    merged_runtime_per_llvm_bb_data["diff"]
+                    / merged_runtime_per_llvm_bb_data["rel_weight_"]
+                )
                 .fillna(0)
                 .round(5)
             )
@@ -232,7 +282,11 @@ def compare_with_sess(
             # print("merged_runtime_per_llvm_bb_data", merged_runtime_per_llvm_bb_data)
             # input(">>>")
             attrs = {}
-            artifact = TableArtifact("compare_runtime_per_llvm_bb", merged_runtime_per_llvm_bb_data, attrs=attrs)
+            artifact = TableArtifact(
+                "compare_runtime_per_llvm_bb",
+                merged_runtime_per_llvm_bb_data,
+                attrs=attrs,
+            )
             sess.add_artifact(artifact, override=force)
 
     mem_footprint_artifacts = filter_artifacts(
@@ -277,14 +331,23 @@ def compare_with_sess(
         # print("mem_footprint_df", mem_footprint_df)
         # print("mem_footprint_df_", mem_footprint_df_)
         if mem_footprint_rel <= 1:
-            temp = pd.DataFrame([{"func": "DIFF", "bytes": (1 - mem_footprint_rel) * mem_footprint_}])
+            temp = pd.DataFrame(
+                [{"func": "DIFF", "bytes": (1 - mem_footprint_rel) * mem_footprint_}]
+            )
             mem_footprint_df = pd.concat([mem_footprint_df, temp])
             mem_footprint_df["rel_bytes"] = mem_footprint_df["bytes"] / mem_footprint_
             temp_ = pd.DataFrame([{"func": "DIFF", "bytes": 0, "rel_bytes": 0}])
             mem_footprint_df_ = pd.concat([mem_footprint_df_, temp_])
         else:
             # TODO: check if ok?
-            temp_ = pd.DataFrame([{"func": "DIFF", "bytes": (1 - (1 / mem_footprint_rel)) * mem_footprint}])
+            temp_ = pd.DataFrame(
+                [
+                    {
+                        "func": "DIFF",
+                        "bytes": (1 - (1 / mem_footprint_rel)) * mem_footprint,
+                    }
+                ]
+            )
             mem_footprint_df_ = pd.concat([mem_footprint_df_, temp_])
             mem_footprint_df_["rel_bytes"] = mem_footprint_df_["bytes"] / mem_footprint
             temp = pd.DataFrame([{"func": "DIFF", "bytes": 0, "rel_bytes": 0}])
@@ -301,7 +364,9 @@ def compare_with_sess(
             x="func",
             y="rel_bytes",
         )
-        merged_mem_footprint_per_func_data = mem_footprint_per_func_data.to_frame(name="rel_bytes").merge(
+        merged_mem_footprint_per_func_data = mem_footprint_per_func_data.to_frame(
+            name="rel_bytes"
+        ).merge(
             mem_footprint_per_func_data_.to_frame(name="rel_bytes"),
             on="func",
             how="outer",
@@ -309,20 +374,27 @@ def compare_with_sess(
             # indicator=True,
         )
         # print("merged_mem_footprint_per_func_data", merged_mem_footprint_per_func_data)
-        merged_mem_footprint_per_func_data.sort_values("rel_bytes", inplace=True, ascending=False)
+        merged_mem_footprint_per_func_data.sort_values(
+            "rel_bytes", inplace=True, ascending=False
+        )
         merged_mem_footprint_per_func_data["diff"] = merged_mem_footprint_per_func_data[
             "rel_bytes"
         ] - merged_mem_footprint_per_func_data["rel_bytes_"].fillna(0).round(3)
-        merged_mem_footprint_per_func_data["diff_rel"] = merged_mem_footprint_per_func_data[
-            "diff"
-        ] / merged_mem_footprint_per_func_data["rel_bytes_"].fillna(0).round(3)
+        merged_mem_footprint_per_func_data["diff_rel"] = (
+            merged_mem_footprint_per_func_data["diff"]
+            / merged_mem_footprint_per_func_data["rel_bytes_"].fillna(0).round(3)
+        )
         merged_mem_footprint_per_func_data = merged_mem_footprint_per_func_data[
             merged_mem_footprint_per_func_data["diff"] != 0
         ]
         # print("merged_mem_footprint_per_func_data", merged_mem_footprint_per_func_data)
         # input(">>>")
         attrs = {}
-        artifact = TableArtifact("compare_mem_footprint_per_func", merged_mem_footprint_per_func_data, attrs=attrs)
+        artifact = TableArtifact(
+            "compare_mem_footprint_per_func",
+            merged_mem_footprint_per_func_data,
+            attrs=attrs,
+        )
         sess.add_artifact(artifact, override=force)
     if eff_mem_footprint_df is not None and eff_mem_footprint_df_ is not None:
         eff_mem_footprint = eff_mem_footprint_df["bytes"].sum()
@@ -335,16 +407,34 @@ def compare_with_sess(
         # print("eff_mem_footprint_df", eff_mem_footprint_df)
         # print("eff_mem_footprint_df_", eff_mem_footprint_df_)
         if eff_mem_footprint_rel <= 1:
-            temp = pd.DataFrame([{"func": "DIFF", "bytes": (1 - eff_mem_footprint_rel) * eff_mem_footprint_}])
+            temp = pd.DataFrame(
+                [
+                    {
+                        "func": "DIFF",
+                        "bytes": (1 - eff_mem_footprint_rel) * eff_mem_footprint_,
+                    }
+                ]
+            )
             eff_mem_footprint_df = pd.concat([eff_mem_footprint_df, temp])
-            eff_mem_footprint_df["eff_rel_bytes"] = eff_mem_footprint_df["bytes"] / eff_mem_footprint_
+            eff_mem_footprint_df["eff_rel_bytes"] = (
+                eff_mem_footprint_df["bytes"] / eff_mem_footprint_
+            )
             temp_ = pd.DataFrame([{"func": "DIFF", "bytes": 0, "eff_rel_bytes": 0}])
             eff_mem_footprint_df_ = pd.concat([eff_mem_footprint_df_, temp_])
         else:
             # TODO: check if ok?
-            temp_ = pd.DataFrame([{"func": "DIFF", "bytes": (1 - (1 / eff_mem_footprint_rel)) * eff_mem_footprint}])
+            temp_ = pd.DataFrame(
+                [
+                    {
+                        "func": "DIFF",
+                        "bytes": (1 - (1 / eff_mem_footprint_rel)) * eff_mem_footprint,
+                    }
+                ]
+            )
             eff_mem_footprint_df_ = pd.concat([eff_mem_footprint_df_, temp_])
-            eff_mem_footprint_df_["eff_rel_bytes"] = eff_mem_footprint_df_["bytes"] / eff_mem_footprint
+            eff_mem_footprint_df_["eff_rel_bytes"] = (
+                eff_mem_footprint_df_["bytes"] / eff_mem_footprint
+            )
             temp = pd.DataFrame([{"func": "DIFF", "bytes": 0, "eff_rel_bytes": 0}])
             eff_mem_footprint_df = pd.concat([eff_mem_footprint_df, temp])
         # print("eff_mem_footprint_df2", eff_mem_footprint_df)
@@ -360,7 +450,9 @@ def compare_with_sess(
             x="func",
             y="eff_rel_bytes",
         )
-        merged_eff_mem_footprint_per_func_data = eff_mem_footprint_per_func_data.to_frame(name="eff_rel_bytes").merge(
+        merged_eff_mem_footprint_per_func_data = eff_mem_footprint_per_func_data.to_frame(
+            name="eff_rel_bytes"
+        ).merge(
             eff_mem_footprint_per_func_data_.to_frame(name="eff_rel_bytes"),
             on="func",
             how="outer",
@@ -368,13 +460,21 @@ def compare_with_sess(
             # indicator=True,
         )
         # print("merged_eff_mem_footprint_per_func_data", merged_eff_mem_footprint_per_func_data)
-        merged_eff_mem_footprint_per_func_data.sort_values("eff_rel_bytes", inplace=True, ascending=False)
-        merged_eff_mem_footprint_per_func_data["diff"] = merged_eff_mem_footprint_per_func_data[
-            "eff_rel_bytes"
-        ] - merged_eff_mem_footprint_per_func_data["eff_rel_bytes_"].fillna(0).round(3)
-        merged_eff_mem_footprint_per_func_data["diff_rel"] = merged_eff_mem_footprint_per_func_data[
-            "diff"
-        ] / merged_eff_mem_footprint_per_func_data["eff_rel_bytes_"].fillna(0).round(3)
+        merged_eff_mem_footprint_per_func_data.sort_values(
+            "eff_rel_bytes", inplace=True, ascending=False
+        )
+        merged_eff_mem_footprint_per_func_data["diff"] = (
+            merged_eff_mem_footprint_per_func_data["eff_rel_bytes"]
+            - merged_eff_mem_footprint_per_func_data["eff_rel_bytes_"]
+            .fillna(0)
+            .round(3)
+        )
+        merged_eff_mem_footprint_per_func_data["diff_rel"] = (
+            merged_eff_mem_footprint_per_func_data["diff"]
+            / merged_eff_mem_footprint_per_func_data["eff_rel_bytes_"]
+            .fillna(0)
+            .round(3)
+        )
         merged_eff_mem_footprint_per_func_data = merged_eff_mem_footprint_per_func_data[
             merged_eff_mem_footprint_per_func_data["diff"] != 0
         ]
@@ -382,7 +482,9 @@ def compare_with_sess(
         # input(">>>")
         attrs = {}
         artifact = TableArtifact(
-            "compare_eff_mem_footprint_per_func", merged_eff_mem_footprint_per_func_data, attrs=attrs
+            "compare_eff_mem_footprint_per_func",
+            merged_eff_mem_footprint_per_func_data,
+            attrs=attrs,
         )
         sess.add_artifact(artifact, override=force)
 

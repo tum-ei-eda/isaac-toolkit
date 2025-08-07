@@ -44,7 +44,14 @@ def compare_bench(
 ):
     logger.info("Comparing bench reports...")
     COLS = ["Model", "Arch", "Run Instructions", "Run Instructions (rel.)"]
-    MEM_COLS = ["Model", "Arch", "Total ROM", "Total RAM", "ROM code", "ROM code (rel.)"]
+    MEM_COLS = [
+        "Model",
+        "Arch",
+        "Total ROM",
+        "Total RAM",
+        "ROM code",
+        "ROM code (rel.)",
+    ]
     COMMON_COLS = list(set(COLS) & set(MEM_COLS))
 
     assert report is not None

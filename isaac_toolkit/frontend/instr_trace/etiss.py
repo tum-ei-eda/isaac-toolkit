@@ -35,7 +35,11 @@ logger = get_logger()
 
 
 def load_instr_trace(
-    sess: Session, input_file: Path, force: bool = False, operands: bool = False
+    sess: Session,
+    input_file: Path,
+    force: bool = False,
+    operands: bool = False,
+    progress: bool = False,
 ):
     logger.info("Loading ETISS intruction trace...")
     assert input_file.is_file()
@@ -45,7 +49,7 @@ def load_instr_trace(
     with pd.read_csv(
         input_file, sep=":", names=["pc", "rest"], chunksize=2**22
     ) as reader:
-        for df in tqdm(reader, disable=False):
+        for df in tqdm(reader, disable=not progress):
             # print("A", time.time())
             df["pc"] = df["pc"].apply(lambda x: int(x, 0))
             df["pc"] = pd.to_numeric(df["pc"])
@@ -119,7 +123,13 @@ def handle(args):
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
     input_file = Path(args.file)
-    load_instr_trace(sess, input_file, force=args.force, operands=args.operands)
+    load_instr_trace(
+        sess,
+        input_file,
+        force=args.force,
+        operands=args.operands,
+        progress=args.progress,
+    )
     sess.save()
 
 
@@ -134,6 +144,7 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--operands", action="store_true")
+    parser.add_argument("--progress", action="store_true")
     return parser
 
 

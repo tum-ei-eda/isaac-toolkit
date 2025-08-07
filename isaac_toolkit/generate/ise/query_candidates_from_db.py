@@ -57,7 +57,9 @@ def get_unique_maxmisos(maxmisos):
             def edge_match(*args):
                 return iso.categorical_edge_match("label", None)(*args)
 
-            is_iso = nx.is_isomorphic(m1, m2, node_match=node_match, edge_match=edge_match)
+            is_iso = nx.is_isomorphic(
+                m1, m2, node_match=node_match, edge_match=edge_match
+            )
             if is_iso:
                 isos_map[i].append(j)
                 covered.add(j)
@@ -160,7 +162,9 @@ def query_candidates_from_db(
 ):
     logger.info("Querying candidates from DB...")
     artifacts = sess.artifacts
-    choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
+    choices_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices"
+    )
     assert len(choices_artifacts) == 1
     choices_artifact = choices_artifacts[0]
     choices_df = choices_artifact.df
@@ -177,7 +181,9 @@ def query_candidates_from_db(
     FUNC_ONLY = False
     if FUNC_ONLY:
         # TODO: for real!
-        funcs_df = choices_df.groupby("func_name", as_index=False)[["rel_weight", "num_instrs", "freq"]].sum()
+        funcs_df = choices_df.groupby("func_name", as_index=False)[
+            ["rel_weight", "num_instrs", "freq"]
+        ].sum()
         funcs_df["bb_name"] = None
         choices_df = funcs_df
 
@@ -206,7 +212,9 @@ def query_candidates_from_db(
         user = memgraph_config.user
         password = memgraph_config.password
 
-        driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
+        driver = GraphDatabase.driver(
+            f"bolt://{hostname}:{port}", auth=(user, password)
+        )
         session = driver.session()
         try:
             func_query = get_func_query(label, stage, func_name)
@@ -237,7 +245,11 @@ def query_candidates_from_db(
             num_instrs_threshold = 250
             partition_with_maxmiso = num_instrs > num_instrs_threshold
         if partition_with_maxmiso:
-            bb_nodes = [node for node in func.nodes if func.nodes[node]["properties"]["bb_id"] == bb_id]
+            bb_nodes = [
+                node
+                for node in func.nodes
+                if func.nodes[node]["properties"]["bb_id"] == bb_id
+            ]
             # logger.debug("bb_nodes", bb_nodes)
             bb = func.subgraph(bb_nodes)
             # logger.debug("bb", bb)
@@ -247,9 +259,13 @@ def query_candidates_from_db(
             unique_maxmisos, factors, duplicate_maxmisos = get_unique_maxmisos(maxmisos)
             # TODO: write maxmisos to file?
             # maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in maxmisos]
-            unique_maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in unique_maxmisos]
+            unique_maxmiso_node_ids = [
+                [maxmiso.nodes[n]["key"] for n in maxmiso.nodes]
+                for maxmiso in unique_maxmisos
+            ]
             duplicate_maxmiso_node_ids = [
-                [maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in duplicate_maxmisos
+                [maxmiso.nodes[n]["key"] for n in maxmiso.nodes]
+                for maxmiso in duplicate_maxmisos
             ]
             remaining_nodes = set(bb_nodes)
             total_idx = 0
@@ -275,7 +291,9 @@ def query_candidates_from_db(
                     total_idx += 1
                 logger.debug("remaining_nodes", remaining_nodes)
                 if len(remaining_nodes) > 0:
-                    query = get_update_nodes_query(total_idx, list(remaining_nodes), factor=1)
+                    query = get_update_nodes_query(
+                        total_idx, list(remaining_nodes), factor=1
+                    )
                     _ = session.run(query)
                     maxmiso_idxs.append(total_idx)
                 total_idx += 1
@@ -336,7 +354,11 @@ def query_candidates_from_db(
             *["--stage", str(stage)],
             *["--output-dir", out_dir],
             # *["--ignore-const-inputs"],
-            *(["--limit-results", str(limit_results)] if limit_results is not None else []),
+            *(
+                ["--limit-results", str(limit_results)]
+                if limit_results is not None
+                else []
+            ),
             *(["--min-inputs", str(MIN_INPUTS)] if MIN_INPUTS is not None else []),
             *(["--max-inputs", str(MAX_INPUTS)] if MAX_INPUTS is not None else []),
             *(["--min-outputs", str(MIN_OUTPUTS)] if MIN_OUTPUTS is not None else []),
@@ -346,20 +368,66 @@ def query_candidates_from_db(
             *(["--max-loads", str(MAX_LOADS)] if MAX_LOADS is not None else []),
             *(["--max-loads", str(MAX_STORES)] if MAX_STORES is not None else []),
             *(["--max-mems", str(MAX_MEMS)] if MAX_MEMS is not None else []),
-            *(["--max-branches", str(MAX_BRANCHES)] if MAX_BRANCHES is not None else []),
-            *(["--max-enc-footprint", str(MAX_ENC_FOOTPRINT)] if MAX_ENC_FOOTPRINT is not None else []),
-            *(["--max-enc-weight", str(MAX_ENC_WEIGHT)] if MAX_ENC_WEIGHT is not None else []),
-            *(["--min-enc-bits-left", str(MIN_ENC_BITS_LEFT)] if MIN_ENC_BITS_LEFT is not None else []),
-            *(["--min-path-length", str(MIN_PATH_LENGTH)] if MIN_PATH_LENGTH is not None else []),
-            *(["--max-path-length", str(MAX_PATH_LENGTH)] if MAX_PATH_LENGTH is not None else []),
-            *(["--max-path-width", str(MAX_PATH_WIDTH)] if MAX_PATH_WIDTH is not None else []),
-            *(["--min-iso-weight", str(min_iso_weight)] if min_iso_weight is not None else []),
-            *(["--instr-predicates", str(INSTR_PREDICATES)] if INSTR_PREDICATES is not None else []),
+            *(
+                ["--max-branches", str(MAX_BRANCHES)]
+                if MAX_BRANCHES is not None
+                else []
+            ),
+            *(
+                ["--max-enc-footprint", str(MAX_ENC_FOOTPRINT)]
+                if MAX_ENC_FOOTPRINT is not None
+                else []
+            ),
+            *(
+                ["--max-enc-weight", str(MAX_ENC_WEIGHT)]
+                if MAX_ENC_WEIGHT is not None
+                else []
+            ),
+            *(
+                ["--min-enc-bits-left", str(MIN_ENC_BITS_LEFT)]
+                if MIN_ENC_BITS_LEFT is not None
+                else []
+            ),
+            *(
+                ["--min-path-length", str(MIN_PATH_LENGTH)]
+                if MIN_PATH_LENGTH is not None
+                else []
+            ),
+            *(
+                ["--max-path-length", str(MAX_PATH_LENGTH)]
+                if MAX_PATH_LENGTH is not None
+                else []
+            ),
+            *(
+                ["--max-path-width", str(MAX_PATH_WIDTH)]
+                if MAX_PATH_WIDTH is not None
+                else []
+            ),
+            *(
+                ["--min-iso-weight", str(min_iso_weight)]
+                if min_iso_weight is not None
+                else []
+            ),
+            *(
+                ["--instr-predicates", str(INSTR_PREDICATES)]
+                if INSTR_PREDICATES is not None
+                else []
+            ),
             *(["--ignore-names", IGNORE_NAMES] if IGNORE_NAMES is not None else []),
-            *(["--ignore-op-types", str(IGNORE_OP_TYPES)] if IGNORE_OP_TYPES is not None else []),
-            *(["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))] if ALLOWED_ENC_SIZES is not None else []),
+            *(
+                ["--ignore-op-types", str(IGNORE_OP_TYPES)]
+                if IGNORE_OP_TYPES is not None
+                else []
+            ),
+            *(
+                ["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))]
+                if ALLOWED_ENC_SIZES is not None
+                else []
+            ),
             *(["--xlen", str(xlen)] if xlen is not None else []),
-            *(["--enable-variation-reuse-io"] if ENABLE_VARIATION_REUSE_IO else []),  # TODO: use FLT instead?
+            *(
+                ["--enable-variation-reuse-io"] if ENABLE_VARIATION_REUSE_IO else []
+            ),  # TODO: use FLT instead?
             *(["--halt-on-error"] if HALT_ON_ERROR else []),  # TODO: use FLT instead?
             *["--write-func"],
             # *["--write-func-fmt", WRITE_FUNC_FMT],
@@ -398,7 +466,9 @@ def query_candidates_from_db(
         query_metrics_df = pd.read_csv(query_metrics_file)
         query_metrics_df["func"] = func_name
         query_metrics_df["basic_block"] = bb_name
-        combined_query_metrics_df = pd.concat([combined_query_metrics_df, query_metrics_df])
+        combined_query_metrics_df = pd.concat(
+            [combined_query_metrics_df, query_metrics_df]
+        )
 
     # allow_missing_bb_id = False
     allow_missing_bb_id = True
@@ -460,7 +530,9 @@ def query_candidates_from_db(
         candidate["properties"]["InstrName"]: candidate["properties"]["#Instrs"]
         for i, candidate in enumerate(combined_index_data["candidates"])
     }
-    names_df["num_fused_instrs"] = names_df["instr"].apply(lambda x: name2num_fused_instrs[x])
+    names_df["num_fused_instrs"] = names_df["instr"].apply(
+        lambda x: name2num_fused_instrs[x]
+    )
     # logger.debug("names_df", names_df)
     # input(">>>")
     attrs = {}

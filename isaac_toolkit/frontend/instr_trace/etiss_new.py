@@ -35,7 +35,14 @@ logger = get_logger()
 # TODO: logger
 
 
-def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False, operands: bool = False):
+def load_instr_trace(
+    sess: Session,
+    input_files: List[Path],
+    force: bool = False,
+    operands: bool = False,
+    progress: bool = False,
+):
+    logger.info("Loading ETISS (new) instruction trace...")
     assert len(input_files) > 0
     name = input_files[0].name
     # sort input files by name
@@ -44,22 +51,26 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
     dfs = []
     for input_file in sorted_files:
         assert input_file.is_file()
-        print("file", input_file)
+        # print("file", input_file)
         with pd.read_csv(input_file, sep=";", chunksize=2**22, header=0) as reader:
-            for df in tqdm(reader, disable=False):
+            for df in tqdm(reader, disable=not progress):
                 df = df.rename(columns=lambda x: x.strip())
-                print("df", df)
+                # print("df", df)
                 # print("A", time.time())
                 df["pc"] = df["pc"].apply(lambda x: int(x, 0))
                 df["pc"] = pd.to_numeric(df["pc"])
                 # print("B", time.time())
                 # TODO: normalize instr names
-                df[["instr", "rest"]] = df["assembly"].str.split(" # ", n=1, expand=True)
+                df[["instr", "rest"]] = df["assembly"].str.split(
+                    " # ", n=1, expand=True
+                )
                 df["instr"] = df["instr"].apply(lambda x: x.strip())
                 df["instr"] = df["instr"].astype("category")
                 # print("C", time.time())
                 # print("D", time.time())
-                df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
+                df[["bytecode", "operands"]] = df["rest"].str.split(
+                    " ", n=1, expand=True
+                )
                 # print("E", time.time())
 
                 def detect_size(bytecode):
@@ -75,7 +86,11 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                 df["size"] = df["size"].astype("category")
                 # print("F", time.time())
                 df["bytecode"] = df["bytecode"].apply(
-                    lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
+                    lambda x: (
+                        int(x, 16)
+                        if "0x" in x
+                        else (int(x, 2) if "0b" in x else int(x, 2))
+                    )
                 )
                 df["bytecode"] = pd.to_numeric(df["bytecode"])
                 # print("H", time.time())
@@ -92,7 +107,9 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                     return ret
 
                 if operands:
-                    df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
+                    df["operands"] = df["operands"].apply(
+                        lambda x: convert(x[1:-1].split(" | "))
+                    )
                 else:
                     df.drop(columns=["operands"], inplace=True)
                 df.drop(columns=["rest"], inplace=True)
@@ -119,7 +136,13 @@ def handle(args):
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
     input_files = list(map(Path, args.files))
-    load_instr_trace(sess, input_files, force=args.force, operands=args.operands)
+    load_instr_trace(
+        sess,
+        input_files,
+        force=args.force,
+        operands=args.operands,
+        progress=args.progress,
+    )
     sess.save()
 
 
@@ -134,6 +157,7 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--operands", action="store_true")
+    parser.add_argument("--progress", action="store_true")
     return parser
 
 
