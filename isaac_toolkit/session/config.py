@@ -357,11 +357,31 @@ class ExperimentSettings(YAMLSettings):
 
 
 @dataclass
+class DockerSettings(YAMLSettings):
+    etiss_image: Optional[str] = None
+    seal5_image: Optional[str] = None
+    hls_image: Optional[str] = None
+    enable: Optional[bool] = None
+
+
+# @dataclass
+# class RetargetingSettings(YAMLSettings):
+#     iss: Optional[ISSRetargetingSettings] = None
+#     llvm: Optional[LLVMRetargetingSettings] = None
+
+
+@dataclass
+class ETISSSettings(YAMLSettings):
+    core_name: Optional[str] = None
+
+
+@dataclass
 class DemoSettings(YAMLSettings):
     stages: Optional[Dict[str, StageSettings]] = None
     riscv: Optional[RISCVSettings] = None
     mlonmcu: Optional[MlonmcuSettings] = None
     # llvm: Optional[LLVMSettings] = None
+    etiss: Optional[ETISSSettings] = None
     cdfg: Optional[CDFGSettings] = None
     # sim: Optional[SimSettings] = None
     choose: Optional[ChooseSettings] = None
@@ -371,6 +391,8 @@ class DemoSettings(YAMLSettings):
     asip_syn: Optional[ASIPSynSettings] = None
     fpga_syn: Optional[FPGASynSettings] = None
     experiment: Optional[ExperimentSettings] = None
+    docker: Optional[DockerSettings] = None
+    # retargeting: Optional[RetargetingSettings] = None
 
 
 @dataclass
