@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -18,11 +18,16 @@
 #
 import logging
 from pathlib import Path
-from dataclasses import dataclass, field, asdict, fields
-from typing import List, Union, Optional, Dict
+from dataclasses import dataclass, asdict, fields, replace
+from typing import Union, Optional, Dict, List, Any
 
 import yaml
-from dacite import from_dict
+import dacite
+from dacite import from_dict, Config
+
+from isaac_toolkit.logging import get_logger
+
+logger = get_logger()
 
 DEFAULT_CONFIG = {
     "logging": {
@@ -41,6 +46,22 @@ DEFAULT_CONFIG = {
         "user": "",
         "password": "",
         "database": "memgraph",
+    },
+    "flow": {
+        "demo": {
+            "stages": None,
+            "target": None,
+            "mlonmcu": None,
+            # "llvm": None,
+            "cdfg": None,
+            # "sim": None,
+            "choose": None,
+            "query": None,
+            "coredsl": None,
+            "hls": None,
+            "asip_syn": None,
+            "fpga_syn": None,
+        },
     },
 }
 
@@ -61,8 +82,12 @@ def check_supported_types(data):
 class YAMLSettings:
     @classmethod
     def from_dict(cls, data: dict):
-        # print("from_dict", data)
-        return from_dict(data_class=cls, data=data)
+        """Convert dict into instance of YAMLSettings."""
+        try:
+            return from_dict(data_class=cls, data=data, config=Config(strict=True))
+        except dacite.exceptions.UnexpectedDataError as err:
+            logger.error("Unexpected key in ISAACConfig. Check for missmatch between ISAAC Toolkit versions!")
+            raise err
 
     @classmethod
     def from_yaml(cls, text: str):
@@ -86,7 +111,10 @@ class YAMLSettings:
         with open(path, "w") as file:
             file.write(text)
 
-    def merge(self, other: "YAMLSettings", overwrite: bool = False):
+    def merge(self, other: "YAMLSettings", overwrite: bool = False, inplace: bool = False):
+        """Merge two instances of YAMLSettings."""
+        if not inplace:
+            ret = replace(self)  # Make a copy of self
         for f1 in fields(other):
             k1 = f1.name
             v1 = getattr(other, k1)
@@ -100,12 +128,15 @@ class YAMLSettings:
                 if k2 == k1:
                     found = True
                     if v2 is None:
-                        setattr(self, k2, v1)
+                        if inplace:
+                            setattr(self, k2, v1)
+                        else:
+                            setattr(ret, k2, v1)
                     else:
                         t2 = type(v2)
                         assert t1 is t2, "Type conflict"
                         if isinstance(v1, YAMLSettings):
-                            v2.merge(v1, overwrite=overwrite)
+                            v2.merge(v1, overwrite=overwrite, inplace=True)
                         elif isinstance(v1, dict):
                             if overwrite:
                                 v2.clear()
@@ -114,27 +145,31 @@ class YAMLSettings:
                                 for dict_key, dict_val in v1.items():
                                     if dict_key in v2:
                                         if isinstance(dict_val, YAMLSettings):
-                                            assert isinstance(
-                                                v2[dict_key], YAMLSettings
-                                            )
-                                            v2[dict_key].merge(
-                                                dict_val, overwrite=overwrite
-                                            )
+                                            assert isinstance(v2[dict_key], YAMLSettings)
+                                            v2[dict_key].merge(dict_val, overwrite=overwrite, inplace=True)
+                                        elif isinstance(dict_val, dict):
+                                            v2[dict_key].update(dict_val)
+                                        else:
+                                            v2[dict_key] = dict_val
                                     else:
                                         v2[dict_key] = dict_val
                         elif isinstance(v1, list):
                             if overwrite:
                                 v2.clear()
-                            # duplicates are dropped here
                             new = [x for x in v1 if x not in v2]
                             v2.extend(new)
                         else:
                             assert isinstance(
                                 v2, (int, float, str, bool, Path)
                             ), f"Unsupported field type for merge {t1}"
-                            setattr(self, k1, v1)
+                            if inplace:
+                                setattr(self, k1, v1)
+                            else:
+                                setattr(ret, k1, v1)
                     break
             assert found
+        if not inplace:
+            return ret
 
 
 @dataclass
@@ -166,6 +201,185 @@ class MemgraphSettings(YAMLSettings):
 
 
 @dataclass
+class OL2Settings(YAMLSettings):
+    config_template: Optional[str] = None
+    until_step: Optional[str] = None
+    target_freq: Optional[int] = None
+    target_util: Optional[int] = None
+
+
+@dataclass
+class SynopsysSettings(YAMLSettings):
+    pdk: Optional[str] = None
+    clock_ns: Optional[float] = None
+    core_name: Optional[str] = None
+
+
+@dataclass
+class VivadoSettings(YAMLSettings):
+    part: Optional[str] = None
+    clock_ns: Optional[float] = None
+    core_name: Optional[str] = None
+
+
+@dataclass
+class ASIPSynSettings(YAMLSettings):
+    tool: Optional[str] = None
+    skip_baseline: Optional[bool] = None
+    skip_default: Optional[bool] = None
+    skip_shared: Optional[bool] = None
+    baseline_use: Optional[str] = None
+    ol2: Optional[OL2Settings] = None
+    synopsys: Optional[SynopsysSettings] = None
+
+
+@dataclass
+class FPGASynSettings(YAMLSettings):
+    tool: Optional[str] = None
+    skip_baseline: Optional[bool] = None
+    skip_default: Optional[bool] = None
+    skip_shared: Optional[bool] = None
+    baseline_use: Optional[str] = None
+    vivado: Optional[VivadoSettings] = None
+
+
+@dataclass
+class NailgunSettings(YAMLSettings):
+    core_name: Optional[str] = None
+    ilp_solver: Optional[str] = None
+    resource_model: Optional[str] = None
+    clock_ns: Optional[float] = None
+    schedule_timeout: Optional[float] = None
+    refine_timeout: Optional[float] = None
+    cell_library: Optional[str] = None
+    enable_ol2: Optional[bool] = None
+    sched_algo_ms: Optional[bool] = None
+    sched_algo_pa: Optional[bool] = None
+    sched_algo_mi: Optional[bool] = None
+    sched_algo_ra: Optional[bool] = None
+    share_resources: Optional[bool] = None  # TODO: partition?
+    # label
+
+
+@dataclass
+class HLSSettings(YAMLSettings):
+    tool: Optional[str] = None
+    nailgun: Optional[NailgunSettings] = None
+
+
+@dataclass
+class StageSettings(YAMLSettings):
+    enable: Optional[bool] = None
+    defaults: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class RISCVSettings(YAMLSettings):
+    arch: Optional[str] = None
+    abi: Optional[str] = None
+    xlen: Optional[int] = None  # TODO: auto?
+
+
+@dataclass
+class MlonmcuSettings(YAMLSettings):
+    global_isel: Optional[bool] = None
+    toolchain: Optional[str] = None
+    optimize: Optional[str] = None
+    unroll: Optional[bool] = None
+    target: Optional[str] = None
+
+
+# @dataclass
+# class SimSettings(YAMLSettings):
+#     iss: Optional[str] = None
+#     iss_perf: Optional[str] = None
+#     rtl: Optional[str] = None
+#     fpga: Optional[str] = None
+
+
+@dataclass
+class CDFGSettings(YAMLSettings):
+    stage: Optional[int] = None
+    force_purge_db: Optional[bool] = None
+
+
+# @dataclass
+# class LLVMSettings(YAMLSettings):
+#     global_isel: Optional[bool] = None
+
+
+@dataclass
+class ChooseSettings(YAMLSettings):
+    check_potential_min_supported: Optional[float] = None
+    bb_threshold: Optional[float] = None
+    bb_min_weight: Optional[float] = None
+    bb_min_supported_weight: Optional[float] = None
+    bb_max_num: Optional[int] = None
+    bb_min_instrs: Optional[int] = None
+    allow_mem: Optional[bool] = None
+    allow_loads: Optional[bool] = None
+    allow_stores: Optional[bool] = None
+    allow_branches: Optional[bool] = None
+    allow_compressed: Optional[bool] = None
+    allow_custom: Optional[bool] = None
+    allow_fp: Optional[bool] = None
+    allow_system: Optional[bool] = None
+
+
+@dataclass
+class QuerySettings(YAMLSettings):
+    config_file: Optional[str] = None
+    limit_results: Optional[int] = None
+    # ...
+
+
+@dataclass
+class CoredslSettings(YAMLSettings):
+    set_name: Optional[str] = None
+    core_name: Optional[str] = None
+    splitted: Optional[bool] = None
+    base_extensions: Optional[List[str]] = None
+
+
+@dataclass
+class ProgramSettings(YAMLSettings):
+    name: Optional[str] = None
+    # ...
+
+
+@dataclass
+class ExperimentSettings(YAMLSettings):
+    label: Optional[str] = None
+    program: Optional[ProgramSettings] = None
+    datetime: Optional[str] = None
+    # directory: Optional[str] = None
+    comment: Optional[str] = None
+
+
+@dataclass
+class DemoSettings(YAMLSettings):
+    stages: Optional[Dict[str, StageSettings]] = None
+    riscv: Optional[RISCVSettings] = None
+    mlonmcu: Optional[MlonmcuSettings] = None
+    # llvm: Optional[LLVMSettings] = None
+    cdfg: Optional[CDFGSettings] = None
+    # sim: Optional[SimSettings] = None
+    choose: Optional[ChooseSettings] = None
+    query: Optional[QuerySettings] = None
+    coredsl: Optional[CoredslSettings] = None
+    hls: Optional[HLSSettings] = None
+    asip_syn: Optional[ASIPSynSettings] = None
+    fpga_syn: Optional[FPGASynSettings] = None
+    experiment: Optional[ExperimentSettings] = None
+
+
+@dataclass
+class FlowSettings(YAMLSettings):
+    demo: Optional[DemoSettings] = None
+
+
+@dataclass
 class IsaacConfig(YAMLSettings):
     logging: Optional[LoggingSettings] = None
     memgraph: Optional[MemgraphSettings] = None
+    flow: Optional[FlowSettings] = None
