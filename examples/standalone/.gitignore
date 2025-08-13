@@ -1,6 +1,6 @@
 install/
 dl/
-build/
+build*/
 *.pdf
 *.dot
 *.log
