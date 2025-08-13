@@ -2,6 +2,7 @@
 INSTALL_DIR ?= $(abspath ../install)
 SESS ?= $(abspath ./sess)
 BUILD_DIR ?= $(abspath ./build)
+OUT_DIR ?= $(abspath .)
 RISCV_PREFIX ?= $(INSTALL_DIR)/rv32im_ilp32
 RISCV_NAME ?= riscv32-unknown-elf
 RISCV_ARCH ?= rv32im_zicsr_zifencei
@@ -27,7 +28,12 @@ EXTRA_COMPILE_FLAGS :=
 ELF := $(BUILD_DIR)/$(PROG).elf
 MAP := $(BUILD_DIR)/$(PROG).map
 DUMP := $(BUILD_DIR)/$(PROG).dump
-TRACE := $(SIMULATOR)_instrs.log
+TRACE := $(OUT_DIR)/$(SIMULATOR)_instrs.log
+CALLGRIND_POS = $(OUT_DIR)/callgrind_pos.out
+CALLGRIND_PC = $(OUT_DIR)/callgrind_pc.out
+CALLGRAPH_DOT = $(OUT_DIR)/callgraph.dot
+CALLGRAPH_PDF = $(OUT_DIR)/callgraph.pdf
+
 
 .PHONY: all clean init compile run \
         load_static load_dynamic load \
@@ -57,9 +63,14 @@ else
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
 		-Xlinker -Map=$(MAP)
 endif
+endif
+
+$(DUMP): $(ELF)
 	$(OBJDUMP) -d $(ELF) > $(DUMP)
 
-run:
+compile: $(ELF) $(DUMP)
+
+run: $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
 	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr -l --log=$(TRACE) $(PK) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
@@ -95,27 +106,31 @@ visualize_dynamic:
 
 visualize: visualize_static visualize_dynamic
 
-profile_pos:
-	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pos --output callgrind_pos.out $(FORCE_ARG)
+profile_pos: $(OUT_DIR)
+	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
 
-callgrind_pos.out: profile_pos
+$(CALLGRIND_POS): profile_pos
 
-profile_pc:
-	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pc --output callgrind_pc.out $(FORCE_ARG)
+profile_pc: $(OUT_DIR)
+	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pc --output $(CALLGRIND_PC) $(FORCE_ARG)
 
-callgrind_pc.out: profile_pc
+$(CALLGRIND_PC): profile_pc
 
 profile: profile_pos profile_pc
 
+$(CALLGRAPH_DOT): $(CALLGRIND_PC) $(OUT_DIR)
+	gprof2dot --format=callgrind --output=$(CALLGRAPH_DOT) $(CALLGRIND_PC) -n 0.1 -e 0.1 --color-nodes-by-selftime
 
-callgraph:
-	gprof2dot --format=callgrind --output=callgraph.dot callgrind_pos.out -n 0.1 -e 0.1 --color-nodes-by-selftime
-	dot -Tpdf callgraph.dot > callgraph.pdf
+$(CALLGRAPH_PDF): $(CALLGRAPH_DOT) $(OUT_DIR)
+	dot -Tpdf $(CALLGRAPH_DOT) > $(CALLGRAPH_PDF)
+
+callgraph: $(CALLGRAPH_PDF)
 
 # kcachegrind_pos: callgrind_pos.out
 # 	@echo "Opening kcachegrind GUI..."
 # 	OBJDUMP=$(OBJDUMP) kcachegrind callgrind_pc.out
 
-kcachegrind_pc: callgrind_pc.out
+
+kcachegrind_pc: $(CALLGRIND_PC)
 	@echo "Opening kcachegrind GUI (PC)..."
-	OBJDUMP=$(OBJDUMP) kcachegrind callgrind_pc.out
+	OBJDUMP=$(OBJDUMP) kcachegrind $(CALLGRIND_PC)
