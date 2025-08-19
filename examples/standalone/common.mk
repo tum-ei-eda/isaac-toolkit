@@ -20,6 +20,12 @@ SPIKE ?= $(INSTALL_DIR)/spike/spike
 PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
 ETISS ?= $(INSTALL_DIR)/etiss/install/bin/run_helper.sh
 ETISS_INI ?= $(INSTALL_DIR)/etiss/install/custom.ini
+TGC_BSP_DIR ?= /path/to/tgc/bsp
+TGC_SRC_DIR ?= /path/to/tgc/src/dir
+TGC_BUILD_DIR ?= $(TGC_SRC_DIR)/build
+TGC_SIM ?= $(TGC_BUILD_DIR)/dbt-rise-tgc/tgc-sim
+TGC_PCTRACE ?= $(TGC_BUILD_DIR)/dbt-rise-plugins/pctrace/pctrace.so
+TGC_YAML ?= $(TGC_SRC_DIR)/dbt-rise-tgc/contrib/instr/TGC5C_instr.yaml
 
 OPTIMIZE := 3
 EXTRA_COMPILE_FLAGS :=
@@ -44,12 +50,37 @@ CALLGRAPH_PDF = $(OUT_DIR)/callgraph.pdf
 all: init compile run load analyze visualize profile callgraph kcachegrind
 
 clean:
-	rm -rf $(BUILD_DIR) $(SESS) *.log *.out callgraph.*
+	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_PC) $(TRACE)
 
-init:
+$(SESS):
 	python3 -m isaac_toolkit.session.create --session $(SESS) $(FORCE_ARG)
 
-compile:
+$(OUT_DIR):
+	mkdir -p $(OUT_DIR)
+
+init: $(SESS)
+
+ifeq ($(SIMULATOR),tgc)
+# LIBWRAP = $(BUILD_DIR)/libwrap.a
+# $(LIBWRAP): $(LIBWRAP_OBJS)
+include $(TGC_BSP_DIR)/libwrap/libwrap.mk
+$(ELF): $(PROG_SRCS) $(LIBWRAP)
+	mkdir -p $(BUILD_DIR)
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
+		$(PROG_SRCS) $(TGC_BSP_DIR)/env/start.S $(TGC_BSP_DIR)/env/entry.S \
+		$(TGC_BSP_DIR)/env/iss/init.c \
+		$(TGC_BSP_DIR)/env/iss/bsp_write.c \
+    -L$(TGC_BSP_DIR)/env/ \
+    -T$(TGC_BSP_DIR)/env//iss/link.lds \
+    -nostartfiles \
+    -I$(TGC_BSP_DIR)/include -I$(TGC_BSP_DIR)/drivers/ -I$(TGC_BSP_DIR)/env/ -I$(TGC_BSP_DIR)/env/iss -I$(TGC_BSP_DIR)/libwrap/sys/ \
+    -DBOARD_iss \
+    -Wl,--wrap=printf -Wl,--wrap=malloc -Wl,--wrap=open -Wl,--wrap=lseek -Wl,--wrap=_lseek -Wl,--wrap=read -Wl,--wrap=_read -Wl,--wrap=write -Wl,--wrap=_write -Wl,--wrap=fstat -Wl,--wrap=_fstat -Wl,--wrap=stat -Wl,--wrap=close -Wl,--wrap=_close -Wl,--wrap=link -Wl,--wrap=unlink -Wl,--wrap=execve -Wl,--wrap=fork -Wl,--wrap=getpid -Wl,--wrap=kill -Wl,--wrap=wait -Wl,--wrap=isatty -Wl,--wrap=times -Wl,--wrap=sbrk -Wl,--wrap=_sbrk -Wl,--wrap=exit -Wl,--wrap=_exit -Wl,--wrap=puts -Wl,--wrap=_puts -Wl,--wrap=printf -Wl,--wrap=sprintf -L. -Wl,--start-group -lwrap -lc -Wl,--end-group \
+    -Wl,--no-warn-rwx-segments \
+		-o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+		-Xlinker -Map=$(MAP)
+else
+$(ELF): $(PROG_SRCS)
 	mkdir -p $(BUILD_DIR)
 ifeq ($(SIMULATOR),etiss)
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
@@ -75,6 +106,9 @@ ifeq ($(SIMULATOR),spike)
 	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr -l --log=$(TRACE) $(PK) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
 	$(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
+else ifeq ($(SIMULATOR),tgc)
+	$(TGC_SIM) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML)
+	mv output.trc $(TRACE)
 endif
 
 load_static: $(ELF)
