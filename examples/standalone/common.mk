@@ -11,7 +11,7 @@ SYSROOT ?= $(RISCV_PREFIX)/$(RISCV_NAME)
 CC := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-gcc
 OBJDUMP := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objdump
 
-FORCE ?= 0
+FORCE ?= 1
 FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
 
 # Simulation
@@ -49,7 +49,7 @@ clean:
 init:
 	python3 -m isaac_toolkit.session.create --session $(SESS) $(FORCE_ARG)
 
-compile:
+$(ELF):
 	mkdir -p $(BUILD_DIR)
 ifeq ($(SIMULATOR),etiss)
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
@@ -62,7 +62,6 @@ else
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
 		-Xlinker -Map=$(MAP)
-endif
 endif
 
 $(DUMP): $(ELF)
@@ -89,7 +88,10 @@ load: load_static load_dynamic
 
 analyze_static:
 	python3 -m isaac_toolkit.analysis.static.dwarf --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.linker_map --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.static.mem_footprint --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $(SESS) $(FORCE_ARG)
 
 analyze_dynamic:
 	python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
@@ -100,6 +102,7 @@ analyze: analyze_static analyze_dynamic
 
 visualize_static:
 	python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.visualize.pie.disass_counts --session $(SESS) $(FORCE_ARG)
 
 visualize_dynamic:
 	python3 -m isaac_toolkit.visualize.pie.runtime --session $(SESS) --legend $(FORCE_ARG)
