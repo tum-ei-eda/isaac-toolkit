@@ -38,6 +38,7 @@ def get_unsupported_opcodes(
     allow_custom: bool = True,
     allow_fp: bool = False,
     allow_system: bool = False,
+    allow_rvv: bool = False,
 ):
     unsupported_opcodes = set()
 
@@ -80,6 +81,8 @@ def get_unsupported_opcodes(
         unsupported_opcodes.add("OP-FP")
         unsupported_opcodes.add("LOAD-FP")
         unsupported_opcodes.add("STORE-FP")
+    if not allow_rvv:
+        unsupported_opcodes.add("OP-V")
     if not allow_system:
         unsupported_opcodes.add("SYSTEM")
     return unsupported_opcodes
@@ -116,6 +119,7 @@ def check_ise_potential(
     allow_compressed: bool = True,
     allow_custom: bool = True,
     allow_fp: bool = False,
+    allow_rvv: bool = False,
     allow_system: bool = False,
     force: bool = False,
 ):
@@ -137,6 +141,7 @@ def check_ise_potential(
         allow_compressed=allow_compressed,
         allow_custom=allow_custom,
         allow_fp=allow_fp,
+        allow_rvv=allow_rvv,
         allow_system=allow_system,
     )
 
@@ -168,6 +173,7 @@ def handle(args):
         allow_compressed=args.allow_compressed,
         allow_custom=args.allow_custom,
         allow_fp=args.allow_fp,
+        allow_rvv=args.allow_rvv,
         allow_system=args.allow_system,
         force=args.force,
     )
@@ -192,6 +198,7 @@ def get_parser():
     parser.add_argument("--allow-compressed", action="store_true")
     parser.add_argument("--allow-custom", action="store_true")
     parser.add_argument("--allow-fp", action="store_true")
+    parser.add_argument("--allow-rvv", action="store_true")
     parser.add_argument("--allow-system", action="store_true")
     return parser
 

@@ -40,6 +40,7 @@ def check_ise_potential_per_llvm_bb(
     allow_compressed: bool = True,
     allow_custom: bool = True,
     allow_fp: bool = False,
+    allow_rvv: bool = False,
     allow_system: bool = False,
     force: bool = False,
 ):
@@ -60,6 +61,7 @@ def check_ise_potential_per_llvm_bb(
         allow_compressed=allow_compressed,
         allow_custom=allow_custom,
         allow_fp=allow_fp,
+        allow_rvv=allow_rvv,
         allow_system=allow_system,
     )
 
@@ -72,9 +74,18 @@ def check_ise_potential_per_llvm_bb(
         # print("bb_name", bb_name)
         # print("opcodes_hist_df")
         print(opcodes_hist_df)
-        ise_potential_df = get_ise_potential_df(
-            opcodes_hist_df, unsupported_opcodes, min_supported
-        )
+        # force_rvv = True
+        force_rvv = False
+        forced_opcodes = []
+        if force_rvv:
+            forced_opcodes = ["OP-V"]
+        if forced_opcodes:
+            forced_opcodes_hist_df = opcodes_hist_df[opcodes_hist_df["opcode"].isin(forced_opcodes)]
+            if len(forced_opcodes_hist_df) == 0:
+                # TODO: logging
+                continue
+
+        ise_potential_df = get_ise_potential_df(opcodes_hist_df, unsupported_opcodes, min_supported)
         ise_potential_df.insert(0, "func_name", func_name)
         ise_potential_df.insert(1, "bb_name", bb_name)
         # print("ise_potential_df")
@@ -110,6 +121,7 @@ def handle(args):
         allow_compressed=args.allow_compressed,
         allow_custom=args.allow_custom,
         allow_fp=args.allow_fp,
+        allow_rvv=args.allow_rvv,
         allow_system=args.allow_system,
         force=args.force,
     )
@@ -134,6 +146,7 @@ def get_parser():
     parser.add_argument("--allow-compressed", action="store_true")
     parser.add_argument("--allow-custom", action="store_true")
     parser.add_argument("--allow-fp", action="store_true")
+    parser.add_argument("--allow-rvv", action="store_true")
     parser.add_argument("--allow-system", action="store_true")
     return parser
 
