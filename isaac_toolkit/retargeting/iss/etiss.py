@@ -42,6 +42,7 @@ def retarget_etiss_iss(
     etiss_core: Optional[str] = None,
     label: Optional[str] = None,
     force: bool = False,
+    verbose: bool = False,
 ):
     assert workdir is not None
     if not isinstance(workdir, Path):
@@ -54,14 +55,16 @@ def retarget_etiss_iss(
     use_docker = docker_image is not None
     subdir = "docker" if use_docker else "local"
     base_dir = workdir / subdir
-    etiss_dir = base_dir / "etiss"
-    output_dir = etiss_dir / label
+    # etiss_dir = base_dir / "etiss"
+    # output_dir = etiss_dir / label
+    output_dir = (base_dir / "etiss") if label == "" else (base_dir / f"etiss_{label}")
     if output_dir.is_dir():
         assert force, f"Directory already exists: {output_dir}. Use --force or different --label."
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
-    gen_dir = workdir / "gen" / label
+    # gen_dir = workdir / "gen" / label
+    gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     top_file = gen_dir / f"{etiss_core}.core_desc"
     if use_docker:
         command = "docker run -it --rm"
@@ -70,7 +73,25 @@ def retarget_etiss_iss(
         command += f" {docker_image}"
         command += f" {output_dir}"
         command += f" {top_file}"
-        subprocess.run(command, check=True, shell=True)
+        # print("$$$", command)
+        kwargs = {}
+        # print("verbose", verbose)
+        if not verbose:
+            kwargs.setdefault("stdout", subprocess.PIPE)
+            kwargs.setdefault("stderr", subprocess.PIPE)
+            # kwargs.setdefault("text", True)
+        # input("!")
+        try:
+            subprocess.run(command, check=True, shell=True, **kwargs)
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Command failed with return code {e.returncode}")
+            if e.stdout:
+                print("--- STDOUT ---")
+                print(e.stdout.decode())
+            if e.stderr:
+                print("--- STDERR ---")
+                print(e.stderr.decode())
+            raise  # Re-raise if you want the caller to handle it too
     else:
         raise NotImplementedError
 
@@ -83,12 +104,7 @@ def handle(args):
         assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
         sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
-    retarget_etiss_iss(
-        sess,
-        force=args.force,
-        workdir=args.workdir,
-        docker_image=args.docker,
-    )
+    retarget_etiss_iss(sess, force=args.force, workdir=args.workdir, docker_image=args.docker, verbose=args.verbose)
     if sess is not None:
         sess.save()
 
@@ -105,7 +121,7 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
     parser.add_argument("--workdir", type=str, default=None)
-    parser.add_argument("--dse", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
     # label: Optional[str] = None,
     # etiss_core: Optional[str] = None,
 

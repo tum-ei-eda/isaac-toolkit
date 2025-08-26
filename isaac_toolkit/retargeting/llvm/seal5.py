@@ -45,6 +45,7 @@ def retarget_seal5_llvm(
     splitted: bool = False,
     xlen: Optional[int] = 32,
     force: bool = False,
+    verbose: bool = False,
 ):
     logger.info("Retargeting Seal5 LLVM...")
     assert xlen == 32
@@ -61,14 +62,16 @@ def retarget_seal5_llvm(
     use_docker = docker_image is not None
     subdir = "docker" if use_docker else "local"
     base_dir = workdir / subdir
-    seal5_dir = base_dir / "seal5"
-    output_dir = seal5_dir / label
+    # seal5_dir = base_dir / "seal5"
+    # output_dir = seal5_dir / label
+    output_dir = (base_dir / "seal5") if label == "" else (base_dir / f"seal5_{label}")
     if output_dir.is_dir():
         assert force, f"Directory already exists: {output_dir}. Use --force or different --label."
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
-    gen_dir = workdir / "gen" / label
+    # gen_dir = workdir / "gen" / label
+    gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     cdsl_files = [
         gen_dir / f"{set_name}.splitted.core_desl" if splitted else gen_dir / f"{set_name}.core_desc"
         for set_name in seal5_sets
@@ -86,8 +89,24 @@ def retarget_seal5_llvm(
         command += " "
         command += " ".join(map(lambda x: str(Path(x).resolve()), cfg_files))
 
-        print("$$$", command)
-        subprocess.run(command, check=True, shell=True)
+        # print("$$$", command)
+        kwargs = {}
+        # print("verbose", verbose)
+        if not verbose:
+            kwargs.setdefault("stdout", subprocess.PIPE)
+            kwargs.setdefault("stderr", subprocess.PIPE)
+            kwargs.setdefault("text", True)
+        try:
+            subprocess.run(command, check=True, shell=True, **kwargs)
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Command failed with return code {e.returncode}")
+            if e.stdout:
+                print("--- STDOUT ---")
+                print(e.stdout.decode())
+            if e.stderr:
+                print("--- STDERR ---")
+                print(e.stderr.decode())
+            raise  # Re-raise if you want the caller to handle it too
     else:
         raise NotImplementedError
 
@@ -105,6 +124,7 @@ def handle(args):
         force=args.force,
         workdir=args.workdir,
         docker_image=args.docker,
+        verbose=args.verbose,
     )
     if sess is not None:
         sess.save()
@@ -122,7 +142,7 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
     parser.add_argument("--workdir", type=str, default=None)
-    parser.add_argument("--dse", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
     # label: Optional[str] = None,
     # etiss_core: Optional[str] = None,
 
