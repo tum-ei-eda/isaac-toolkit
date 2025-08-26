@@ -50,7 +50,7 @@ DEFAULT_CONFIG = {
     "flow": {
         "demo": {
             "stages": None,
-            "target": None,
+            "riscv": None,
             "mlonmcu": None,
             # "llvm": None,
             "cdfg": None,
