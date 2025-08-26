@@ -29,7 +29,11 @@ logger = get_logger()
 
 
 def retarget_iss_auto(
-    sess: Session, label: str = "", workdir: Optional[str] = None, force: bool = False, progress: bool = False
+    sess: Session,
+    label: str = "",
+    workdir: Optional[str] = None,
+    force: bool = False,
+    progress: bool = False,
 ):
     logger.info("Retargeting ISS with ISAAC instructions...")
     # input(">>>")

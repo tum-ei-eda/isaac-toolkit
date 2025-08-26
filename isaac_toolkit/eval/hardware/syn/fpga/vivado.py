@@ -83,7 +83,9 @@ def run_vivado_asip_syn(
     assert hls_dir.is_dir()
     output_dir = base_dir / "asip_syn" / label
     if output_dir.is_dir():
-        assert force, f"Directory already exists: {output_dir}. Use --force or different --label."
+        assert (
+            force
+        ), f"Directory already exists: {output_dir}. Use --force or different --label."
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     else:

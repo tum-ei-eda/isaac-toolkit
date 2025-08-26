@@ -80,12 +80,16 @@ def check_ise_potential_per_llvm_bb(
         if force_rvv:
             forced_opcodes = ["OP-V"]
         if forced_opcodes:
-            forced_opcodes_hist_df = opcodes_hist_df[opcodes_hist_df["opcode"].isin(forced_opcodes)]
+            forced_opcodes_hist_df = opcodes_hist_df[
+                opcodes_hist_df["opcode"].isin(forced_opcodes)
+            ]
             if len(forced_opcodes_hist_df) == 0:
                 # TODO: logging
                 continue
 
-        ise_potential_df = get_ise_potential_df(opcodes_hist_df, unsupported_opcodes, min_supported)
+        ise_potential_df = get_ise_potential_df(
+            opcodes_hist_df, unsupported_opcodes, min_supported
+        )
         ise_potential_df.insert(0, "func_name", func_name)
         ise_potential_df.insert(1, "bb_name", bb_name)
         # print("ise_potential_df")

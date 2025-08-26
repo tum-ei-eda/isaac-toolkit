@@ -82,10 +82,16 @@ def run_nailgun_hls(
     if isaxes is None:
         isaxes = []
     if label is None:
-        label = "baseline" if len(isaxes) == 0 else ("shared" if share_resources else "default")
+        label = (
+            "baseline"
+            if len(isaxes) == 0
+            else ("shared" if share_resources else "default")
+        )
     output_dir = hls_dir / label / "output"
     if output_dir.is_dir():
-        assert force, f"Directory already exists: {output_dir}. Use --force or different --label."
+        assert (
+            force
+        ), f"Directory already exists: {output_dir}. Use --force or different --label."
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     else:
@@ -155,7 +161,9 @@ def run_nailgun_hls(
             command += f" -v {mount_dir}:{mount_dir}"
         command += f" {docker_image}"
         prepare = "cd /isax-tools/nailgun"
-        nailgun_command_env = " ".join([f"{key}={val}" for key, val in nailgun_env.items()])
+        nailgun_command_env = " ".join(
+            [f"{key}={val}" for key, val in nailgun_env.items()]
+        )
         command += f' "{prepare} && {nailgun_command_env} {nailgun_command}"'
         print("command", command)
         subprocess.run(command, shell=True)
@@ -200,8 +208,12 @@ def get_parser():
     # parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--session", "--sess", "-s", type=str, required=False)
     parser.add_argument("--force", "-f", action="store_true")
-    parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
-    parser.add_argument("--tools-dir", type=str, required=True)  # TODO: define via settings?
+    parser.add_argument(
+        "--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?"
+    )
+    parser.add_argument(
+        "--tools-dir", type=str, required=True
+    )  # TODO: define via settings?
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--isaxes", type=str, default=None)
     # parser.add_argument("--index", type=str, default=None)

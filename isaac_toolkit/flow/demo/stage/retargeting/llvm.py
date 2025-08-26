@@ -99,7 +99,12 @@ def handle(args):
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
     retarget_llvm_auto(
-        sess, args.cfg_file, label=args.label, workdir=args.workdir, splitted=args.splitted, force=args.force
+        sess,
+        args.cfg_file,
+        label=args.label,
+        workdir=args.workdir,
+        splitted=args.splitted,
+        force=args.force,
     )
     sess.save()
 

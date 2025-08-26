@@ -98,7 +98,9 @@ def choose_bbs(
             ), "Run isaac_toolkit.generate.ise.check_ise_potential_per_llvm_bb first!"
 
             def lookup_supported(df, func_name, bb_name):
-                filtered = df[(df["func_name"] == func_name) & (df["bb_name"] == bb_name)]
+                filtered = df[
+                    (df["func_name"] == func_name) & (df["bb_name"] == bb_name)
+                ]
                 # TODO: add missing!
                 if len(filtered) == 0:
                     # TODO: check?

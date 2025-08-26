@@ -66,14 +66,20 @@ def retarget_seal5_llvm(
     # output_dir = seal5_dir / label
     output_dir = (base_dir / "seal5") if label == "" else (base_dir / f"seal5_{label}")
     if output_dir.is_dir():
-        assert force, f"Directory already exists: {output_dir}. Use --force or different --label."
+        assert (
+            force
+        ), f"Directory already exists: {output_dir}. Use --force or different --label."
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
     # gen_dir = workdir / "gen" / label
     gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     cdsl_files = [
-        gen_dir / f"{set_name}.splitted.core_desl" if splitted else gen_dir / f"{set_name}.core_desc"
+        (
+            gen_dir / f"{set_name}.splitted.core_desl"
+            if splitted
+            else gen_dir / f"{set_name}.core_desc"
+        )
         for set_name in seal5_sets
     ]
     # print("cdsl_files", cdsl_files)
@@ -140,7 +146,9 @@ def get_parser():
     # parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--session", "--sess", "-s", type=str, required=False)
     parser.add_argument("--force", "-f", action="store_true")
-    parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
+    parser.add_argument(
+        "--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?"
+    )
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
     # label: Optional[str] = None,
