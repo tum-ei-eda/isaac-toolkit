@@ -5,3 +5,9 @@ build*/
 *.dot
 *.log
 *.out
+*.in
+*.info
+*.a
+*.json
+*.svg
+out*/
