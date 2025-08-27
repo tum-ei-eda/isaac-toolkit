@@ -27,27 +27,57 @@ TGC_SIM ?= $(TGC_BUILD_DIR)/dbt-rise-tgc/tgc-sim
 TGC_PCTRACE ?= $(TGC_BUILD_DIR)/dbt-rise-plugins/pctrace/pctrace.so
 TGC_YAML ?= $(TGC_SRC_DIR)/dbt-rise-tgc/contrib/instr/TGC5C_instr.yaml
 
-OPTIMIZE := 3
-EXTRA_COMPILE_FLAGS :=
+OPTIMIZE ?= 3
+EXTRA_COMPILE_FLAGS ?=
 
 # ELF / trace file
 ELF := $(BUILD_DIR)/$(PROG).elf
 MAP := $(BUILD_DIR)/$(PROG).map
 DUMP := $(BUILD_DIR)/$(PROG).dump
 TRACE := $(OUT_DIR)/$(SIMULATOR)_instrs.log
+TIMING_CSV := $(OUT_DIR)/stage_timings.csv
 CALLGRIND_POS = $(OUT_DIR)/callgrind_pos.out
 CALLGRIND_PC = $(OUT_DIR)/callgrind_pc.out
 CALLGRAPH_DOT = $(OUT_DIR)/callgraph.dot
 CALLGRAPH_PDF = $(OUT_DIR)/callgraph.pdf
+
+define time_stage
+@echo "Starting $(1)..."
+@start=$$(date +%s%3N); \
+$(2); \
+end=$$(date +%s%3N); \
+elapsed=$$((end - start)); \
+echo "$(1),$$elapsed" >> $(TIMING_CSV); \
+echo "Finished $(1) in $$elapsed ms"
+endef
 
 
 .PHONY: all clean init compile run \
         load_static load_dynamic load \
         analyze_static analyze_dynamic analyze \
         visualize_static visualize_dynamic visualize \
-        profile callgraph kcachegrind
+        profile profile_pc profile_pos \
+        callgraph kcachegrind kcachegrind_pc kcachegrind_pos
 
-all: init compile run load analyze visualize profile callgraph kcachegrind
+all: init compile run load analyze visualize profile callgraph
+
+measure: $(OUT_DIR)
+	@echo "stage,time_ms" > $(TIMING_CSV)
+	$(call time_stage,init, $(MAKE) init)
+	$(call time_stage,compile, $(MAKE) compile)
+	$(call time_stage,trace, $(MAKE) trace)
+	$(call time_stage,load_static, $(MAKE) load_static)
+	$(call time_stage,load_dynamic, $(MAKE) load_dynamic)
+	$(call time_stage,analyze_static, $(MAKE) analyze_static)
+	$(call time_stage,analyze_dynamic, $(MAKE) analyze_dynamic)
+	$(call time_stage,visualize_static, $(MAKE) visualize_static)
+	$(call time_stage,visualize_dynamic, $(MAKE) visualize_dynamic)
+	$(call time_stage,profile_pos, $(MAKE) profile_pos)
+	$(call time_stage,profile_pc, $(MAKE) profile_pc)
+	$(call time_stage,callgraph, $(MAKE) callgraph)
+	# $(call time_stage,kcachegrind_pc, $(MAKE) kcachegrind_pc)
+	# $(call time_stage,kcachegrind_pos, $(MAKE) kcachegrind_pos)
+# TODO: report
 
 clean:
 	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_PC) $(TRACE)
@@ -77,6 +107,7 @@ $(ELF): $(PROG_SRCS) $(LIBWRAP)
     -DBOARD_iss \
     -Wl,--wrap=printf -Wl,--wrap=malloc -Wl,--wrap=open -Wl,--wrap=lseek -Wl,--wrap=_lseek -Wl,--wrap=read -Wl,--wrap=_read -Wl,--wrap=write -Wl,--wrap=_write -Wl,--wrap=fstat -Wl,--wrap=_fstat -Wl,--wrap=stat -Wl,--wrap=close -Wl,--wrap=_close -Wl,--wrap=link -Wl,--wrap=unlink -Wl,--wrap=execve -Wl,--wrap=fork -Wl,--wrap=getpid -Wl,--wrap=kill -Wl,--wrap=wait -Wl,--wrap=isatty -Wl,--wrap=times -Wl,--wrap=sbrk -Wl,--wrap=_sbrk -Wl,--wrap=exit -Wl,--wrap=_exit -Wl,--wrap=puts -Wl,--wrap=_puts -Wl,--wrap=printf -Wl,--wrap=sprintf -L. -Wl,--start-group -lwrap -lc -Wl,--end-group \
     -Wl,--no-warn-rwx-segments \
+    $(EXTRA_COMPILE_FLAGS) \
 		-o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
 		-Xlinker -Map=$(MAP)
 else
@@ -88,10 +119,17 @@ ifeq ($(SIMULATOR),etiss)
 		$(INSTALL_DIR)/etiss/etiss_riscv_examples/riscv_crt0/trap_handler.c \
 		-T $(INSTALL_DIR)/etiss/install/etiss.ld -nostdlib -lc -lgcc -lsemihost \
 		-o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+    $(EXTRA_COMPILE_FLAGS) \
+		-Xlinker -Map=$(MAP)
+else ifeq ($(SIMULATOR),spike_bm)
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) -specs=htif_nano.specs -specs=htif_wrap.specs \
+		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+    $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 else
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+    $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 endif
 endif
@@ -101,9 +139,11 @@ $(DUMP): $(ELF)
 
 compile: $(ELF) $(DUMP)
 
-run: $(OUT_DIR)
+$(TRACE): $(OUT_DIR) $(ELF)
 ifeq ($(SIMULATOR),spike)
 	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr -l --log=$(TRACE) $(PK) $(ELF) -s
+else ifeq ($(SIMULATOR),spike_bm)
+	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr -l --log=$(TRACE) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
 	$(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
 else ifeq ($(SIMULATOR),tgc)
@@ -111,13 +151,22 @@ else ifeq ($(SIMULATOR),tgc)
 	mv output.trc $(TRACE)
 endif
 
+trace: $(TRACE)
+run: trace
+
 load_static: $(ELF)
 	python3 -m isaac_toolkit.frontend.elf.riscv --session $(SESS) $(ELF) $(FORCE_ARG)
 	@if [ -f "$(MAP)" ]; then python3 -m isaac_toolkit.frontend.linker_map --session $(SESS) $(MAP) $(FORCE_ARG); fi
 	@if [ -f "$(DUMP)" ]; then python3 -m isaac_toolkit.frontend.disass.objdump --session $(SESS) $(DUMP) $(FORCE_ARG); fi
 
+ifeq ($(SIMULATOR),spike_bm)
+INSTR_TRACE_FRONTEND ?= spike
+else
+INSTR_TRACE_FRONTEND ?= $(SIMULATOR)
+endif
+
 load_dynamic: $(TRACE)
-	python3 -m isaac_toolkit.frontend.instr_trace.$(SIMULATOR) $(TRACE) --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.frontend.instr_trace.$(INSTR_TRACE_FRONTEND) $(TRACE) --session $(SESS) $(FORCE_ARG)
 
 load: load_static load_dynamic
 
@@ -140,17 +189,14 @@ visualize_dynamic:
 
 visualize: visualize_static visualize_dynamic
 
-profile_pos: $(OUT_DIR)
+$(CALLGRIND_POS): $(OUT_DIR)
 	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
 
-$(CALLGRIND_POS): profile_pos
-
-profile_pc: $(OUT_DIR)
+$(CALLGRIND_PC): $(OUT_DIR)
 	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pc --output $(CALLGRIND_PC) $(FORCE_ARG)
 
-$(CALLGRIND_PC): profile_pc
-
-profile: profile_pos profile_pc
+profile_pc: $(CALLGRIND_PC)
+profile_pos: $(CALLGRIND_POS)
 
 $(CALLGRAPH_DOT): $(CALLGRIND_PC) $(OUT_DIR)
 	gprof2dot --format=callgrind --output=$(CALLGRAPH_DOT) $(CALLGRIND_PC) -n 0.1 -e 0.1 --color-nodes-by-selftime
@@ -164,7 +210,6 @@ callgraph: $(CALLGRAPH_PDF)
 # 	@echo "Opening kcachegrind GUI..."
 # 	OBJDUMP=$(OBJDUMP) kcachegrind callgrind_pc.out
 
-
-kcachegrind_pc: $(CALLGRIND_PC)
-	@echo "Opening kcachegrind GUI (PC)..."
-	OBJDUMP=$(OBJDUMP) kcachegrind $(CALLGRIND_PC)
+# kcachegrind_pc: $(CALLGRIND_PC)
+# 	@echo "Opening kcachegrind GUI (PC)..."
+# 	OBJDUMP=$(OBJDUMP) kcachegrind $(CALLGRIND_PC)
