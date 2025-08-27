@@ -46,16 +46,28 @@ def unmangle_helper(func_name: Optional[str]):
     return demangle(func_name)
 
 
+PC_FUNC_NAME_CACHE = {}
+
+
+# TODO: reset?
+
+
 def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
     # TODO: refactor to use existing tables
     """
     Given a program counter, find the function it belongs to
     """
+    found = PC_FUNC_NAME_CACHE.get(pc)
+    if found is not None:
+        return found
     for func, ranges in mapping.items():
         for range_ in ranges:
             if pc >= range_[0] and pc <= range_[1]:
+                PC_FUNC_NAME_CACHE[pc] = func
                 return func
-    return hex(pc)
+    ret = hex(pc)
+    PC_FUNC_NAME_CACHE[pc] = ret
+    return ret
 
 
 def collect_bbs(trace_df, mapping):
