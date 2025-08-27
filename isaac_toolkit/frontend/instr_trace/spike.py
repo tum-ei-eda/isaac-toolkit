@@ -39,7 +39,7 @@ def load_instr_trace(sess: Session, input_file: Path, force: bool = False, opera
     dfs = []
     with pd.read_csv(input_file, sep="@", header=None, chunksize=2**22) as reader:
         for df in tqdm(reader, disable=False):
-            df = df[df[0].str.contains(" (0x")]
+            df = df[df[0].str.contains(r" \(0x")]
             df[["core", "rest"]] = df[0].str.split(":", n=1, expand=True)
             df.drop(columns=[0], inplace=True)
             df["core"] = df["core"].apply(lambda x: int(x.split(" ", 1)[-1].strip()))
