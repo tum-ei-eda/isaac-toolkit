@@ -11,3 +11,4 @@ build*/
 *.json
 *.svg
 out*/
+html/
