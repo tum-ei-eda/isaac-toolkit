@@ -2,7 +2,12 @@
 line-length = 120
 
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8"]
+requires = [
+    "setuptools>=64",
+    "setuptools-scm>=8",
+    "setuptools-rust>=1.5.2",
+    "wheel"
+]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,6 +15,9 @@ name = "isaac_toolkit"
 dynamic = ["version", "dependencies", "optional-dependencies"]
 requires-python = ">=3.8"
 license = {text = "Apache-2.0"}
+
+[tool.setuptools.packages.find]
+include = ["isaac_toolkit*"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
