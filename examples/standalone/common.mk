@@ -36,6 +36,7 @@ ELF := $(BUILD_DIR)/$(PROG).elf
 MAP := $(BUILD_DIR)/$(PROG).map
 DUMP := $(BUILD_DIR)/$(PROG).dump
 TRACE := $(OUT_DIR)/$(SIMULATOR)_instrs.log
+OUTP := $(OUT_DIR)/$(SIMULATOR)_out.log
 TIMING_CSV := $(OUT_DIR)/stage_timings.csv
 CALLGRIND_POS = $(OUT_DIR)/callgrind_pos.out
 CALLGRIND_PC = $(OUT_DIR)/callgrind_pc.out
@@ -66,6 +67,7 @@ measure: $(OUT_DIR)
 	@echo "stage,time_ms" > $(TIMING_CSV)
 	$(call time_stage,init, $(MAKE) init)
 	$(call time_stage,compile, $(MAKE) compile)
+	$(call time_stage,run, $(MAKE) run)
 	$(call time_stage,trace, $(MAKE) trace)
 	$(call time_stage,load_static, $(MAKE) load_static)
 	$(call time_stage,load_dynamic, $(MAKE) load_dynamic)
@@ -152,8 +154,19 @@ else ifeq ($(SIMULATOR),tgc)
 	mv output.trc $(TRACE)
 endif
 
+$(OUTP): $(ELF) | $(OUT_DIR)
+ifeq ($(SIMULATOR),spike)
+	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr $(PK) $(ELF) -s | tee $(OUTP)
+else ifeq ($(SIMULATOR),spike_bm)
+	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr $(ELF) -s | tee $(OUTP)
+else ifeq ($(SIMULATOR),etiss)
+	$(ETISS) $(ELF) -i$(ETISS_INI) | tee $(OUTP)
+else ifeq ($(SIMULATOR),tgc)
+	$(TGC_SIM) -f $(ELF) | tee $(OUTP)
+endif
+
 trace: $(TRACE)
-run: trace
+run: $(OUTP)
 
 load_static: $(ELF)
 	python3 -m isaac_toolkit.frontend.elf.riscv --session $(SESS) $(ELF) $(FORCE_ARG)
