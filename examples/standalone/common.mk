@@ -20,6 +20,7 @@ SPIKE ?= $(INSTALL_DIR)/spike/spike
 PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
 ETISS ?= $(INSTALL_DIR)/etiss/install/bin/run_helper.sh
 ETISS_INI ?= $(INSTALL_DIR)/etiss/install/custom.ini
+
 TGC_BSP_DIR ?= /path/to/tgc/bsp
 TGC_SRC_DIR ?= /path/to/tgc/src/dir
 TGC_BUILD_DIR ?= $(TGC_SRC_DIR)/build
@@ -27,7 +28,7 @@ TGC_SIM ?= $(TGC_BUILD_DIR)/dbt-rise-tgc/tgc-sim
 TGC_PCTRACE ?= $(TGC_BUILD_DIR)/dbt-rise-plugins/pctrace/pctrace.so
 TGC_YAML ?= $(TGC_SRC_DIR)/dbt-rise-tgc/contrib/instr/TGC5C_instr.yaml
 
-OPTIMIZE ?= 3
+OPTIMIZE ?= 2
 EXTRA_COMPILE_FLAGS ?=
 
 # ELF / trace file
