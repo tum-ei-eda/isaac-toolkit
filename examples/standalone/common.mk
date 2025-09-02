@@ -24,9 +24,34 @@ ETISS_INI ?= $(INSTALL_DIR)/etiss/install/custom.ini
 TGC_BSP_DIR ?= /path/to/tgc/bsp
 TGC_SRC_DIR ?= /path/to/tgc/src/dir
 TGC_BUILD_DIR ?= $(TGC_SRC_DIR)/build
-TGC_SIM ?= $(TGC_BUILD_DIR)/dbt-rise-tgc/tgc-sim
-TGC_PCTRACE ?= $(TGC_BUILD_DIR)/dbt-rise-plugins/pctrace/pctrace.so
-TGC_YAML ?= $(TGC_SRC_DIR)/dbt-rise-tgc/contrib/instr/TGC5C_instr.yaml
+TGC_INSTALL_DIR ?= $(TGC_SRC_DIR)/install
+
+ifeq ($(SIMULATOR),tgc)
+  ifneq ($(wildcard $(TGC_INSTALL_DIR)),)
+    TGC_SIM     := $(TGC_INSTALL_DIR)/bin/tgc-sim
+    TGC_PCTRACE := $(TGC_INSTALL_DIR)/libexec/pctrace.so
+    TGC_YAML    := $(TGC_INSTALL_DIR)/share/tgc-vp/TGC5C_instr.yaml
+    TRANSFORM_TRACE_SCRIPT := $(TGC_INSTALL_DIR)/bin/transform_trc
+    # GEN_MERMAID_SCRIPT := $(TGC_INSTALL_DIR)/bin/gen_mermaid
+    GEN_FLAMEGRAPH_SCRIPT := $(TGC_INSTALL_DIR)/bin/gen_flamegraph
+    FLAMEGRAPH_PL := $(TGC_INSTALL_DIR)/bin/flamegraph.pl
+    GEN_CACHEGRIND_SCRIPT := $(TGC_INSTALL_DIR)/bin/gen_cachegrind
+    TRC2LCOV_SCRIPT := $(TGC_INSTALL_DIR)/bin/trc2lcov
+
+  else ifneq ($(wildcard $(TGC_BUILD_DIR)),)
+    TGC_SIM     := $(TGC_BUILD_DIR)/dbt-rise-tgc/tgc-sim
+    TGC_PCTRACE := $(TGC_BUILD_DIR)/dbt-rise-plugins/pctrace/pctrace.so
+    TGC_YAML    := $(TGC_SRC_DIR)/dbt-rise-tgc/contrib/instr/TGC5C_instr.yaml
+    TRANSFORM_TRACE_SCRIPT := $(TGC_SRC_DIR)/dbt-rise-plugins/scripts/transform_trc.py
+    GEN_MERMAID_SCRIPT := $(TGC_SRC_DIR)/dbt-rise-plugins/scripts/gen_mermaid.py
+    GEN_FLAMEGRAPH_SCRIPT := $(TGC_SRC_DIR)/dbt-rise-plugins/scripts/gen_flamegraph.py
+    FLAMEGRAPH_PL := $(TGC_SRC_DIR)/dbt-rise-plugins/scripts/flamegraph.pl
+    GEN_CACHEGRIND_SCRIPT := $(TGC_SRC_DIR)/dbt-rise-plugins/scripts/gen_cachegrind.py
+    TRC2LCOV_SCRIPT := $(TGC_SRC_DIR)/dbt-rise-plugins/scripts/trc2lcov.py
+  else
+    $(error Neither TGC_INSTALL_DIR ($(TGC_INSTALL_DIR)) nor TGC_BUILD_DIR ($(TGC_BUILD_DIR)) exists!)
+  endif
+endif
 
 OPTIMIZE ?= 2
 EXTRA_COMPILE_FLAGS ?=
@@ -59,7 +84,8 @@ endef
         analyze_static analyze_dynamic analyze \
         visualize_static visualize_dynamic visualize \
         profile profile_pc profile_pos \
-        callgraph kcachegrind kcachegrind_pc kcachegrind_pos
+        callgraph kcachegrind kcachegrind_pc kcachegrind_pos \
+	function_trace flamegraph mermaid cachegrind lcov
 
 all: init compile run load analyze visualize profile callgraph
 
@@ -80,6 +106,10 @@ measure: $(OUT_DIR)
 	$(call time_stage,callgraph, $(MAKE) callgraph)
 	# $(call time_stage,kcachegrind_pc, $(MAKE) kcachegrind_pc)
 	# $(call time_stage,kcachegrind_pos, $(MAKE) kcachegrind_pos)
+	$(call time_stage,function_trace, $(MAKE) function_trace)
+	$(call time_stage,flamegraph, $(MAKE) flamegraph)
+	$(call time_stage,cachegrind, $(MAKE) cachegrind)
+	$(call time_stage,lcov, $(MAKE) lcov)
 # TODO: report
 
 clean:
@@ -229,3 +259,50 @@ callgraph: $(CALLGRAPH_PDF)
 # kcachegrind_pc: $(CALLGRIND_PC)
 # 	@echo "Opening kcachegrind GUI (PC)..."
 # 	OBJDUMP=$(OBJDUMP) kcachegrind $(CALLGRIND_PC)
+
+ifeq ($(SIMULATOR),tgc)
+FUNCTION_TRACE_JSON := $(OUT_DIR)/function_trace.json
+
+$(FUNCTION_TRACE_JSON): $(ELF) $(TRACE) | $(OUT_DIR)
+	python3 $(TRANSFORM_TRACE_SCRIPT) $(ELF) $(TRACE) -output $(FUNCTION_TRACE_JSON)
+
+function_trace: $(FUNCTION_TRACE_JSON)
+
+MERMAID_OUT := $(OUT_DIR)/mermaid.out
+
+$(MERMAID_OUT): $(FUNCTION_TRACE_JSON) | $(OUT_DIR)
+	cd $(OUT_DIR) && python3 $(GEN_MERMAID_SCRIPT) > $(MERMAID_OUT)
+mermaid: $(MERMAID_OUT)
+
+FLAMEGRAPH_IN := $(OUT_DIR)/flamegraph.in
+
+$(FLAMEGRAPH_IN): $(FUNCTION_TRACE_JSON) | $(OUT_DIR)
+	cd $(OUT_DIR) && python3 $(GEN_FLAMEGRAPH_SCRIPT)
+
+FLAMEGRAPH_SVG := $(OUT_DIR)/flamegraph.svg
+
+$(FLAMEGRAPH_SVG): $(FLAMEGRAPH_IN) | $(OUT_DIR)
+	perl $(FLAMEGRAPH_PL) $(FLAMEGRAPH_IN) > $(FLAMEGRAPH_SVG)
+
+flamegraph: $(FLAMEGRAPH_SVG)
+
+CACHEGRIND_IN := $(OUT_DIR)/cachegrind.in
+
+$(CACHEGRIND_IN): $(FUNCTION_TRACE_JSON) | $(OUT_DIR)
+	cd $(OUT_DIR) && python3 $(GEN_CACHEGRIND_SCRIPT)
+
+cachegrind: $(CACHEGRIND_IN)
+
+LCOV_OUT := $(OUT_DIR)/coverage.info
+LCOV_HTML := $(OUT_DIR)/html
+
+# NEEDS sudo apt install lcov
+$(LCOV_HTML): $(ELF) $(TRACE) | $(OUT_DIR)
+	python3 $(TRC2LCOV_SCRIPT) $(ELF) --trc $(TRACE) --output $(LCOV_OUT) --genhtml $(LCOV_HTML)
+
+$(LCOV_OUT): $(LCOV_HTML)
+
+lcov: $(LCOV_HTML)
+
+
+endif
