@@ -266,6 +266,29 @@ class TableArtifact(PythonArtifact):
         autoload: bool = False,
     ):
         super().__init__(name, data=df, path=path, flags=flags, attrs=attrs, autoload=autoload)
+        # TODO: get from settings!
+        # self.fmt = "parquet"
+        # self.engine = "auto"
+        # self.engine = "pyarrow"
+        # self.engine = "fastparquet"
+        # self.compression = None
+        # self.compression = 'snappy'
+        # self.compression = 'gzip'
+        # self.compression = 'brotli'
+        # self.compression = 'lz4'
+        # self.compression = 'zstd'
+        self.fmt = "pickle"
+        self.compression = None
+        # self.compression = "infer"
+        # self.compression = "zip"
+        # self.compression = "gzip"
+        # self.compression = {"method": "gzip", "compresslevel": 1}
+        # self.compression = {"method": "gzip", "compresslevel": 8}
+        # self.compression = {"method": "gzip", "compresslevel": 9}
+        # self.compression = "bz2"
+        # self.compression = "zstd"
+        # self.compression = "xz"
+        # self.compression = "tar"
 
     @property
     def flags(self):
@@ -276,10 +299,20 @@ class TableArtifact(PythonArtifact):
         return self.data
 
     def _save(self, dest):
-        self.df.to_pickle(dest)
+        if self.fmt == "pickle":
+            self.df.to_pickle(dest, compression=self.compression)
+        elif self.fmt == "parquet":
+            self.df.to_parquet(dest, engine=self.engine, compression=self.compression)
+        else:
+            raise ValueError(f"Unsupported format: {self.fmt}")
 
     def _load(self, source: Path):
-        df = pd.read_pickle(source)
+        if self.fmt == "pickle":
+            df = pd.read_pickle(source, compression=self.compression)
+        elif self.fmt == "parquet":
+            df = pd.read_parquet(source, engine=self.engine)
+        else:
+            raise ValueError(f"Unsupported format: {self.fmt}")
         self._data = df
 
     def summary(self):
