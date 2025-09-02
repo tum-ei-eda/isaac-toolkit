@@ -142,7 +142,7 @@ $(DUMP): $(ELF)
 
 compile: $(ELF) $(DUMP)
 
-$(TRACE): $(OUT_DIR) $(ELF)
+$(TRACE): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
 	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr -l --log=$(TRACE) $(PK) $(ELF) -s
 else ifeq ($(SIMULATOR),spike_bm)
@@ -205,19 +205,19 @@ visualize_dynamic:
 
 visualize: visualize_static visualize_dynamic
 
-$(CALLGRIND_POS): $(OUT_DIR)
+$(CALLGRIND_POS): | $(OUT_DIR)
 	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
 
-$(CALLGRIND_PC): $(OUT_DIR)
+$(CALLGRIND_PC): | $(OUT_DIR)
 	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pc --output $(CALLGRIND_PC) $(FORCE_ARG)
 
 profile_pc: $(CALLGRIND_PC)
 profile_pos: $(CALLGRIND_POS)
 
-$(CALLGRAPH_DOT): $(CALLGRIND_PC) $(OUT_DIR)
+$(CALLGRAPH_DOT): $(CALLGRIND_PC) | $(OUT_DIR)
 	gprof2dot --format=callgrind --output=$(CALLGRAPH_DOT) $(CALLGRIND_PC) -n 0.1 -e 0.1 --color-nodes-by-selftime
 
-$(CALLGRAPH_PDF): $(CALLGRAPH_DOT) $(OUT_DIR)
+$(CALLGRAPH_PDF): $(CALLGRAPH_DOT) | $(OUT_DIR)
 	dot -Tpdf $(CALLGRAPH_DOT) > $(CALLGRAPH_PDF)
 
 callgraph: $(CALLGRAPH_PDF)
