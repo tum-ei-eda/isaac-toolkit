@@ -2,7 +2,7 @@
 INSTALL_DIR ?= $(abspath ../install)
 SESS ?= $(abspath ./sess)
 BUILD_DIR ?= $(abspath ./build)
-OUT_DIR ?= $(abspath .)
+OUT_DIR ?= $(abspath ./out)
 RISCV_PREFIX ?= $(INSTALL_DIR)/rv32im_ilp32
 RISCV_NAME ?= riscv32-unknown-elf
 RISCV_ARCH ?= rv32im_zicsr_zifencei
