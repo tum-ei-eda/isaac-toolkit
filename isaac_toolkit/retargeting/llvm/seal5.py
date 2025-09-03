@@ -46,6 +46,7 @@ def retarget_seal5_llvm(
     xlen: Optional[int] = 32,
     force: bool = False,
     verbose: bool = False,
+    cleanup: bool = False,
 ):
     logger.info("Retargeting Seal5 LLVM...")
     assert xlen == 32
@@ -72,6 +73,7 @@ def retarget_seal5_llvm(
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
+    gen_dir = workdir / "gen"
     # gen_dir = workdir / "gen" / label
     gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     cdsl_files = [
@@ -88,6 +90,7 @@ def retarget_seal5_llvm(
         command = "docker run -it --rm"
         if mount_dir is not None:
             command += f" -v {mount_dir}:{mount_dir}"
+        command += f" -e CLEANUP={int(cleanup)}"
         command += f" {docker_image}"
         command += f" {output_dir}"
         command += " "
