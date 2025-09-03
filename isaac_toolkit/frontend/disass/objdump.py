@@ -32,7 +32,7 @@ logger = get_logger()
 
 def load_disass(sess: Session, input_file: Path, force: bool = False):
     logger.info("Loading Disassembly...")
-    assert input_file.is_file()
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
     attrs = {
         "target": "riscv",  # TODO: 32/64?

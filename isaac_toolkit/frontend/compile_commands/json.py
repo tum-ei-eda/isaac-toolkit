@@ -32,7 +32,7 @@ logger = get_logger()
 
 def load_compile_commands_json(sess: Session, input_file: Path, force: bool = False):
     logger.info("Loading compile commands JSON...")
-    assert input_file.is_file()
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
     attrs = {
         "kind": "compile_commands",

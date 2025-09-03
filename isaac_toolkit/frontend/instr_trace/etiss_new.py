@@ -50,7 +50,7 @@ def load_instr_trace(
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
     for input_file in sorted_files:
-        assert input_file.is_file()
+        assert input_file.is_file(), f"File not found: {input_file}"
         # print("file", input_file)
         with pd.read_csv(input_file, sep=";", chunksize=2**22, header=0) as reader:
             for df in tqdm(reader, disable=not progress):

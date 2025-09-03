@@ -42,7 +42,7 @@ def load_instr_trace(
     progress: bool = False,
 ):
     logger.info("Loading ETISS intruction trace...")
-    assert input_file.is_file()
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []

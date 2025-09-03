@@ -29,7 +29,7 @@ logger = get_logger()
 
 def load_elf(sess: Session, input_file: Path, force: bool = False):
     logger.info("Loading RISC-V ELF...")
-    assert input_file.is_file()
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
     attrs = {
         "target": "riscv",  # TODO: 32/64?

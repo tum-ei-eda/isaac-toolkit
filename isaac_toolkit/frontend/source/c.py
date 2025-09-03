@@ -36,7 +36,7 @@ def handle(args, fmt="c"):
     set_log_level(console_level=args.log, file_level=args.log)
     override = args.force
     input_file = Path(args.file)
-    assert input_file.is_file()
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
     attrs = {
         "kind": fmt,

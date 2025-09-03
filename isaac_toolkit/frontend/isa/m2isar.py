@@ -36,7 +36,7 @@ def handle(args):
     logger.info("Loading M2-ISA-R metamodel...")
     override = args.force
     input_file = Path(args.file)
-    assert input_file.is_file()
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.stem
     attrs = {
         "kind": "full",  # TODO: 32/64?

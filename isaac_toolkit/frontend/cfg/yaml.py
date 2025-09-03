@@ -35,8 +35,7 @@ def load_cfg_files(sess: Session, input_files: List[Path], force: bool = False):
     override = force
     config = sess.config
     for input_file in input_files:
-        print("input_file", input_file)
-        assert input_file.is_file()
+        assert input_file.is_file(), f"File not found: {input_file}"
         new_config: IsaacConfig = IsaacConfig.from_yaml_file(input_file)
         config.merge(new_config, overwrite=override, inplace=True)
     sess.config = config
