@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# # import os
+import os
 import sys
 import shutil
 import subprocess
@@ -43,6 +43,7 @@ def retarget_etiss_iss(
     label: Optional[str] = None,
     force: bool = False,
     verbose: bool = False,
+    cleanup: bool = False,
 ):
     assert workdir is not None
     if not isinstance(workdir, Path):
@@ -68,20 +69,22 @@ def retarget_etiss_iss(
     # gen_dir = workdir / "gen" / label
     gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     top_file = gen_dir / f"{etiss_core}.core_desc"
+    kwargs = {}
+    # print("verbose", verbose)
+    if not verbose:
+        kwargs.setdefault("stdout", subprocess.PIPE)
+        kwargs.setdefault("stderr", subprocess.PIPE)
+        # kwargs.setdefault("text", True)
     if use_docker:
         command = "docker run -it --rm"
         if mount_dir is not None:
             command += f" -v {mount_dir}:{mount_dir}"
+        command += f" -e CLEANUP={int(cleanup)}"
         command += f" {docker_image}"
         command += f" {output_dir}"
         command += f" {top_file}"
         # print("$$$", command)
-        kwargs = {}
-        # print("verbose", verbose)
-        if not verbose:
-            kwargs.setdefault("stdout", subprocess.PIPE)
-            kwargs.setdefault("stderr", subprocess.PIPE)
-            # kwargs.setdefault("text", True)
+
         # input("!")
         try:
             subprocess.run(command, check=True, shell=True, **kwargs)
@@ -95,7 +98,32 @@ def retarget_etiss_iss(
                 print(e.stderr.decode())
             raise  # Re-raise if you want the caller to handle it too
     else:
-        raise NotImplementedError
+
+        temp_dir = base_dir / "temp"
+        etiss_home = temp_dir / "etiss"
+        env = os.environ.copy()
+        env["ETISS_HOME"] = etiss_home
+        env["CLEANUP"] = str(int(cleanup))
+        # ccache already exported implicitly?
+        # TODO: explicit ccache?
+        # env["CCACHE"]
+        # env["CCACHE_DIR"]
+        etiss_script = os.environ.get("ETISS_SCRIPT_LOCAL", None)
+        assert etiss_script is not None, "ETISS_SCRIPT_LOCAL undefined"
+        assert Path(etiss_script).is_file(), f"Not found: {etiss_script}"
+        # TODO: ship with isaac?
+        etiss_script_args = [output_dir, top_file]
+        try:
+            subprocess.run([etiss_script, *etiss_script_args], check=True, **kwargs, env=env)
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Command failed with return code {e.returncode}")
+            if e.stdout:
+                print("--- STDOUT ---")
+                print(e.stdout.decode())
+            if e.stderr:
+                print("--- STDERR ---")
+                print(e.stderr.decode())
+            raise  # Re-raise if you want the caller to handle it too
 
 
 def handle(args):
