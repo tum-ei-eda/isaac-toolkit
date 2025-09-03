@@ -48,6 +48,7 @@ def retarget_etiss_iss(
     force: bool = False,
     verbose: bool = False,
     cleanup: bool = False,
+    new: bool = False,
 ):
     assert workdir is not None
     if not isinstance(workdir, Path):
@@ -70,8 +71,10 @@ def retarget_etiss_iss(
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
-    # gen_dir = workdir / "gen" / label
-    gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
+    if new:
+        gen_dir = workdir / "gen"
+    else:
+        gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     top_file = gen_dir / f"{etiss_core}.core_desc"
     kwargs = {}
     # print("verbose", verbose)

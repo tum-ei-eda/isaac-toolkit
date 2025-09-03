@@ -161,6 +161,7 @@ def query_candidates_from_db(
     topk: Optional[int] = None,
     partition_with_maxmiso: Union[str, bool] = "auto",
     enable_venn: bool = False,
+    new: bool = False,
 ):
     logger.info("Querying candidates from DB...")
     artifacts = sess.artifacts
@@ -298,7 +299,10 @@ def query_candidates_from_db(
         out_dir = workdir / out_name
         logger.debug("out_dir", out_dir)
         out_dir.mkdir(exist_ok=True)
-        index_file = out_dir / "index.yml"
+        if new:
+            index_file = out_dir / "index.yml"
+        else:
+            index_file = out_dir / "combined_index.yml"
         index_files.append(index_file)
         # TODO: to not hardcode this, call directly via python
 
@@ -420,7 +424,10 @@ def query_candidates_from_db(
 
     combined_query_metrics_file = workdir / "combined_query_metrics.csv"
     combined_query_metrics_df.to_csv(combined_query_metrics_file, index=False)
-    combined_index_file = workdir / "combined_index.yml"
+    if new:
+        combined_index_file = workdir / "index.yml"
+    else:
+        combined_index_file = workdir / "combined_index.yml"
     combine_args = [
         "python3",
         "-m",

@@ -50,6 +50,7 @@ def retarget_seal5_llvm(
     verbose: bool = False,
     cleanup: bool = False,
     progress: bool = False,
+    new: bool = False,
 ):
     logger.info("Retargeting Seal5 LLVM...")
     assert xlen == 32
@@ -79,8 +80,10 @@ def retarget_seal5_llvm(
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
     gen_dir = workdir / "gen"
-    # gen_dir = workdir / "gen" / label
-    gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
+    if new:
+        gen_dir = workdir / "gen"
+    else:
+        gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     cdsl_files = [
         (gen_dir / f"{set_name}.splitted.core_desc" if splitted else gen_dir / f"{set_name}.core_desc")
         for set_name in seal5_sets

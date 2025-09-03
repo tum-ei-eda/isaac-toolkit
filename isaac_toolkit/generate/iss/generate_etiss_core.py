@@ -253,6 +253,7 @@ def generate_etiss_core(
     extra_includes: Optional[List[Union[str, Path]]] = None,
     add_mnemonic_prefix: bool = False,
     n_parallel: int = 1,
+    new: bool = False,
 ):
     logger.info("Generating ETISS core...")
     # artifacts = sess.artifacts
@@ -266,7 +267,10 @@ def generate_etiss_core(
     core_out_model_file = gen_dir / f"{core_name}.m2isarmodel"
     core_out_cdsl_file = gen_dir / f"{core_name}.core_desc"
     if index_files is None:
-        combined_index_file = workdir / "combined_index.yml"  # if index_file is None else Path(index_file)
+        if new:
+            combined_index_file = workdir / "index.yml"  # if index_file is None else Path(index_file)
+        else:
+            combined_index_file = workdir / "combined_index.yml"  # if index_file is None else Path(index_file)
         index_files = [combined_index_file]
     else:
         assert isinstance(index_files, list)

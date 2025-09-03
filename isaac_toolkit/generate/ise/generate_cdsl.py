@@ -40,12 +40,16 @@ def generate_cdsl(
     n_parallel: Optional[int] = None,
     suffix: str = "",
     force: bool = False,
+    new: bool = False,
 ):
     del sess, force
     logger.info("Generating CDSL...")
     if workdir is not None:
         workdir = Path(workdir)
-    combined_index_file = workdir / "combined_index.yml" if index_file is None else Path(index_file)
+    if new:
+        combined_index_file = workdir / "index.yml" if index_file is None else Path(index_file)
+    else:
+        combined_index_file = workdir / "combined_index.yml" if index_file is None else Path(index_file)
     assert combined_index_file.is_file()
     # with open(combined_index_file, "r") as f:
     #     index_data = yaml.safe_load(f)
