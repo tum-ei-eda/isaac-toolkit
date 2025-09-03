@@ -34,6 +34,9 @@ def retarget_iss_auto(
     workdir: Optional[str] = None,
     force: bool = False,
     progress: bool = False,
+    docker_override: Optional[bool] = None,
+    verbose: bool = False,  # TODO: add to other stages, too
+    cleanup: bool = False,
 ):
     logger.info("Retargeting ISS with ISAAC instructions...")
     # input(">>>")
@@ -56,7 +59,7 @@ def retarget_iss_auto(
     assert demo_config is not None
     docker_config = demo_config.docker
     assert docker_config is not None
-    use_docker = docker_config.enable
+    use_docker = docker_override if docker_override is not None else docker_config.enable
     etiss_config = demo_config.etiss
     assert etiss_config is not None
     etiss_core = etiss_config.core_name
@@ -66,7 +69,9 @@ def retarget_iss_auto(
         if mount_dir is None:
             mount_dir = Path.cwd()
     else:
-        raise NotImplementedError("Non-docker mode")
+        docker_image = None
+    # else:
+    #     raise NotImplementedError("Non-docker mode")
     retarget_iss(
         sess,
         workdir=workdir,
@@ -75,6 +80,8 @@ def retarget_iss_auto(
         etiss_core=etiss_core,
         label=label,
         force=force,
+        verbose=verbose,
+        cleanup=cleanup,
     )
 
 
@@ -84,7 +91,15 @@ def handle(args):
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
-    retarget_iss_auto(sess, label=args.label, workdir=args.workdir, force=args.force)
+    docker_override = None
+    if args.docker:
+        assert not args.local
+        docker_override = True
+    if args.local:
+        assert not args.docker
+        docker_override = False
+    # TODO: expsoe cleanup via config?
+    retarget_iss_auto(sess, label=args.label, workdir=args.workdir, force=args.force, docker_override=docker_override, verbose=args.verbose, cleanup=args.cleanup)
     sess.save()
 
 
@@ -99,6 +114,10 @@ def get_parser():
     parser.add_argument("--label", default="")
     parser.add_argument("--workdir", default=None)
     parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--docker", action="store_true")
+    parser.add_argument("--local", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--cleanup", action="store_true")
     return parser
 
 
