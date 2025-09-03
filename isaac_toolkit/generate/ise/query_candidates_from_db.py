@@ -298,7 +298,7 @@ def query_candidates_from_db(
         out_name = f"{func_name}_{bb_name}_0"
         out_dir = workdir / out_name
         logger.debug("out_dir", out_dir)
-        out_dir.mkdir(exist_ok=True)
+        out_dir.mkdir(exist_ok=True, parents=True)
         if new:
             index_file = out_dir / "index.yml"
         else:
