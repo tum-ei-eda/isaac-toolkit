@@ -36,6 +36,9 @@ def retarget_llvm_auto(
     splitted: bool = False,
     force: bool = False,
     progress: bool = False,
+    docker_override: Optional[bool] = None,
+    verbose: bool = False,  # TODO: add to other stages, too
+    cleanup: bool = False,
 ):
     logger.info("Retargeting LLVM with ISAAC instructions...")
     cfg_files = [Path(f) for f in cfg_files]
@@ -78,7 +81,7 @@ def retarget_llvm_auto(
         if mount_dir is None:
             mount_dir = Path.cwd()
     else:
-        raise NotImplementedError("Non-docker mode")
+        docker_image = None
     retarget_llvm(
         sess,
         workdir=workdir,
@@ -89,6 +92,8 @@ def retarget_llvm_auto(
         cfg_files=cfg_files,
         label=label,
         force=force,
+        verbose=verbose,
+        cleanup=args.cleanup,
     )
 
 
@@ -98,6 +103,13 @@ def handle(args):
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
+    docker_override = None
+    if args.docker:
+        assert not args.local
+        docker_override = True
+    if args.local:
+        assert not args.docker
+        docker_override = False
     retarget_llvm_auto(
         sess,
         args.cfg_file,
@@ -105,6 +117,9 @@ def handle(args):
         workdir=args.workdir,
         splitted=args.splitted,
         force=args.force,
+        docker_override=docker_override,
+        verbose=verbose,
+        cleanup=args.cleanup,
     )
     sess.save()
 
@@ -122,6 +137,10 @@ def get_parser():
     parser.add_argument("--workdir", default=None)
     parser.add_argument("--splitted", action="store_true")
     parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--docker", action="store_true")
+    parser.add_argument("--local", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--cleanup", action="store_true")
     return parser
 
 
