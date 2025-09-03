@@ -21,7 +21,7 @@
 import sys
 import pandas as pd
 import argparse
-from typing import List
+from typing import List, Union
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -62,9 +62,11 @@ class ELFInstructionFetcher:
         return None  # pc not found
 
 
-def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False, operands: bool = False):
+def load_instr_trace(sess: Session, input_files: Union[Path, List[Path]], force: bool = False, operands: bool = False):
     if operands:
         raise NotImplementedError("operands not included in pctrace")
+    if not isinstance(input_files, list):
+        input_files = [input_files]
     assert len(input_files) > 0
     name = input_files[0].name
 
