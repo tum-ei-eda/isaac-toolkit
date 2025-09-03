@@ -42,6 +42,20 @@ DEFAULT_CONFIG = {
         "password": "",
         "database": "memgraph",
     },
+    "artifacts": {
+        "instr_trace": {
+            "fmt": "pickle",
+            "engine": None,
+            "compression_method": "zstd",
+            "compression_level": None,
+        },
+        "table": {
+            "fmt": "pickle",
+            "engine": None,
+            "compression_method": None,
+            "compression_level": None,
+        }
+    }
 }
 
 
@@ -162,6 +176,22 @@ class MemgraphSettings(YAMLSettings):
 
 
 @dataclass
+class TableArtifactsSettings(YAMLSettings):
+    # compression: Optional[CompressionSettings] = None
+    fmt: Optional[str] = None
+    engine: Optional[str] = None
+    compression_method: Optional[str] = None
+    compression_level: Optional[int] = None
+
+
+@dataclass
+class ArtifactsSettings(YAMLSettings):
+    instr_trace: Optional[TableArtifactsSettings] = None
+    table: Optional[TableArtifactsSettings] = None
+
+
+@dataclass
 class IsaacConfig(YAMLSettings):
     logging: Optional[LoggingSettings] = None
     memgraph: Optional[MemgraphSettings] = None
+    artifacts: Optional[ArtifactsSettings] = None
