@@ -652,7 +652,8 @@ def collect_trace_bbs(
         "by": __name__,
     }
 
-    pc2bb_artifact = TableArtifact("pc2bb_compat", pc2bb_df, attrs=attrs)
+    # pc2bb_artifact = TableArtifact("pc2bb_compat", pc2bb_df, attrs=attrs)
+    pc2bb_artifact = TableArtifact("pc2bb", pc2bb_df, attrs=attrs)
     sess.add_artifact(pc2bb_artifact, override=force)
 
 
