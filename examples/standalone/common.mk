@@ -7,9 +7,11 @@ RISCV_PREFIX ?= $(INSTALL_DIR)/rv32im_ilp32
 RISCV_NAME ?= riscv32-unknown-elf
 RISCV_ARCH ?= rv32im_zicsr_zifencei
 RISCV_ABI ?= ilp32
+# TODO: RISCV_CMODEL
 SYSROOT ?= $(RISCV_PREFIX)/$(RISCV_NAME)
 CC := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-gcc
 OBJDUMP := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objdump
+
 
 FORCE ?= 0
 FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
