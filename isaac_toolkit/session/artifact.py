@@ -281,7 +281,7 @@ class TableArtifact(PythonArtifact):
         return self.data
 
     def _save(self, dest: Path, artifacts_settings: ArtifactsSettings = None):
-        print("_save", dest, artifacts_settings, self.flags)
+        # TODO: csv support?
         if self.flags & ArtifactFlag.INSTR_TRACE:
             fmt = artifacts_settings.instr_trace.fmt
             engine = artifacts_settings.instr_trace.engine
@@ -323,7 +323,6 @@ class TableArtifact(PythonArtifact):
 
 
 class TraceArtifact(TableArtifact):
-    # TODO: csv instead of pickle?
 
     @property
     def flags(self):
@@ -331,7 +330,6 @@ class TraceArtifact(TableArtifact):
 
 
 class InstrTraceArtifact(TraceArtifact):
-    # TODO: csv instead of pickle?
 
     @property
     def flags(self):
