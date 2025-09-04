@@ -19,6 +19,7 @@
 import sys
 import pickle
 import argparse
+from pathlib import Path
 
 import pandas as pd
 
@@ -38,8 +39,16 @@ def print_memory_footprint(df):
 
 
 def handle(args):
-    with open(args.file, "rb") as f:
-        data = pickle.load(f)
+    file = Path(args.file)
+    try:
+        if ".pkl" in file.name:
+            data = pd.read_pickle(args.file, compression="infer")
+        elif ".parquet" in file.name:
+            data = pd.read_parquet(args.file, compression="infer")
+    except Exception as ex:
+        # Falling back to non-pandas
+        with open(args.file, "rb") as f:
+            data = pickle.load(f)
     if not args.skip_print:
         print("Unpickled Data:")
         with pd.option_context(
