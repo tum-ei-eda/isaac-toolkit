@@ -87,6 +87,8 @@ def get_artifact_ext(flags: ArtifactFlag, artifacts_settings: ArtifactsSettings)
         ext = None
     elif flags & ArtifactFlag.INSTR_TRACE:
         ext = get_table_artifact_ext(artifacts_settings.instr_trace)
+    elif flags & ArtifactFlag.TRACE:
+        ext = get_table_artifact_ext(artifacts_settings.trace)
     elif flags & (ArtifactFlag.SOURCE | ArtifactFlag.DISASS):
         ext = None
     elif flags & ArtifactFlag.GRAPH:
