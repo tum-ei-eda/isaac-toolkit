@@ -9,7 +9,7 @@ if [ "$#" -lt 1 ]; then
 fi
 
 ETISS_DIR=$(readlink -f $1)
-ETISS_REF=${2:-9a8d5c601ebbb76d2ed1396d9a34b51fa0ebbddf}
+ETISS_REF=${2:-e55e2c474013be6af44789e65699d13e14c7aab0}
 CMAKE_BUILD_TYPE=${3:-Release}
 
 ETISS_EXAMPLES_DIR=$ETISS_DIR/etiss_riscv_examples
