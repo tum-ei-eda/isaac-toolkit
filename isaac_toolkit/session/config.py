@@ -49,13 +49,19 @@ DEFAULT_CONFIG = {
             "compression_method": "zstd",
             "compression_level": None,
         },
+        "trace": {
+            "fmt": "pickle",
+            "engine": None,
+            "compression_method": "zstd",
+            "compression_level": None,
+        },
         "table": {
             "fmt": "pickle",
             "engine": None,
             "compression_method": None,
             "compression_level": None,
-        }
-    }
+        },
+    },
 }
 
 
@@ -187,6 +193,7 @@ class TableArtifactsSettings(YAMLSettings):
 @dataclass
 class ArtifactsSettings(YAMLSettings):
     instr_trace: Optional[TableArtifactsSettings] = None
+    trace: Optional[TableArtifactsSettings] = None
     table: Optional[TableArtifactsSettings] = None
 
 

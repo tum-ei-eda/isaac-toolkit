@@ -152,13 +152,15 @@ def load_instr_trace(sess: Session, input_files: Union[Path, List[Path]], force:
         fmt = check_compressed(path)
         if fmt == "gzip":
             import gzip
+
             f = gzip.open(path, mode)
         elif fmt == "lz4":
             import lz4.frame
+
             f = lz4.frame.open(path, mode)
         else:
             f = open(path, mode)
-    
+
         try:
             yield f
         finally:
@@ -196,7 +198,9 @@ def load_instr_trace(sess: Session, input_files: Union[Path, List[Path]], force:
                     # print("B")
 
                     def disassemble_row(row):
-                        return disassemble_word(int(row["pc"]), int(row["bytecode"]), size=int(row["size"]), operands=False)
+                        return disassemble_word(
+                            int(row["pc"]), int(row["bytecode"]), size=int(row["size"]), operands=False
+                        )
 
                     unique_pc_size["instr"] = unique_pc_size.apply(disassemble_row, axis=1)
                     # print("unique_pc_size", unique_pc_size)

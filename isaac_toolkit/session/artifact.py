@@ -45,6 +45,7 @@ class ArtifactFlag(IntFlag):
     M2ISAR = auto()
     PYTHON = auto()
     DISASS = auto()
+    TRACE = auto()
 
 
 def filter_artifacts(artifacts, func):
@@ -280,7 +281,7 @@ class TableArtifact(PythonArtifact):
         return self.data
 
     def _save(self, dest: Path, artifacts_settings: ArtifactsSettings = None):
-        print("_save", dest, artifacts_settings, self.flags)
+        # TODO: csv support?
         if self.flags & ArtifactFlag.INSTR_TRACE:
             fmt = artifacts_settings.instr_trace.fmt
             engine = artifacts_settings.instr_trace.engine
@@ -299,7 +300,7 @@ class TableArtifact(PythonArtifact):
                 else:
                     assert compression_level is None, "Compression level only supported for pickle+gzip"
                     compression = compression_method
-                    
+
             self.df.to_pickle(dest, compression=compression)
         elif fmt == "parquet":
             assert compression_level is None, "Compression level only supported for pickle+gzip"
@@ -321,8 +322,14 @@ class TableArtifact(PythonArtifact):
         return f"{self.name}: pd.DataFrame(shape={self.df.shape}, columns={list(self.df.columns)})"
 
 
-class InstrTraceArtifact(TableArtifact):
-    # TODO: csv instead of pickle?
+class TraceArtifact(TableArtifact):
+
+    @property
+    def flags(self):
+        return super().flags | ArtifactFlag.TRACE
+
+
+class InstrTraceArtifact(TraceArtifact):
 
     @property
     def flags(self):
