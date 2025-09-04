@@ -219,11 +219,9 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr -l --log=$(TRACE) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
-	$(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR)
-	mv $(OUT_DIR)/instr_trace.csv $(TRACE)
+	cd $(OUT_DIR) && $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
 else ifeq ($(SIMULATOR),tgc)
-	$(TGC_SIM) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML)
-	mv output.trc $(TRACE)
+	cd $(OUT_DIR) && $(TGC_SIM) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML) && mv output.trc $(TRACE)  # TODO: move to OUT_DIR
 endif
 
 $(OUTP): $(ELF) | $(OUT_DIR)
@@ -274,7 +272,8 @@ analyze_static:
 analyze_dynamic:
 	python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $(SESS) $(FORCE_ARG)
-	python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $(SESS) $(FORCE_ARG)
+	# python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.dynamic.trace.trace_bbs --session $(SESS) $(FORCE_ARG)
 
 analyze: analyze_static analyze_dynamic
 
@@ -302,10 +301,10 @@ flow_profile:
 	cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
 
 $(CALLGRIND_POS): | $(OUT_DIR)
-	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
 
 $(CALLGRIND_PC): | $(OUT_DIR)
-	python3 -m isaac_toolkit.backend.profile.callgrind --session $(SESS) --dump-pc --output $(CALLGRIND_PC) $(FORCE_ARG)
+	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pc --output $(CALLGRIND_PC) $(FORCE_ARG)
 
 profile_pc: $(CALLGRIND_PC)
 profile_pos: $(CALLGRIND_POS)
