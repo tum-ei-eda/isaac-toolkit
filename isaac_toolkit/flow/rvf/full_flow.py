@@ -24,6 +24,7 @@ from pathlib import Path
 import pandas as pd
 
 from isaac_toolkit.session import Session
+
 # from isaac_toolkit.logging import get_logger, set_log_level
 
 from .stage.load import load_artifacts
@@ -34,19 +35,46 @@ from .stage.profile import generate_profile
 
 # logger = get_logger()
 import logging
+
 logger = logging.getLogger()
 
 
 def run_full_flow(
-        sess: Session, elf_file: Optional[Path] = None, linker_map_file: Optional[Path] = None, instr_trace_file: Optional[Path] = None, disass_file: Optional[Path] = None, unmangle: bool = False, force: bool = False, progress: bool = False, report_fmt="md", report_detailed=False, report_portable=False, report_style=False, report_topk=10,
+    sess: Session,
+    elf_file: Optional[Path] = None,
+    linker_map_file: Optional[Path] = None,
+    instr_trace_file: Optional[Path] = None,
+    disass_file: Optional[Path] = None,
+    unmangle: bool = False,
+    force: bool = False,
+    progress: bool = False,
+    report_fmt="md",
+    report_detailed=False,
+    report_portable=False,
+    report_style=False,
+    report_topk=10,
 ):
     logger.info("Running full RVF flow...")
-    load_artifacts(sess, elf_file=elf_file, linker_map_file=linker_map_file, instr_trace_file=instr_trace_file, disass_file=disass_file, force=force)
+    load_artifacts(
+        sess,
+        elf_file=elf_file,
+        linker_map_file=linker_map_file,
+        instr_trace_file=instr_trace_file,
+        disass_file=disass_file,
+        force=force,
+    )
     analyze_artifacts(sess, force=force)
     visualize_artifacts(sess, force=force)
-    generate_reports(sess, fmt=report_fmt, detailed=report_detailed, portable=report_portable, style=report_style, topk=report_topk, force=force)
+    generate_reports(
+        sess,
+        fmt=report_fmt,
+        detailed=report_detailed,
+        portable=report_portable,
+        style=report_style,
+        topk=report_topk,
+        force=force,
+    )
     generate_profile(sess, force=force, unmangle=unmangle)
-
 
 
 def handle(args):
@@ -54,12 +82,27 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+
     # set_log_level(console_level=args.log, file_level=args.log)
     def path_helper(x):
         if x is None:
             return x
         return Path(x)
-    run_full_flow(sess, elf_file=path_helper(args.elf), linker_map_file=path_helper(args.linker_map), instr_trace_file=path_helper(args.instr_trace), disass_file=path_helper(args.disass), force=args.force, unmangle=args.unmangle, report_fmt=args.report_fmt, report_detailed=args.report_detailed, report_portable=args.report_portable, report_style=args.report_style, report_topk=args.report_topk)
+
+    run_full_flow(
+        sess,
+        elf_file=path_helper(args.elf),
+        linker_map_file=path_helper(args.linker_map),
+        instr_trace_file=path_helper(args.instr_trace),
+        disass_file=path_helper(args.disass),
+        force=args.force,
+        unmangle=args.unmangle,
+        report_fmt=args.report_fmt,
+        report_detailed=args.report_detailed,
+        report_portable=args.report_portable,
+        report_style=args.report_style,
+        report_topk=args.report_topk,
+    )
     sess.save()
 
 

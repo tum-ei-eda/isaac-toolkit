@@ -25,6 +25,7 @@ from isaac_toolkit.report.report_runtime import generate_runtime_report
 
 # logger = get_logger()
 import logging
+
 logger = logging.getLogger()
 
 

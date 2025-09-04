@@ -53,7 +53,7 @@ COMPRESSION_EXT = {
     "bz2": "bz2",
     "zstd": "zst",
     "xz": "tar.xz",
-    "tar": "tar"
+    "tar": "tar",
 }
 
 FMT_EXT = {
@@ -99,7 +99,6 @@ def get_artifact_ext(flags: ArtifactFlag, artifacts_settings: ArtifactsSettings)
     else:
         raise RuntimeError("Unhandled case!")
     return ext
-
 
 
 def load_artifacts(base):

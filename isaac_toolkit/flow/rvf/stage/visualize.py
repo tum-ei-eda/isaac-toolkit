@@ -21,6 +21,7 @@ import argparse
 from pathlib import Path
 
 from isaac_toolkit.session import Session
+
 # from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.analysis.static.dwarf import analyze_dwarf
 from isaac_toolkit.visualize.pie.runtime import create_runtime_pie_plots
@@ -29,6 +30,7 @@ from isaac_toolkit.visualize.pie.disass_counts import create_disass_counts_pie_p
 
 # logger = get_logger()
 import logging
+
 logger = logging.getLogger()
 
 

@@ -25,6 +25,7 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, ElfArtifact
+
 # from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.frontend.elf.riscv import load_elf
 from isaac_toolkit.frontend.linker_map import load_linker_map
@@ -41,15 +42,23 @@ from isaac_toolkit.frontend.instr_trace.spike import (
     load_instr_trace as load_spike_instr_trace,
 )
 from isaac_toolkit.frontend.disass.objdump import load_disass
+
 # from isaac_toolkit.frontend.compile_commands.json import load_compile_commands_json
 
 # logger = get_logger()
 import logging
+
 logger = logging.getLogger()
 
 
 def load_artifacts(
-    sess: Session, elf_file: Optional[Path] = None, linker_map_file: Optional[Path] = None, instr_trace_file: Optional[Path] = None, disass_file: Optional[Path] = None, force: bool = False, progress: bool = False
+    sess: Session,
+    elf_file: Optional[Path] = None,
+    linker_map_file: Optional[Path] = None,
+    instr_trace_file: Optional[Path] = None,
+    disass_file: Optional[Path] = None,
+    force: bool = False,
+    progress: bool = False,
 ):
     logger.info("Loading RVF Demo artifacts...")
     if elf_file:
@@ -70,12 +79,14 @@ def load_artifacts(
         operands = False  # TODO: store operands in extra artifact!
         load_instr_trace(
             # sess, instr_trace_file, force=force, progress=progress, operands=operands
-            sess, instr_trace_file, force=force, operands=operands
+            sess,
+            instr_trace_file,
+            force=force,
+            operands=operands,
         )
     if disass_file:
         load_disass(sess, disass_file, force=force)
     # load_compile_commands_json(sess, compile_commands_file, force=force)
-
 
 
 def handle(args):
@@ -83,12 +94,21 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+
     # set_log_level(console_level=args.log, file_level=args.log)
     def path_helper(x):
         if x is None:
             return x
         return Path(x)
-    load_artifacts(sess, elf_file=path_helper(args.elf), linker_map_file=path_helper(args.linker_map), instr_trace_file=path_helper(args.instr_trace), disass_file=path_helper(args.disass), force=args.force)
+
+    load_artifacts(
+        sess,
+        elf_file=path_helper(args.elf),
+        linker_map_file=path_helper(args.linker_map),
+        instr_trace_file=path_helper(args.instr_trace),
+        disass_file=path_helper(args.disass),
+        force=args.force,
+    )
     sess.save()
 
 

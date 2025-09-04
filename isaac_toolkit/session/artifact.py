@@ -299,7 +299,7 @@ class TableArtifact(PythonArtifact):
                 else:
                     assert compression_level is None, "Compression level only supported for pickle+gzip"
                     compression = compression_method
-                    
+
             self.df.to_pickle(dest, compression=compression)
         elif fmt == "parquet":
             assert compression_level is None, "Compression level only supported for pickle+gzip"

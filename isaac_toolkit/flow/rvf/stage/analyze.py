@@ -21,8 +21,10 @@ import argparse
 from pathlib import Path
 
 from isaac_toolkit.session import Session
+
 # from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.analysis.static.dwarf import analyze_dwarf
+
 # from isaac_toolkit.analysis.static.llvm_bbs import analyze_llvm_bbs
 from isaac_toolkit.analysis.static.mem_footprint import analyze_mem_footprint
 from isaac_toolkit.analysis.static.linker_map import analyze_linker_map
@@ -32,9 +34,11 @@ from isaac_toolkit.analysis.static.histogram.disass_instr import (
 from isaac_toolkit.analysis.static.histogram.disass_opcode import (
     create_disass_opcode_hist,
 )
+
 # from isaac_toolkit.analysis.dynamic.trace.trunc_trace import trunc_trace
 from isaac_toolkit.analysis.dynamic.trace.instr_operands import analyze_instr_operands
 from isaac_toolkit.analysis.dynamic.histogram.opcode import create_opcode_hist
+
 # from isaac_toolkit.analysis.dynamic.histogram.opcode_per_llvm_bb import (
 #     create_opcode_per_llvm_bb_hist,
 # )
@@ -47,6 +51,7 @@ from isaac_toolkit.analysis.dynamic.trace.track_used_functions import (
 
 # logger = get_logger()
 import logging
+
 logger = logging.getLogger()
 
 
