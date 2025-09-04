@@ -23,6 +23,17 @@ PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
 ETISS ?= $(INSTALL_DIR)/etiss/install/bin/run_helper.sh
 ETISS_INI ?= $(INSTALL_DIR)/etiss/install/custom.ini
 
+
+PERF_MODEL ?= cv32e40p
+PERF_SIM_WORKSPACE_DIR ?= /path/to/PerformanceSimulation_workspace
+PERF_SIM_DIR ?= $(PERF_SIM_WORKSPACE_DIR)/etiss-perf-sim
+ETISS_PERF ?= $(PERF_SIM_DIR)/etiss/build_dir/installed/bin/run_helper.sh
+ETISS_PERF_INI ?= $(PERF_SIM_DIR)/simulator/ini/common.ini
+ETISS_PERF_INI2 ?= $(PERF_SIM_DIR)/simulator/ini/$(PERF_MODEL).ini
+
+FIVP_SDK_DIR ?= /path/to/fivp-sdk
+FIVP_SDK_TARGET ?= ri5cy
+
 TGC_BSP_DIR ?= /path/to/tgc/bsp
 TGC_SRC_DIR ?= /path/to/tgc/src/dir
 TGC_BUILD_DIR ?= $(TGC_SRC_DIR)/build
@@ -196,6 +207,21 @@ ifeq ($(SIMULATOR),etiss)
 		-o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
+else ifeq ($(SIMULATOR),etiss_perf)
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
+  -I$(FIVP_SDK_DIR)/csp/$(FIVP_SDK_TARGET)/include -I$(FIVP_SDK_DIR)/csp/common/include -I$(FIVP_SDK_DIR)/csp/periph/include -nostartfiles -static -T $(FIVP_SDK_DIR)/csp/$(FIVP_SDK_TARGET)/link.ld -DVP_${FIVP_SDK_TARGET} -DETISS_LOGGER_ADDR=0x10000000 -DROM_START=0x0 -DROM_SIZE=0x00080000 -DRAM_START=0x00080000 -DRAM_SIZE=0x00080000 -DSTACK_SIZE=0x4000 -DHEAP_SIZE= \
+    $(FIVP_SDK_DIR)/csp/ri5cy/src/csp.c \
+    $(FIVP_SDK_DIR)/csp/common/src/exception.c \
+    $(FIVP_SDK_DIR)/csp/common/src/cust_print.c \
+    $(FIVP_SDK_DIR)/csp/common/libs/sys_lib/src/syscalls.c \
+    $(FIVP_SDK_DIR)/csp/periph/src/uart_drv.c \
+    $(FIVP_SDK_DIR)/csp/periph/src/plic_drv.c \
+    $(FIVP_SDK_DIR)/csp/periph/src/clint_drv.c \
+    $(FIVP_SDK_DIR)/csp/periph/src/timer_drv.c \
+		$(PROG_SRCS) $(FIVP_SDK_DIR)/csp/common/crt0.S \
+		-o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+    $(EXTRA_COMPILE_FLAGS) \
+		-Xlinker -Map=$(MAP)
 else ifeq ($(SIMULATOR),spike_bm)
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) -specs=htif_nano.specs -specs=htif_wrap.specs \
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
@@ -223,6 +249,17 @@ else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
 	$(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR)
 	mv $(OUT_DIR)/instr_trace.csv $(TRACE)
+else ifeq ($(SIMULATOR),etiss_perf)
+	@echo "Generating $(OUT_DIR)/custom.ini"
+	@echo "[Plugin TracePrinterPlugin]"            >  $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.trace=AssemblyTrace_RV32" >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.stream.toFile=1" >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.stream.outDir=$(TRACE)"   >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.stream.fileName=asm_trace" >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.stream.rotateSize=0x100000" >> $(OUT_DIR)/custom.ini
+	test -d $(TRACE) && rm -r $(TRACE) || :
+	mkdir $(TRACE)
+	$(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(OUT_DIR)/custom.ini
 else ifeq ($(SIMULATOR),tgc)
 	$(TGC_SIM) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML)
 	mv output.trc $(TRACE)
@@ -230,12 +267,19 @@ endif
 
 $(OUTP): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
+	set -o pipefail && \
 	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr $(PK) $(ELF) -s | tee $(OUTP)
 else ifeq ($(SIMULATOR),spike_bm)
+	set -o pipefail && \
 	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr $(ELF) -s | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss)
+	set -o pipefail && \
 	$(ETISS) $(ELF) -i$(ETISS_INI) | tee $(OUTP)
+else ifeq ($(SIMULATOR),etiss_perf)
+	set -o pipefail && \
+	$(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) | tee $(OUTP)
 else ifeq ($(SIMULATOR),tgc)
+	set -o pipefail && \
 	$(TGC_SIM) -f $(ELF) | tee $(OUTP)
 endif
 
@@ -262,7 +306,11 @@ INSTR_TRACE_FRONTEND ?= $(SIMULATOR)
 endif
 
 load_dynamic: $(TRACE)
+ifeq ($(SIMULATOR),etiss_perf)
+	python3 -m isaac_toolkit.frontend.instr_trace.$(INSTR_TRACE_FRONTEND) $(TRACE)/asm_trace_*.txt --session $(SESS) $(FORCE_ARG)
+else
 	python3 -m isaac_toolkit.frontend.instr_trace.$(INSTR_TRACE_FRONTEND) $(TRACE) --session $(SESS) $(FORCE_ARG)
+endif
 
 load: load_static load_dynamic
 
