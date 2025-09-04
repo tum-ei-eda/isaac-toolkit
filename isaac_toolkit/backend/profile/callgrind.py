@@ -432,7 +432,6 @@ def generate_callgrind_output(
     dump_pos: bool = False,
     unmangle_names: bool = False,
 ):
-    assert output is not None
     artifacts = sess.artifacts
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
     assert len(elf_artifacts) == 1
@@ -496,6 +495,17 @@ def generate_callgrind_output(
         elf_file_path=elf_file_path,
         unmangle_names=unmangle_names,
     )
+
+    if output is None:
+        profile_dir = sess.directory / "profile"
+        profile_dir.mkdir(exist_ok=True)
+        out_name = "callgrind"
+        if dump_pc:
+            out_name += "_pc"
+        if dump_pos:
+            out_name += "_pos"
+        out_name += ".out"
+        output = profile_dir / out_name
     with open(output, "w") as f:
         f.write(content)
 

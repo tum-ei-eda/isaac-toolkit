@@ -26,6 +26,8 @@ import pickle
 import pandas as pd
 import networkx as nx
 
+from .config import ArtifactsSettings
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("artifact")
@@ -126,15 +128,15 @@ class Artifact:
     # def is_output(self):
     #     return self.flags & ArtifactFlag.OUTPUT
 
-    def _save(self, dest: Path):
+    def _save(self, dest: Path, artifacts_settings: ArtifactsSettings = None):
         raise NotImplementedError("Artifact._save() impl missing")
 
-    def save(self, dest: Path):
+    def save(self, dest: Path, artifacts_settings: ArtifactsSettings = None):
         if not self.changed and self.exported:
             logger.debug("Artifact '%s' is already exported and unchanged", self.name)
             return
         logger.debug("Exporting artifact '%s' to '%s'", self.name, dest)
-        self._save(dest)
+        self._save(dest, artifacts_settings=artifacts_settings)
         if self.path is None or not self.path.is_file():
             self.path = dest
         self.changed = False
@@ -169,7 +171,8 @@ class FileArtifact(Artifact):
         super().__init__(name, path=path, flags=flags, attrs=attrs, autoload=autoload)
         # TODO: content/raw?
 
-    def _save(self, dest: Path):
+    def _save(self, dest: Path, artifacts_settings: ArtifactsSettings = None):
+        del artifacts_settings
         if isinstance(dest, str):
             dest = Path(dest)
         if dest.resolve() == self.path.resolve():
@@ -222,7 +225,8 @@ class PythonArtifact(Artifact):
     def flags(self):
         return super().flags | ArtifactFlag.PYTHON
 
-    def _save(self, dest):
+    def _save(self, dest: Path, artifacts_settings: ArtifactsSettings = None):
+        del artifacts_settings
         with open(dest, "wb") as f:
             pickle.dump(self.data, f)
 
@@ -275,11 +279,42 @@ class TableArtifact(PythonArtifact):
     def df(self):
         return self.data
 
-    def _save(self, dest):
-        self.df.to_pickle(dest)
+    def _save(self, dest: Path, artifacts_settings: ArtifactsSettings = None):
+        print("_save", dest, artifacts_settings, self.flags)
+        if self.flags & ArtifactFlag.INSTR_TRACE:
+            fmt = artifacts_settings.instr_trace.fmt
+            engine = artifacts_settings.instr_trace.engine
+            compression_method = artifacts_settings.instr_trace.compression_method
+            compression_level = artifacts_settings.instr_trace.compression_level
+        else:
+            fmt = artifacts_settings.table.fmt
+            engine = artifacts_settings.table.engine
+            compression_method = artifacts_settings.table.compression_method
+            compression_level = artifacts_settings.table.compression_level
+        if fmt == "pickle":
+            compression = None
+            if compression_method is not None:
+                if compression_method == "gzip":
+                    compression = {"method": compression_method, "compresslevel": compression_level}
+                else:
+                    assert compression_level is None, "Compression level only supported for pickle+gzip"
+                    compression = compression_method
+                    
+            self.df.to_pickle(dest, compression=compression)
+        elif fmt == "parquet":
+            assert compression_level is None, "Compression level only supported for pickle+gzip"
+            self.df.to_parquet(dest, engine=engine, compression=compression_method)
+        else:
+            raise ValueError(f"Unsupported format: {self.fmt}")
 
     def _load(self, source: Path):
-        df = pd.read_pickle(source)
+        if ".pkl" in source.name:
+            df = pd.read_pickle(source, compression="infer")
+        elif ".parquet" in source.name:
+            # df = pd.read_parquet(source, engine=self.engine)
+            df = pd.read_parquet(source)
+        else:
+            raise ValueError(f"Unsupported format: {source.suffix}")
         self._data = df
 
     def summary(self):
