@@ -87,7 +87,10 @@ REPORT_TOPK ?= 10
 define time_stage
 @echo "Starting $(1)..."
 @start=$$(date +%s%3N); \
-$(2); \
+if ! $2; then \
+  echo "Stage $1 failed"; \
+  exit 1; \
+fi; \
 end=$$(date +%s%3N); \
 elapsed=$$((end - start)); \
 echo "$(1),$$elapsed" >> $(TIMING_CSV); \
