@@ -197,7 +197,7 @@ $(ELF): $(PROG_SRCS) $(LIBWRAP)
     -Wl,--wrap=printf -Wl,--wrap=malloc -Wl,--wrap=open -Wl,--wrap=lseek -Wl,--wrap=_lseek -Wl,--wrap=read -Wl,--wrap=_read -Wl,--wrap=write -Wl,--wrap=_write -Wl,--wrap=fstat -Wl,--wrap=_fstat -Wl,--wrap=stat -Wl,--wrap=close -Wl,--wrap=_close -Wl,--wrap=link -Wl,--wrap=unlink -Wl,--wrap=execve -Wl,--wrap=fork -Wl,--wrap=getpid -Wl,--wrap=kill -Wl,--wrap=wait -Wl,--wrap=isatty -Wl,--wrap=times -Wl,--wrap=sbrk -Wl,--wrap=_sbrk -Wl,--wrap=exit -Wl,--wrap=_exit -Wl,--wrap=puts -Wl,--wrap=_puts -Wl,--wrap=printf -Wl,--wrap=sprintf -L. -Wl,--start-group -lwrap -lc -Wl,--end-group \
     -Wl,--no-warn-rwx-segments \
     $(EXTRA_COMPILE_FLAGS) \
-		-o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
 		-Xlinker -Map=$(MAP)
 else
 $(ELF): $(PROG_SRCS)
@@ -207,7 +207,7 @@ ifeq ($(SIMULATOR),etiss)
 		$(PROG_SRCS) $(INSTALL_DIR)/etiss/etiss_riscv_examples/riscv_crt0/crt0.S \
 		$(INSTALL_DIR)/etiss/etiss_riscv_examples/riscv_crt0/trap_handler.c \
 		-T $(INSTALL_DIR)/etiss/install/etiss.ld -nostdlib -lc -lgcc -lsemihost \
-		-o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 else ifeq ($(SIMULATOR),etiss_perf)
@@ -222,17 +222,17 @@ else ifeq ($(SIMULATOR),etiss_perf)
     $(FIVP_SDK_DIR)/csp/periph/src/clint_drv.c \
     $(FIVP_SDK_DIR)/csp/periph/src/timer_drv.c \
 		$(PROG_SRCS) $(FIVP_SDK_DIR)/csp/common/crt0.S \
-		-o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 else ifeq ($(SIMULATOR),spike_bm)
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) -specs=htif_nano.specs -specs=htif_wrap.specs \
-		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 else
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
-		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) $(PROG_DEFS) -g -O$(OPTIMIZE) \
+		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 endif
