@@ -243,11 +243,13 @@ $(DUMP): $(ELF)
 
 compile: $(ELF) $(DUMP)
 
+SPIKE_ISA := $(RISCV_ARCH)_zicntr
+
 $(TRACE): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
-	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr -l --log=$(TRACE) $(PK) $(ELF) -s
+	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(PK) $(ELF) -s
 else ifeq ($(SIMULATOR),spike_bm)
-	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr -l --log=$(TRACE) $(ELF) -s
+	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
 	$(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR)
@@ -271,10 +273,10 @@ endif
 $(OUTP): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
 	set -o pipefail && \
-	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr $(PK) $(ELF) -s | tee $(OUTP)
+	$(SPIKE) --isa=$(SPIKE_ISA) $(PK) $(ELF) -s | tee $(OUTP)
 else ifeq ($(SIMULATOR),spike_bm)
 	set -o pipefail && \
-	$(SPIKE) --isa=$(RISCV_ARCH)_zicntr $(ELF) -s | tee $(OUTP)
+	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) -s | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss)
 	set -o pipefail && \
 	$(ETISS) $(ELF) -i$(ETISS_INI) | tee $(OUTP)
