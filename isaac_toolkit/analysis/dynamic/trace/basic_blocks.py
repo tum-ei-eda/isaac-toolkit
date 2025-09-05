@@ -261,7 +261,7 @@ def collect_bbs(trace_df):
         # prev_instr = instr
         prev_size = sz
         bb_instrs.append(instr)
-        bb_size += sz
+        bb_size += sz  # incorrect, need to be before bb creation?
     if first_pc is not None:
         func = None
         # bb = BasicBlock(first_pc=first_pc, last_pc=prev_pc, end_instr=instr, func=func)

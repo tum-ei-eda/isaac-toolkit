@@ -207,7 +207,7 @@ def load_instr_trace(sess: Session, input_files: Union[Path, List[Path]], force:
                     # input(">>")
                     # print("C")
                     df = df.merge(unique_pc_size, on=["pc", "size"], how="left")
-                    df["bytecode"] = pd.to_numeric(df["bytecode"])
+                    df["bytecode"] = pd.to_numeric(df["bytecode"], downcast='unsigned')
                     df["instr"] = df["instr"].astype("category")
                     # print("D")
 
@@ -218,8 +218,9 @@ def load_instr_trace(sess: Session, input_files: Union[Path, List[Path]], force:
     df["instr"] = df["instr"].astype("category")
     df["size"] = df["size"].astype("category")
     df["is_branch"] = df["is_branch"].astype("category")
-    df["pc"] = pd.to_numeric(df["pc"])
-    df["bytecode"] = pd.to_numeric(df["bytecode"])
+    df["pc"] = pd.to_numeric(df["pc"], downcast='unsigned')
+    df["bytecode"] = pd.to_numeric(df["bytecode"], downcast='unsigned')
+    df.reset_index(drop=True, inplace=True)
     # print("df", df.head(), df.columns, df.dtypes, df.memory_usage())
     # input(">")
 
