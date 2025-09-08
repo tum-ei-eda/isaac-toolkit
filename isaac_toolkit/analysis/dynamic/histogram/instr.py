@@ -37,7 +37,7 @@ def collect_instructions(trace_df):
     instrs_df = (
         trace_df["instr"]
         .value_counts()
-        .rename_axis("instr")       # makes 'instr' a column
+        .rename_axis("instr")  # makes 'instr' a column
         .reset_index(name="count")  # turns counts into a column
     )
     total_count = instrs_df["count"].sum()
