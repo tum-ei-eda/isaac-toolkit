@@ -37,7 +37,7 @@ def collect_pcs(trace_df):
     pcs_df = (
         trace_df["pc"]
         .value_counts()
-        .rename_axis("pc")       # makes 'pc' a column
+        .rename_axis("pc")  # makes 'pc' a column
         .reset_index(name="count")  # turns counts into a column
     )
     total_count = pcs_df["count"].sum()
