@@ -16,25 +16,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Dict, List, Set, Tuple, Optional, Union
+from typing import List, Optional, Union
 
-import bisect
 
 import sys
 import logging
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
-from cpp_demangle import demangle
 
 import yaml
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
-from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
+from isaac_toolkit.session.artifact import filter_artifacts
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
