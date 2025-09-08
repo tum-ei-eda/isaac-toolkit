@@ -121,9 +121,7 @@ def collect_opcodes(trace_df):
         opcode_counts[op] = opcode_counts.get(op, 0) + count
 
     # Step 4: Build DataFrame
-    opcodes_df = pd.DataFrame(
-        [{"opcode": op, "count": cnt} for op, cnt in opcode_counts.items()]
-    )
+    opcodes_df = pd.DataFrame([{"opcode": op, "count": cnt} for op, cnt in opcode_counts.items()])
     total_count = opcodes_df["count"].sum()
     opcodes_df["rel_count"] = opcodes_df["count"] / total_count
     return opcodes_df.sort_values("count", ascending=False)
