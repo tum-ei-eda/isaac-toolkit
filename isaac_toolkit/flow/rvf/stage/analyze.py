@@ -38,12 +38,13 @@ from isaac_toolkit.analysis.static.histogram.disass_opcode import (
 # from isaac_toolkit.analysis.dynamic.trace.trunc_trace import trunc_trace
 from isaac_toolkit.analysis.dynamic.trace.instr_operands import analyze_instr_operands
 from isaac_toolkit.analysis.dynamic.histogram.opcode import create_opcode_hist
-from isaac_toolkit.analysis.dynamic.histogram.pc   import create_pc_hist
+from isaac_toolkit.analysis.dynamic.histogram.pc import create_pc_hist
 
 # from isaac_toolkit.analysis.dynamic.histogram.opcode_per_llvm_bb import (
 #     create_opcode_per_llvm_bb_hist,
 # )
 from isaac_toolkit.analysis.dynamic.histogram.instr import create_instr_hist
+
 # from isaac_toolkit.analysis.dynamic.trace.basic_blocks import analyze_basic_blocks
 from isaac_toolkit.analysis.dynamic.trace.trace_bbs import collect_trace_bbs
 from isaac_toolkit.analysis.dynamic.trace.map_llvm_bbs_new import map_llvm_bbs_new
