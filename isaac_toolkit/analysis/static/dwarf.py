@@ -43,21 +43,40 @@ def parse_dwarf(elf_path):
         elffile = ELFFile(f)
 
         # mapping function symbol to pc range
-        for section in elffile.iter_sections():
-            if section.name == ".symtab":
-                symbol_table = section
-                break
+        symtab = elffile.get_section_by_name(".symtab")
+        strtab = elffile.get_section_by_name(".strtab")
 
-        for symbol in symbol_table.iter_symbols():
+        for symbol in symtab.iter_symbols():
             symbol_type = symbol["st_info"]["type"]
             if symbol_type == "STT_FUNC":
                 start_pc = symbol["st_value"]
-                end_pc = start_pc + symbol["st_size"] - 1
+                size = symbol["st_size"]
+                if size == 0:
+                    # Fall back to section boundaries
+                    section_idx = symbol["st_shndx"]
+                    section = None
+                    if section_idx != "SHN_UNDEF" and section_idx != "SHN_ABS":
+                        section = elffile.get_section(section_idx)
+                    if section:
+                        end_pc = section["sh_addr"] + section["sh_size"] - 1
+                    else:
+                        end_pc = start_pc  # fallback: unknown end
+                else:
+                    end_pc = start_pc + symbol["st_size"] - 1
                 # range = (start_pc, end_pc)
                 # mapping[symbol.name] = range
                 new = (symbol.name, (start_pc, end_pc))
                 func2pcs_data.append(new)
-            # Warning: this mapping uses mangled func names
+            # else:
+            #     if symbol.entry.st_name:
+            #         str_name = strtab.get_string(symbol.entry.st_name)
+            #         if "$" in str_name:
+            #             continue
+            #         start_pc = symbol["st_value"]
+            #         end_pc = start_pc + symbol["st_size"] - 1
+            #         new = (str_name, (start_pc, end_pc))
+            #         func2pcs_data.append(new)
+            #         symbol_type = symbol["st_info"]["type"]
 
         # mapping source file to function
         if not elffile.has_dwarf_info():
