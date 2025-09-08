@@ -78,6 +78,7 @@ OUTP := $(OUT_DIR)/$(SIMULATOR)_out.log
 TIMING_CSV := $(OUT_DIR)/stage_timings.csv
 CALLGRIND_POS = $(OUT_DIR)/callgrind_pos.out
 CALLGRIND_PC = $(OUT_DIR)/callgrind_pc.out
+CALLGRIND_BOTH = $(OUT_DIR)/callgrind_both.out
 CALLGRAPH_DOT = $(OUT_DIR)/callgraph.dot
 CALLGRAPH_PDF = $(OUT_DIR)/callgraph.pdf
 
@@ -102,7 +103,7 @@ endef
         load_static load_dynamic load \
         analyze_static analyze_dynamic analyze \
         visualize_static visualize_dynamic visualize \
-        profile profile_pc profile_pos \
+        profile profile_pc profile_pos profile_both \
         callgraph kcachegrind kcachegrind_pc kcachegrind_pos \
 	function_trace flamegraph mermaid cachegrind lcov \
 	measure measure_flow measure_full_flow flow_load \
@@ -169,7 +170,7 @@ measure_full_flow: $(OUT_DIR)
 	$(call time_stage,lcov, $(MAKE) lcov)
 
 clean:
-	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_PC) $(TRACE)
+	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_BOTH) $(CALLGRIND_PC) $(TRACE)
 
 $(SESS):
 	python3 -m isaac_toolkit.session.create --session $(SESS) $(FORCE_ARG)
@@ -292,8 +293,9 @@ run: $(OUTP)
 
 full_flow: $(ELF) $(MAP) $(DUMP) $(TRACE)
 	python3 -m isaac_toolkit.flow.rvf.full_flow --session $(SESS) --elf $(ELF) --linker-map $(MAP) --disass $(DUMP) --instr-trace $(TRACE) --report-fmt $(REPORT_FMT) --report-detailed --report-portable --report-style --report-topk $(REPORT_TOPK) $(FORCE_ARG)
-	cp $(SESS)/profile/callgrind_pc.out $(CALLGRIND_PC)
-	cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
+	# cp $(SESS)/profile/callgrind_pc.out $(CALLGRIND_PC)
+	# cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
+	cp $(SESS)/profile/callgrind_both.out $(CALLGRIND_BOTH)
 
 flow_load: $(ELF) $(MAP) $(DUMP) $(TRACE)
 	python3 -m isaac_toolkit.flow.rvf.stage.load --session $(SESS) --elf $(ELF) --linker-map $(MAP) --disass $(DUMP) --instr-trace $(TRACE)	$(FORCE_ARG)
@@ -326,10 +328,11 @@ analyze_static:
 	python3 -m isaac_toolkit.analysis.static.mem_footprint --session $(SESS) $(FORCE_ARG)
 
 analyze_dynamic:
-	python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
-	python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $(SESS) $(FORCE_ARG)
+	time python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
+	time python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $(SESS) $(FORCE_ARG)
+	time python3 -m isaac_toolkit.analysis.dynamic.histogram.pc --session $(SESS) $(FORCE_ARG)
 	# python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $(SESS) $(FORCE_ARG)
-	python3 -m isaac_toolkit.analysis.dynamic.trace.trace_bbs --session $(SESS) $(FORCE_ARG)
+	time python3 -m isaac_toolkit.analysis.dynamic.trace.trace_bbs --session $(SESS) $(FORCE_ARG)
 
 analyze: analyze_static analyze_dynamic
 
@@ -353,8 +356,9 @@ report:
 
 flow_profile:
 	python3 -m isaac_toolkit.flow.rvf.stage.profile --session $(SESS) $(FORCE_ARG)
-	cp $(SESS)/profile/callgrind_pc.out $(CALLGRIND_PC)
-	cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
+	# cp $(SESS)/profile/callgrind_pc.out $(CALLGRIND_PC)
+	# cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
+	cp $(SESS)/profile/callgrind_both.out $(CALLGRIND_BOTH)
 
 $(CALLGRIND_POS): | $(OUT_DIR)
 	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
@@ -362,8 +366,12 @@ $(CALLGRIND_POS): | $(OUT_DIR)
 $(CALLGRIND_PC): | $(OUT_DIR)
 	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pc --output $(CALLGRIND_PC) $(FORCE_ARG)
 
+$(CALLGRIND_BOTH): | $(OUT_DIR)
+	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pc --dump-pos --output $(CALLGRIND_BOTH) $(FORCE_ARG)
+
 profile_pc: $(CALLGRIND_PC)
 profile_pos: $(CALLGRIND_POS)
+profile_both: $(CALLGRIND_BOTH)
 
 $(CALLGRAPH_DOT): $(CALLGRIND_PC) | $(OUT_DIR)
 	gprof2dot --format=callgrind --output=$(CALLGRAPH_DOT) $(CALLGRIND_PC) -n 0.1 -e 0.1 --color-nodes-by-selftime
@@ -419,6 +427,7 @@ LCOV_HTML := $(OUT_DIR)/html
 
 # NEEDS sudo apt install lcov
 $(LCOV_HTML): $(ELF) $(TRACE) | $(OUT_DIR)
+	cd $(OUT_DIR) && \
 	python3 $(TRC2LCOV_SCRIPT) $(ELF) --trc $(TRACE) --output $(LCOV_OUT) --genhtml $(LCOV_HTML)
 
 $(LCOV_OUT): $(LCOV_HTML)
