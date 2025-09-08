@@ -33,8 +33,7 @@ import pandas as pd
 import numpy as np
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 
 
@@ -188,7 +187,6 @@ def callgrind_format_get_inclusive_cost(
         # print("i,bb_idx,bb", i, bb_idx, bb)
         total_cost += n_instr
         # print("bb", bb)
-        # print("prev_bb", prev_bb)
         if prev_bb_idx is None or (bb_end_instrs[prev_bb_idx] in riscv_branch_instrs and bb_funcs[prev_bb_idx] != func):
             # first bb in the trace
             # print("append call_stack + bb_stack")
@@ -301,9 +299,10 @@ def callgrind_format_get_inclusive_cost(
     # print("total_cost", total_cost)
     # TODO: check that all costs are contained
     # print("function_trace", "\n".join(map(str, function_trace[:100])))
-    function_trace_df = pd.DataFrame(function_trace, columns=["func", "depth", "start_pc", "end_pc", "cost"])
+    # TODO: export call & func trace (&USE!)
+    # function_trace_df = pd.DataFrame(function_trace, columns=["func", "depth", "start_pc", "end_pc", "cost"])
     # print("function_trace_df", function_trace_df)
-    call_trace_df = build_call_trace(function_trace_df, event_names)
+    # call_trace_df = build_call_trace(function_trace_df, event_names)
     # print("call_trace_df", call_trace_df)
     # input("@")
     # print("inclusive_cost_dict", inclusive_cost_dict)

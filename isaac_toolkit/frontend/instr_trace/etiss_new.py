@@ -42,23 +42,16 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
     dfs = []
     for input_file in sorted_files:
         assert input_file.is_file()
-        print("file", input_file)
         with pd.read_csv(input_file, sep=";", chunksize=2**22, header=0) as reader:
             for df in tqdm(reader, disable=False):
                 df = df.rename(columns=lambda x: x.strip())
-                print("df", df)
-                # print("A", time.time())
                 df["pc"] = df["pc"].apply(lambda x: int(x, 0))
                 df["pc"] = pd.to_numeric(df["pc"])
-                # print("B", time.time())
                 # TODO: normalize instr names
                 df[["instr", "rest"]] = df["assembly"].str.split(" # ", n=1, expand=True)
                 df["instr"] = df["instr"].apply(lambda x: x.strip())
                 df["instr"] = df["instr"].astype("category")
-                # print("C", time.time())
-                # print("D", time.time())
                 df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
-                # print("E", time.time())
 
                 def detect_size(bytecode):
                     if bytecode[:2] == "0x":
@@ -71,12 +64,10 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
 
                 df["size"] = df["bytecode"].apply(detect_size)
                 df["size"] = df["size"].astype("category")
-                # print("F", time.time())
                 df["bytecode"] = df["bytecode"].apply(
                     lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
                 )
                 df["bytecode"] = pd.to_numeric(df["bytecode"])
-                # print("H", time.time())
 
                 def convert(x):
                     ret = {}
@@ -95,7 +86,6 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                     df.drop(columns=["operands"], inplace=True)
                 df.drop(columns=["rest"], inplace=True)
                 df.drop(columns=["assembly"], inplace=True)
-                # print("I", time.time())
                 dfs.append(df)
     df = pd.concat(dfs, axis=0)
     df["instr"] = df["instr"].astype("category")
