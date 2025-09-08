@@ -34,16 +34,15 @@ logger = logging.getLogger(__name__)
 
 
 def collect_instructions(trace_df):
-    instrs = trace_df["instr"].value_counts().to_dict()
-    instrs_data = []
-    for instr_name, instr_count in instrs.items():
-        instr_data = {"instr": instr_name, "count": instr_count}
-        instrs_data.append(instr_data)
-    instrs_df = pd.DataFrame(instrs_data)
+    instrs_df = (
+        trace_df["instr"]
+        .value_counts()
+        .rename_axis("instr")       # makes 'instr' a column
+        .reset_index(name="count")  # turns counts into a column
+    )
     total_count = instrs_df["count"].sum()
     instrs_df["rel_count"] = instrs_df["count"] / total_count
     instrs_df.sort_values("count", ascending=False, inplace=True)
-
     return instrs_df
 
 
