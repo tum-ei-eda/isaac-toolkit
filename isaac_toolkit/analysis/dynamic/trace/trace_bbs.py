@@ -30,6 +30,7 @@ from collections import defaultdict
 from cpp_demangle import demangle
 
 import pandas as pd
+import numpy as np
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
@@ -73,171 +74,314 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
     return ret
 
 
-def collect_bbs(trace_df, mapping):
-    first_pc = None
-    # TODO: make this generic!
-    func2bbs = defaultdict(list)  # TODO: only track func_set?
-    # bb_freq = defaultdict(int)
-    prev_pc = None
-    prev_size = None
-    # prev_instr = None
-    bbs = []
-    bb_instrs = []
-    bb_size = 0
-    trace_pcs = set(trace_df["pc"].unique())
+# def collect_bbs(trace_df, mapping):
+#     first_pc = None
+#     # TODO: make this generic!
+#     func2bbs = defaultdict(list)  # TODO: only track func_set?
+#     # bb_freq = defaultdict(int)
+#     prev_pc = None
+#     prev_size = None
+#     # prev_instr = None
+#     bbs = []
+#     # bb_instrs = []
+#     num_bb_instrs = 0
+#     bb_size = 0
+#     # t0 = time.time()
+#     trace_pcs = set(trace_df["pc"].unique())
+#     # td = time.time() - t0
+#     # print("td", td)
+#     unique_bbs = []
+#     # unique_bb_hashes = []
+#     unique_bb_map = {}
+#     unique_bb_freq = defaultdict(int)
+#     bb_trace_data = []
+#     # t0 = time.time()
+#     trace_df["instr"] = trace_df["instr"].str.strip()  # TODO: fix in frontend
+#     # td = time.time() - t0
+#     # print("td_", td)
+#
+#     # t0 = time.time()
+#     branch_ret_instrs = set(riscv_branch_instrs + riscv_return_instrs)
+#     trace_df["is_branch_return"] = trace_df["instr"].isin(branch_ret_instrs)
+#     # td = time.time() - t0
+#     # print("td__", td)
+#
+#     # t0 = time.time()
+#     pcs = trace_df["pc"].to_numpy()
+#     instrs = trace_df["instr"].to_numpy()
+#     sizes = trace_df["size"].to_numpy()
+#     is_branch_return_list = trace_df["is_branch_return"].to_numpy()
+#     # td = time.time() - t0
+#     # print("td___", td)
+#     # for row in trace_df.itertuples():
+#     # Numpy based iter for speed
+#
+#     # t0 = time.time()
+#     steps = pcs[1:] - pcs[:-1]
+#     expected_steps = sizes[:-1]
+#     irregular_step = steps != expected_steps
+#     mask = is_branch_return_list.copy()
+#     mask[:-1] |= irregular_step  # propagate irregular step to the earlier instr
+#     bb_end_indices = np.where(mask)[0]
+#     bb_start_indices = np.empty_like(bb_end_indices)
+#     bb_start_indices[0] = 0
+#     bb_start_indices[1:] = bb_end_indices[:-1] + 1
+#     bbs = pd.DataFrame(
+#         {
+#             "first_pc": pcs[bb_start_indices],
+#             "last_pc": pcs[bb_end_indices],
+#             "num_instrs": bb_end_indices - bb_start_indices + 1,
+#             "size": np.add.reduceat(sizes, bb_start_indices),  # grouped sum
+#             "end_instr": instrs[bb_end_indices],
+#         }
+#     )
+#     # td = time.time() - t0
+#     # print("td___exp", td)
+#     # print("irregular_step", irregular_step, sum(irregular_step))
+#     # print("mask", mask, sum(mask))
+#     # print("bbs", bbs)
+#
+#     # t0 = time.time()
+#     tda = 0
+#     tdb = 0
+#     tdc = 0
+#     tdd = 0
+#     tde = 0
+#     for i in range(len(pcs)):
+#         # t0a = time.time()
+#         pc = pcs[i]
+#         instr = instrs[i]
+#         sz = 2 if sizes[i] == 2 else 4
+#         is_compressed = sz == 2
+#         is_branch_return = is_branch_return_list[i]
+#         trace_idx = i
+#
+#         # trace_idx = row.Index
+#         # pc = row.pc
+#         # instr = row.instr
+#         # is_compressed = row.size == 2
+#         # sz = 2 if is_compressed else 4
+#         # tda += (time.time() - t0a)
+#
+#         # t0b = time.time()
+#         if prev_pc:
+#             step = pc - prev_pc
+#             if step in [2, 4] and step == prev_size:
+#                 pass
+#             else:
+#                 if first_pc is None:
+#                     pass
+#                 else:
+#                     logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
+#                     if True:
+#                         func = find_func_name(mapping, prev_pc)
+#                         # bb = BasicBlock(
+#                         #     first_pc=first_pc,
+#                         #     last_pc=prev_pc,
+#                         #     num_instrs=len(bb_instrs),
+#                         #     size=bb_size,
+#                         #     end_instr=instr,
+#                         #     func=func,
+#                         # )
+#                         # first_pc: int,
+#                         # last_pc: int,
+#                         # num_instrs: int,
+#                         # size: int,
+#                         # end_instr: str,
+#                         # func: str,
+#                         # bb_info = (first_pc, prev_pc, len(bb_instrs), bb_size, instr, func)
+#                         bb_info = (first_pc, prev_pc, num_bb_instrs, bb_size, instr, func)
+#                         # bbs.append(bb_info)
+#                         # bb_hash = hash((first_pc, prev_pc))
+#                         bb_hash = (first_pc << 32) | prev_pc
+#                         ### bb_hash = bb.__hash__()
+#                         # unique_bb_idx = None
+#                         # if bb_hash in unique_bb_hashes:
+#                         #     unique_bb_idx = unique_bb_hashes.index(bb_hash)
+#                         unique_bb_idx = unique_bb_map.get(bb_hash)
+#                         if unique_bb_idx is None:
+#                             unique_bb_idx = len(unique_bbs)
+#                             unique_bbs.append(bb_info)
+#                             unique_bb_map[bb_hash] = unique_bb_idx
+#                             func2bbs[func].append(unique_bb_idx)
+#                         unique_bb_call = unique_bb_freq[unique_bb_idx]
+#                         unique_bb_freq[unique_bb_idx] += 1
+#
+#                         bb_trace_data_new = (unique_bb_idx, unique_bb_call, trace_idx)
+#                         bb_trace_data.append(bb_trace_data_new)
+#
+#                         # bb_instrs = []
+#                         num_bb_instrs = 0
+#                         bb_size = 0
+#                         # bbs.append(bb)
+#                         # if bb.get_freq() == 1:
+#                         #     func2bbs[bb.func].append(bb)
+#                         # bb_freq[bb] += 1
+#
+#                         first_pc = pc
+#
+#         # tdb += (time.time() - t0b)
+#
+#         # t0c = time.time()
+#         # At the first pc of a basic block
+#         if first_pc is None:
+#             first_pc = pc
+#
+#         # bb_instrs.append(instr)
+#         num_bb_instrs += 1
+#         bb_size += sz
+#         # tdc += (time.time() - t0c)
+#
+#         # t0d = time.time()
+#         # if instr in riscv_branch_instrs + riscv_return_instrs:
+#         if is_branch_return:
+#             func = find_func_name(mapping, pc)
+#             # bb = BasicBlock(
+#             #     first_pc=first_pc,
+#             #     last_pc=pc,
+#             #     num_instrs=len(bb_instrs),
+#             #     size=bb_size,
+#             #     end_instr=instr,
+#             #     func=func,
+#             # )
+#             # bb_info = (first_pc, pc, len(bb_instrs), bb_size, instr, func)
+#             bb_info = (first_pc, pc, num_bb_instrs, bb_size, instr, func)
+#             # bbs.append(bb_info)
+#             # bb_hash = hash((first_pc, pc))
+#             bb_hash = (first_pc << 32) | pc
+#             # bb_hash = bb.__hash__()
+#             # unique_bb_idx = None
+#             # if bb_hash in unique_bb_hashes:
+#             #     unique_bb_idx = unique_bb_hashes.index(bb_hash)
+#             unique_bb_idx = unique_bb_map.get(bb_hash)
+#             if unique_bb_idx is None:
+#                 unique_bb_idx = len(unique_bbs)
+#                 unique_bbs.append(bb_info)
+#                 unique_bb_map[bb_hash] = unique_bb_idx
+#                 func2bbs[func].append(unique_bb_idx)
+#             unique_bb_call = unique_bb_freq[unique_bb_idx]
+#             unique_bb_freq[unique_bb_idx] += 1
+#
+#             bb_trace_data_new = (unique_bb_idx, unique_bb_call, trace_idx)
+#             bb_trace_data.append(bb_trace_data_new)
+#             # bb_instrs = []
+#             num_bb_instrs = 0
+#             bb_size = 0
+#             # bbs.append(bb)
+#             # if bb.get_freq() == 1:
+#             #     func2bbs[bb.func].append(bb)
+#             #     bb_freq[bb] += 1
+#             first_pc = None
+#         # tdd += (time.time() - t0d)
+#
+#         # t0e = time.time()
+#         prev_pc = pc
+#         # prev_instr = instr
+#         prev_size = sz
+#         # tde += (time.time() - t0e)
+#     # td = time.time() - t0
+#     # print("tdloop", td, td/len(pcs))
+#     # print("tda", tda, tda/td)
+#     # print("tdb", tdb, tdb/td)
+#     # print("tdc", tda, tdc/td)
+#     # print("tdd", tdd, tdd/td)
+#     # print("tde", tde, tde/td)
+#     # t0 = time.time()
+#     bb_trace_df = pd.DataFrame(bb_trace_data, columns=["bb_idx", "bb_call", "trace_idx"])
+#     bb_trace_df["bb_idx"] = pd.to_numeric(bb_trace_df["bb_idx"], downcast="unsigned").astype("category")
+#     bb_trace_df["bb_call"] = pd.to_numeric(bb_trace_df["bb_call"], downcast="unsigned")
+#     bb_trace_df["trace_idx"] = pd.to_numeric(bb_trace_df["trace_idx"], downcast="unsigned")
+#     # print("bb_trace_df", bb_trace_df)
+#     # input("1")
+#     unique_bbs_df = pd.DataFrame(unique_bbs, columns=["first_pc", "last_pc", "num_instrs", "size", "end_instr", "func"])
+#     unique_bbs_df["freq"] = list(unique_bb_freq.values())  # assume ordered dict
+#     # td = time.time() - t0
+#     # print("tdfin", td, td/len(pcs))
+#     # input("!!!")
+#     if first_pc is not None:
+#         func = None
+#
+#     return trace_pcs, func2bbs, unique_bbs_df, bb_trace_df
+
+
+import numpy as np
+import pandas as pd
+from collections import defaultdict
+
+
+def collect_bbs_new(trace_df, mapping):
+    # --- Extract columns as NumPy ---
+    pcs = trace_df["pc"].to_numpy()
+    instrs = trace_df["instr"].str.strip().to_numpy()
+    sizes = np.where(trace_df["size"].to_numpy() == 2, 2, 4)
+
+    # --- Fast branch/return detection ---
+    branch_ret_set = set(riscv_branch_instrs + riscv_return_instrs)
+    is_branch_return = trace_df["instr"].isin(branch_ret_set).to_numpy()
+
+    # --- Detect irregular steps ---
+    steps = pcs[1:] - pcs[:-1]
+    expected_steps = sizes[:-1]
+    irregular_step = steps != expected_steps
+
+    # --- Combine into a mask marking BB ends ---
+    mask = is_branch_return.copy()
+    mask[:-1] |= irregular_step
+
+    # --- Indices of BB ends ---
+    bb_end_indices = np.where(mask)[0]
+    if len(bb_end_indices) == 0:
+        return set(pcs), {}, pd.DataFrame(), pd.DataFrame()
+
+    # --- Indices of BB starts ---
+    bb_start_indices = np.empty_like(bb_end_indices)
+    bb_start_indices[0] = 0
+    bb_start_indices[1:] = bb_end_indices[:-1] + 1
+
+    # --- Build unique BBs ---
+    first_pcs = pcs[bb_start_indices]
+    last_pcs = pcs[bb_end_indices]
+    num_instrs = bb_end_indices - bb_start_indices + 1
+    bb_sizes = np.add.reduceat(sizes, bb_start_indices)
+    end_instrs = instrs[bb_end_indices]
+
+    # Map PCs to funcs once
+    unique_pcs = np.unique(np.concatenate([first_pcs, last_pcs]))
+    func_map = {pc: find_func_name(mapping, pc) for pc in unique_pcs}
+    funcs = [func_map[pc] for pc in last_pcs]
+
+    # Deduplicate BBs using a deterministic key
     unique_bbs = []
-    # unique_bb_hashes = []
     unique_bb_map = {}
     unique_bb_freq = defaultdict(int)
-    bb_trace_data = []
-    trace_df["instr"] = trace_df["instr"].str.strip()  # TODO: fix in frontend
-    
-    print("A", time.time())
-    branch_ret_instrs = riscv_branch_instrs + riscv_return_instrs
-    trace_df["is_branch_return"] = trace_df["instr"].map(lambda x: x in branch_ret_instrs)
+    func2bbs = defaultdict(list)
 
-    print("A_", time.time())
-    pcs = trace_df["pc"].to_numpy()
-    instrs = trace_df["instr"].to_numpy()
-    sizes = trace_df["size"].to_numpy()
-    is_branch_return_list = trace_df["is_branch_return"].to_numpy()
-    print("A__", time.time())
-    # for row in trace_df.itertuples():
-    # Numpy based iter for speed
-    for i in range(len(pcs)):
-        pc = pcs[i]
-        instr = instrs[i]
-        sz = 2 if sizes[i] == 2 else 4
-        is_compressed = sz == 2
-        is_branch_return = is_branch_return_list[i]
-        trace_idx = i
+    bb_trace_records = []
 
-        # trace_idx = row.Index
-        # pc = row.pc
-        # instr = row.instr
-        # is_compressed = row.size == 2
-        # sz = 2 if is_compressed else 4
+    for idx, (fp, lp, n, sz, ei, func) in enumerate(zip(first_pcs, last_pcs, num_instrs, bb_sizes, end_instrs, funcs)):
+        bb_hash = (fp << 32) | lp
+        # unique_bb_idx = bb_hash
+        unique_bb_idx = unique_bb_map.get(bb_hash)
+        if unique_bb_idx is None:
+            unique_bb_idx = len(unique_bbs)
+            unique_bbs.append((fp, lp, n, sz, ei, func))
+            unique_bb_map[bb_hash] = unique_bb_idx
+            func2bbs[func].append(unique_bb_idx)
 
-        if prev_pc:
-            step = pc - prev_pc
-            if step in [2, 4] and step == prev_size:
-                pass
-            else:
-                if first_pc is None:
-                    pass
-                else:
-                    logger.warning("Detected potential trap @ pc = 0x%x -> 0x%x", prev_pc, pc)
-                    if True:
-                        func = find_func_name(mapping, prev_pc)
-                        # bb = BasicBlock(
-                        #     first_pc=first_pc,
-                        #     last_pc=prev_pc,
-                        #     num_instrs=len(bb_instrs),
-                        #     size=bb_size,
-                        #     end_instr=instr,
-                        #     func=func,
-                        # )
-                        # first_pc: int,
-                        # last_pc: int,
-                        # num_instrs: int,
-                        # size: int,
-                        # end_instr: str,
-                        # func: str,
-                        bb_info = (first_pc, prev_pc, len(bb_instrs), bb_size, instr, func)
-                        # bbs.append(bb_info)
-                        bb_hash = hash((first_pc, prev_pc))
-                        ### bb_hash = bb.__hash__()
-                        # unique_bb_idx = None
-                        # if bb_hash in unique_bb_hashes:
-                        #     unique_bb_idx = unique_bb_hashes.index(bb_hash)
-                        unique_bb_idx = unique_bb_map.get(bb_hash)
-                        if unique_bb_idx is None:
-                            unique_bb_idx = len(unique_bbs)
-                            unique_bbs.append(bb_info)
-                            unique_bb_map[bb_hash] = unique_bb_idx
-                            func2bbs[func].append(unique_bb_idx)
-                        unique_bb_call = unique_bb_freq[unique_bb_idx]
-                        unique_bb_freq[unique_bb_idx] += 1
+        bb_call = unique_bb_freq[unique_bb_idx]
+        unique_bb_freq[unique_bb_idx] += 1
+        bb_trace_records.append((unique_bb_idx, bb_call, bb_end_indices[idx]))
 
-                        bb_trace_data_new = (unique_bb_idx, unique_bb_call, trace_idx)
-                        bb_trace_data.append(bb_trace_data_new)
-
-                        bb_instrs = []
-                        bb_size = 0
-                        # bbs.append(bb)
-                        # if bb.get_freq() == 1:
-                        #     func2bbs[bb.func].append(bb)
-                        # bb_freq[bb] += 1
-
-                        first_pc = pc
-
-        # At the first pc of a basic block
-        if first_pc is None:
-            first_pc = pc
-
-        bb_instrs.append(instr)
-        bb_size += sz
-
-        # if instr in riscv_branch_instrs + riscv_return_instrs:
-        if is_branch_return:
-            func = find_func_name(mapping, pc)
-            # bb = BasicBlock(
-            #     first_pc=first_pc,
-            #     last_pc=pc,
-            #     num_instrs=len(bb_instrs),
-            #     size=bb_size,
-            #     end_instr=instr,
-            #     func=func,
-            # )
-            bb_info = (first_pc, pc, len(bb_instrs), bb_size, instr, func)
-            # bbs.append(bb_info)
-            bb_hash = hash((first_pc, pc))
-            # bb_hash = bb.__hash__()
-            # unique_bb_idx = None
-            # if bb_hash in unique_bb_hashes:
-            #     unique_bb_idx = unique_bb_hashes.index(bb_hash)
-            unique_bb_idx = unique_bb_map.get(bb_hash)
-            if unique_bb_idx is None:
-                unique_bb_idx = len(unique_bbs)
-                unique_bbs.append(bb_info)
-                unique_bb_map[bb_hash] = unique_bb_idx
-                func2bbs[func].append(unique_bb_idx)
-            unique_bb_call = unique_bb_freq[unique_bb_idx]
-            unique_bb_freq[unique_bb_idx] += 1
-
-            bb_trace_data_new = (unique_bb_idx, unique_bb_call, trace_idx)
-            bb_trace_data.append(bb_trace_data_new)
-            bb_instrs = []
-            bb_size = 0
-            # bbs.append(bb)
-            # if bb.get_freq() == 1:
-            #     func2bbs[bb.func].append(bb)
-            #     bb_freq[bb] += 1
-            first_pc = None
-        prev_pc = pc
-        # prev_instr = instr
-        prev_size = sz
-        # print("len(unique_bbs)", len(unique_bbs))
-        # print("unique_bb_hashes", unique_bb_hashes)
-        # print("unique_bb_freq", unique_bb_freq)
-    print("B", time.time())
-    # print("bb_trace_data", bb_trace_data, len(bb_trace_data))
-    print("len(bb_trace_data)", len(bb_trace_data))
-    bb_trace_df = pd.DataFrame(bb_trace_data, columns=["bb_idx", "bb_call", "trace_idx"])
-    print("bb_trace_df", bb_trace_df, len(bb_trace_df), "\n", bb_trace_df.dtypes, "\n", bb_trace_df.memory_usage())
-    bb_trace_df["bb_idx"] = pd.to_numeric(bb_trace_df["bb_idx"], downcast="unsigned").astype("category")
+    # --- Convert to DataFrames ---
+    bb_trace_df = pd.DataFrame(bb_trace_records, columns=["bb_idx", "bb_call", "trace_idx"])
+    bb_trace_df["bb_idx"] = bb_trace_df["bb_idx"].astype("category")
     bb_trace_df["bb_call"] = pd.to_numeric(bb_trace_df["bb_call"], downcast="unsigned")
     bb_trace_df["trace_idx"] = pd.to_numeric(bb_trace_df["trace_idx"], downcast="unsigned")
-    print("bb_trace_df2", bb_trace_df, len(bb_trace_df), "\n", bb_trace_df.dtypes, "\n", bb_trace_df.memory_usage())
-    unique_bbs_df = pd.DataFrame(unique_bbs, columns=["first_pc", "last_pc", "num_instrs", "size", "end_instr", "func"])
-    unique_bbs_df["freq"] = list(unique_bb_freq.values())  # assume ordered dict
-    print("unqiue_bbs_df", unique_bbs_df, len(unique_bbs_df), "\n", unique_bbs_df.dtypes, "\n", unique_bbs_df.memory_usage())
-    # input("!!!")
-    if first_pc is not None:
-        func = None
-    print("C", time.time())
 
-    return trace_pcs, func2bbs, unique_bbs_df, bb_trace_df
+    unique_bbs_df = pd.DataFrame(unique_bbs, columns=["first_pc", "last_pc", "num_instrs", "size", "end_instr", "func"])
+    unique_bbs_df["freq"] = [unique_bb_freq[i] for i in range(len(unique_bbs))]
+
+    return set(pcs), func2bbs, unique_bbs_df, bb_trace_df
 
 
 # TODO: consistent arg naming
@@ -251,12 +395,7 @@ def callgrind_format_get_inclusive_cost(bb_trace_df: pd.DataFrame, unique_bbs_df
     total_cost = 0
     inclusive_cost_dict = defaultdict(lambda: defaultdict(list))
     prev_bb_idx = None
-    print("P", time.time())
-    print("bb_trace_df.head()", bb_trace_df.head())
-    print("unique_bbs_df.head()", unique_bbs_df.head())
     unique_bbs_records = unique_bbs_df.to_records(index=False)
-    print("len(unique_bbs_records)", len(unique_bbs_records))
-    print("len(unique_bbs_df)", len(unique_bbs_df))
 
     # call_stack: [A, B]
     # [Given] bb_stack: [[bb1, bb2, bb3], [bb4, bb5, bb6]]
@@ -264,11 +403,11 @@ def callgrind_format_get_inclusive_cost(bb_trace_df: pd.DataFrame, unique_bbs_df
     # where bb1 - bb3 belong to func A and bb4 - bb6 belong to func B
     # for i, bb in enumerate(bbs):
     # for i, bb_trace_row in bb_trace_df.iterrows():
-    bb_funcs      = unique_bbs_df["func"].values        # dtype=object or better: categorical/int
+    bb_funcs = unique_bbs_df["func"].values  # dtype=object or better: categorical/int
     bb_num_instrs = unique_bbs_df["num_instrs"].values  # dtype=int32/int64
-    bb_end_instrs = unique_bbs_df["end_instr"].values   # dtype=object or categorical
-    bb_first_pc   = unique_bbs_df["first_pc"].values
-    bb_last_pc    = unique_bbs_df["last_pc"].values
+    bb_end_instrs = unique_bbs_df["end_instr"].values  # dtype=object or categorical
+    bb_first_pc = unique_bbs_df["first_pc"].values
+    bb_last_pc = unique_bbs_df["last_pc"].values
     # t0 = time.time()
     # ts = [t0]
     # for i, bb_idx in enumerate(bb_trace_df["bb_idx"].values):
@@ -276,11 +415,11 @@ def callgrind_format_get_inclusive_cost(bb_trace_df: pd.DataFrame, unique_bbs_df
         # ts.append(time.time())
         # if i == 100:
         #     break
-        func      = bb_funcs[bb_idx]
-        n_instr   = bb_num_instrs[bb_idx]
+        func = bb_funcs[bb_idx]
+        n_instr = bb_num_instrs[bb_idx]
         end_instr = bb_end_instrs[bb_idx]
-        first_pc  = bb_first_pc[bb_idx]
-        last_pc   = bb_last_pc[bb_idx]
+        first_pc = bb_first_pc[bb_idx]
+        last_pc = bb_last_pc[bb_idx]
         # print("progress", float(i)/len(bb_trace_df))
         # bb_idx = bb_trace_row.bb_idx
         # bb = unique_bbs_df.iloc[bb_idx]
@@ -423,23 +562,9 @@ def callgrind_format_converter(
         calls={number of times caller calls callee} {callee pc}
         {pc} {inclusive_cost}
     """
-    print("O", time.time())
     assert dump_pc or dump_pos
     # inclusive_cost_dict = callgrind_format_get_inclusive_cost(bbs)
     inclusive_cost_dict = callgrind_format_get_inclusive_cost(bb_trace_df, unique_bbs_df)
-    print("Q", time.time())
-
-    # Find the basic block, of which the first pc is equal to pc
-    # TODO: time complexity is suboptimal
-    def find_bb(pc):
-        matches = unique_bbs_df["first_pc"] == pc
-        print("matches", matches)
-        input("$$$")
-
-        # for bb in bbs:
-        #     if pc == bb.first_pc:
-        #         return bb
-        return None
 
     # Find the source file where the function is defined
     # Some functions come from libc. In this case ??? is returned.
@@ -588,7 +713,19 @@ def collect_trace_bbs(
 
     mapping = func2pc_df.groupby("func")["pc_range"].apply(list).to_dict()
     # bbs, trace_pcs, func2bbs, bb_freq = collect_bbs(trace_artifact.df, mapping)
-    trace_pcs, func2bbs, unique_bbs_df, bb_trace_df = collect_bbs(trace_artifact.df, mapping)
+    # t0 = time.time()
+    # trace_pcs, func2bbs, unique_bbs_df, bb_trace_df = collect_bbs(trace_artifact.df, mapping)
+    # t1 = time.time()
+    trace_pcs, func2bbs, unique_bbs_df, bb_trace_df = collect_bbs_new(trace_artifact.df, mapping)
+    # t2 = time.time()
+    # tdx = t1 - t0
+    # tdy = t2 - t1
+    # print("tdx", tdx)
+    # print("tdy", tdy)
+    # print("bb_trace_df", bb_trace_df)
+    # print("bb_trace_df2", bb_trace_df2)
+    # print("unique_bbs_df", unique_bbs_df)
+    # print("unique_bbs_df2", unique_bbs_df2)
 
     bb_trace_attrs = {
         "trace": trace_artifact.name,
@@ -618,10 +755,7 @@ def collect_trace_bbs(
     print("trace_pcs_df", trace_pcs_df)
 
     print("func2bbs", func2bbs)
-    func2bbs_df = pd.DataFrame({
-        "func": list(func2bbs.keys()),
-        "bb_idxs": list(func2bbs.values())
-    })
+    func2bbs_df = pd.DataFrame({"func": list(func2bbs.keys()), "bb_idxs": list(func2bbs.values())})
     print("func2bbs_df", func2bbs_df)
 
     bb_trace_artifact = TableArtifact("bb_trace", bb_trace_df, attrs=bb_trace_attrs)
