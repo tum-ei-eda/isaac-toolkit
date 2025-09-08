@@ -61,6 +61,7 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
     """
     Given a program counter, find the function it belongs to
     """
+    # t0 = time.time()
     found = PC_FUNC_NAME_CACHE.get(pc)
     if found is not None:
         return found
@@ -752,11 +753,11 @@ def collect_trace_bbs(
     }
 
     trace_pcs_df = pd.Series(list(trace_pcs))  # TODO: to_frame()?
-    print("trace_pcs_df", trace_pcs_df)
+    # print("trace_pcs_df", trace_pcs_df)
 
-    print("func2bbs", func2bbs)
+    # print("func2bbs", func2bbs)
     func2bbs_df = pd.DataFrame({"func": list(func2bbs.keys()), "bb_idxs": list(func2bbs.values())})
-    print("func2bbs_df", func2bbs_df)
+    # print("func2bbs_df", func2bbs_df)
 
     bb_trace_artifact = TableArtifact("bb_trace", bb_trace_df, attrs=bb_trace_attrs)
     unique_bbs_artifact = TableArtifact("unique_bbs", unique_bbs_df, attrs=unique_bbs_attrs)
