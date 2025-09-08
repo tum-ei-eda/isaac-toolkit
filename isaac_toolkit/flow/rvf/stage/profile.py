@@ -23,7 +23,8 @@ from pathlib import Path
 from isaac_toolkit.session import Session
 
 # from isaac_toolkit.logging import get_logger, set_log_level
-from isaac_toolkit.backend.profile.callgrind import generate_callgrind_output
+# from isaac_toolkit.backend.profile.callgrind import generate_callgrind_output
+from isaac_toolkit.backend.profile.callgrind_new import generate_callgrind_output
 
 # logger = get_logger()
 import logging
@@ -33,8 +34,9 @@ logger = logging.getLogger()
 
 def generate_profile(sess: Session, unmangle: bool = False, force: bool = False, progress: bool = False):
     logger.info("Generate RVF profiling artifacts...")
-    generate_callgrind_output(sess, output=None, force=force, dump_pc=True, dump_pos=False, unmangle_names=unmangle)
-    generate_callgrind_output(sess, output=None, force=force, dump_pc=False, dump_pos=True, unmangle_names=unmangle)
+    # generate_callgrind_output(sess, output=None, force=force, dump_pc=True, dump_pos=False, unmangle_names=unmangle)
+    # generate_callgrind_output(sess, output=None, force=force, dump_pc=False, dump_pos=True, unmangle_names=unmangle)
+    generate_callgrind_output(sess, output=None, force=force, dump_pc=True, dump_pos=True, unmangle_names=unmangle)
 
 
 def handle(args):
