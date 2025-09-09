@@ -59,7 +59,9 @@ def retarget_iss_auto(
     assert demo_config is not None
     docker_config = demo_config.docker
     assert docker_config is not None
-    use_docker = docker_override if docker_override is not None else docker_config.enable
+    use_docker = (
+        docker_override if docker_override is not None else docker_config.enable
+    )
     etiss_config = demo_config.etiss
     assert etiss_config is not None
     etiss_core = etiss_config.core_name
@@ -99,7 +101,15 @@ def handle(args):
         assert not args.docker
         docker_override = False
     # TODO: expsoe cleanup via config?
-    retarget_iss_auto(sess, label=args.label, workdir=args.workdir, force=args.force, docker_override=docker_override, verbose=args.verbose, cleanup=args.cleanup)
+    retarget_iss_auto(
+        sess,
+        label=args.label,
+        workdir=args.workdir,
+        force=args.force,
+        docker_override=docker_override,
+        verbose=args.verbose,
+        cleanup=args.cleanup,
+    )
     sess.save()
 
 
