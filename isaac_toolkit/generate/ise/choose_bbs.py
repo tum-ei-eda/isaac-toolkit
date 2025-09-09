@@ -30,6 +30,24 @@ from isaac_toolkit.logging import get_logger, set_log_level
 logger = get_logger()
 
 
+def file_from_symbol_map(func_name: str, symbol_map_df: pd.DataFrame):
+    # print("func_name", func_name)
+    # print("symbol_map_df", symbol_map_df, symbol_map_df.columns)
+    matches = symbol_map_df[symbol_map_df["symbol"] == func_name]
+    # print("matches", matches)
+    if len(matches) == 0:
+        return None
+    obj = matches["object_full"].iloc[0]
+    # TODO: resolve relative paths using DWARF?
+    if obj.endswith(".o"):
+        obj = obj[:-2]
+    elif obj.endswith(".obj"):
+        obj = obj[:-4]
+    # print("obj", obj)
+    # input("!")
+    return obj
+
+
 def lookup_files(file2funcs_df, func_name):
     matches = set()
     for _, row in file2funcs_df.iterrows():
@@ -81,6 +99,15 @@ def choose_bbs(
         # print("llvm_bbs_df", llvm_bbs_df)
     else:
         file2funcs_df = None
+
+    symbol_map_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "symbol_map"
+    )
+    symbol_map_df = None
+    if len(symbol_map_artifacts) > 0:
+        assert len(symbol_map_artifacts) == 1
+        symbol_map_artifact = symbol_map_artifacts[0]
+        symbol_map_df = symbol_map_artifact.df
     sum_weights = 0.0
     choices = []
     for index, row in llvm_bbs_df.sort_values("rel_weight", ascending=False).iterrows():
@@ -124,8 +151,17 @@ def choose_bbs(
         if file2funcs_df is not None:
             files = lookup_files(file2funcs_df, func_name)
             if len(files) == 0:
+                logger.info(
+                    "Falling back to symbol_map based file extraction for '%s'",
+                    func_name,
+                )
+                assert symbol_map_df is not None  # TODO: skip if missing
+                file = file_from_symbol_map(func_name, symbol_map_df)
+                if file is None:
+                    logger.info("Fallback failed!")
+                else:
+                    logger.info("Fallback succeeded!")
                 # func not conatined in file2funcs?
-                file = None
             else:
                 assert len(files) == 1
                 file = files[0]
