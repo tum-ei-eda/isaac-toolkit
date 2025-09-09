@@ -73,7 +73,7 @@ def check_ise_potential_per_llvm_bb(
         # print("func_name", func_name)
         # print("bb_name", bb_name)
         # print("opcodes_hist_df")
-        print(opcodes_hist_df)
+        # print(opcodes_hist_df)
         # force_rvv = True
         force_rvv = False
         forced_opcodes = []
@@ -93,7 +93,7 @@ def check_ise_potential_per_llvm_bb(
         ise_potential_df.insert(0, "func_name", func_name)
         ise_potential_df.insert(1, "bb_name", bb_name)
         # print("ise_potential_df")
-        print(ise_potential_df)
+        # print(ise_potential_df)
         dfs.append(ise_potential_df)
     ise_potential_per_llvm_bb_df = pd.concat(dfs)
     # print(ise_potential_per_llvm_bb_df)
