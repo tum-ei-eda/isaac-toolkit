@@ -161,10 +161,13 @@ def run_nailgun_hls(
             command += f" -v {mount_dir}:{mount_dir}"
         command += f" {docker_image}"
         prepare = "cd /isax-tools/nailgun"
+        finalize = f"chmod -R 777 {hls_dir}"
         nailgun_command_env = " ".join(
             [f"{key}={val}" for key, val in nailgun_env.items()]
         )
-        command += f' "{prepare} && {nailgun_command_env} {nailgun_command}"'
+        command += (
+            f' "{prepare} && {nailgun_command_env} {nailgun_command} && {finalize}"'
+        )
         print("command", command)
         subprocess.run(command, shell=True)
     else:
