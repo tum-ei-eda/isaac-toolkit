@@ -296,7 +296,9 @@ class TableArtifact(PythonArtifact):
             compression = None
             if compression_method is not None:
                 if compression_method == "gzip":
-                    compression = {"method": compression_method, "compresslevel": compression_level}
+                    compression = {"method": compression_method}
+                    if compression_level is not None:
+                        compression = {**compression, "compresslevel": compression_level}
                 else:
                     assert compression_level is None, "Compression level only supported for pickle+gzip"
                     compression = compression_method
