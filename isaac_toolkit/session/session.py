@@ -51,7 +51,7 @@ logger = logging.getLogger("session")
 COMPRESSION_EXT = {
     "zip": "zip",
     # "gzip": ".gz",
-    "gzip": "tar.gz",
+    "gzip": "gz",
     "bz2": "bz2",
     "zstd": "zst",
     "xz": "tar.xz",
