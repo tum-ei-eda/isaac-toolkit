@@ -139,7 +139,7 @@ def callgrind_format_get_inclusive_cost(
 ):
     call_stack = []
     bb_stack = []
-    total_cost = 0
+    # total_cost = 0
     inclusive_cost_dict = defaultdict(lambda: defaultdict(list))
     prev_bb_idx = None
     print("P", time.time())
@@ -170,7 +170,7 @@ def callgrind_format_get_inclusive_cost(
         # if i == 100:
         #     break
         func = bb_funcs[bb_idx]
-        n_instr = bb_num_instrs[bb_idx]
+        # n_instr = bb_num_instrs[bb_idx]
         # end_instr = bb_end_instrs[bb_idx]
         first_pc = bb_first_pc[bb_idx]
         last_pc = bb_last_pc[bb_idx]
@@ -185,7 +185,7 @@ def callgrind_format_get_inclusive_cost(
         # metrics = [int(row[ev]) for ev in event_names]
         # print("metrics", metrics)
         # print("i,bb_idx,bb", i, bb_idx, bb)
-        total_cost += n_instr
+        # total_cost += n_instr
         # print("bb", bb)
         if prev_bb_idx is None or (bb_end_instrs[prev_bb_idx] in riscv_branch_instrs and bb_funcs[prev_bb_idx] != func):
             # first bb in the trace
@@ -312,200 +312,6 @@ def callgrind_format_get_inclusive_cost(
 
 
 def callgrind_format_converter(
-    # bbs: List[BasicBlock],
-    bb_trace_df: pd.DataFrame,
-    unique_bbs_df: pd.DataFrame,
-    trace_pcs: Set[int],
-    mapping: Dict[str, Tuple[int, int]],
-    # func2bbs: Dict[str, List[BasicBlock]],
-    func2bbs: Dict[str, List[int]],
-    # bb_freq: Dict[BasicBlock, int],
-    srcFile_func_dict: Dict[str, List[str]],
-    srcFile_linkage_name_dict: Dict[str, List[str]],
-    srcFile_unmangled_linkage_name_dict: Dict[str, List[str]],
-    func_set: Set[str],
-    file2pc_loc: Optional[Dict[str, List[Tuple[int, int]]]] = None,
-    dump_pc: bool = True,
-    dump_pos: bool = False,
-    elf_file_path: str = "/path/to/elf",
-    unmangle_names: bool = False,
-):
-    """
-    Collect necessary information for callgrind output format.
-    Then dump it to output_file
-
-    Necessary information is:
-    1. function name and its source file name
-    Output:
-        ...
-        fl={source_file_name}
-        fn={func_name}
-
-    2. If --dump-instr=yes
-    Output:
-        ...
-        {pc} {frequency}
-        ...
-
-    3. If --dump-line=yes
-    Output:
-        ...
-        {line_number_in_source_code} {frequency}
-        ...
-
-    4. Caller-callee relationship
-    Output:
-        ... in caller's context
-        {pc} {frequency}
-        cfi={callee's source file}
-        calls={number of times caller calls callee} {callee pc}
-        {pc} {inclusive_cost}
-    """
-    # print("O", time.time())
-    assert dump_pc or dump_pos
-    # inclusive_cost_dict = callgrind_format_get_inclusive_cost(bbs)
-    inclusive_cost_dict = callgrind_format_get_inclusive_cost(bb_trace_df, unique_bbs_df)
-    # print("Q", time.time())
-
-    # Find the basic block, of which the first pc is equal to pc
-    # TODO: time complexity is suboptimal
-    def find_bb(pc):
-        matches = unique_bbs_df["first_pc"] == pc
-        # print("matches", matches)
-        # input("$$$")
-
-        # for bb in bbs:
-        #     if pc == bb.first_pc:
-        #         return bb
-        return None
-
-    # Find the source file where the function is defined
-    # Some functions come from libc. In this case ??? is returned.
-    def find_srcFile(target_func: str) -> str:
-        for srcFile, funcs in srcFile_func_dict.items():
-            for func in funcs:
-                if func == target_func:
-                    return srcFile
-        for srcFile, funcs in srcFile_linkage_name_dict.items():
-            for func in funcs:
-                if func == target_func:
-                    return srcFile
-        return "???"
-
-    #
-    def aggregate_pos_cost_of_func(sorted_bb_lists: list):
-        position_cost_dict = defaultdict(int)
-        for bb_idx in sorted_bb_lists:
-            bb = unique_bbs_df.iloc[bb_idx]
-            pc = bb.first_pc
-            # while pc <= bb.last_pc:
-            for pc_ in range(pc, bb.last_pc + 2, 2):
-                if pc_ not in trace_pcs:
-                    # pc += 2
-                    continue
-                # position_cost_dict[pc_] += bb.get_freq()
-                position_cost_dict[pc_] += bb.freq
-                # pc += 4
-                # pc += 2
-        return position_cost_dict
-
-    positions = "instr" if dump_pc else "line"
-
-    prologue = f"""\
-# callgrind format
-version: 1
-creator: callgrind-3.15.0
-pid: 2577934
-cmd:  ./dhrystone
-part: 1
-
-desc: I1 cache:
-desc: D1 cache:
-desc: LL cache:
-
-desc: Timerange:
-desc: Trigger: Program termination
-
-positions: {positions}
-events: Ir
-summary:
-
-"""
-    callgrind_output = ""
-
-    def callgrind_format_dump_instr(pc: int, source_file: str) -> str:
-        return hex(pc)
-
-    def callgrind_format_dump_line(pc: int, source_file: str) -> str:
-        if source_file == "???":
-            return "0"
-        assert file2pc_loc is not None
-        mapping_ = file2pc_loc.get(source_file)
-        if mapping_ is None:
-            return "0"
-        # PYTHON 3.10:
-        # i = bisect.bisect_right(mapping_, pc, key=lambda x: x[0])
-        # if i:
-        #     start_pc, line = mapping_[i - 1]
-        #     if pc >= start_pc:
-        #         return f"{line}"
-        # ---
-        # PYTHON 3.8
-        mapping_first = [x[0] for x in mapping_]
-        i = bisect.bisect_right(mapping_first, pc)
-        if i:
-            start_pc, line = mapping_[i - 1]
-            if pc >= start_pc:
-                return f"{line}"
-        # ---
-        return "0"
-
-    dump_positions = callgrind_format_dump_instr if dump_pc else callgrind_format_dump_line
-
-    # source file to functions mapping
-    srcFile_to_func = defaultdict(list)
-    for func in func_set:
-        srcFile_to_func[find_srcFile(func)].append(func)
-
-    for srcFile, funcs in srcFile_to_func.items():
-        callgrind_output += f"ob={posixpath.abspath(elf_file_path)}\n"
-        callgrind_output += f"fl={srcFile}\n"
-
-        for func in funcs:
-
-            bb_list = func2bbs[func]
-            bb_list.sort(key=lambda bb_idx: unique_bbs_df.iloc[bb_idx].first_pc)
-            if unmangle_names:
-                func = unmangle_helper(func)
-            callgrind_output += f"fn={func}\n"
-
-            position_cost_dict = aggregate_pos_cost_of_func(bb_list)
-
-            # branch_pc_list = [bb.last_pc for bb in bb_list]
-            branch_pc_list = unique_bbs_df.iloc[bb_list].last_pc.values
-
-            for pc in sorted(position_cost_dict.keys()):
-                position_info = dump_positions(pc, srcFile)
-                callgrind_output += f"{position_info} {position_cost_dict[pc]}\n"
-                if pc in branch_pc_list and pc in inclusive_cost_dict:
-                    for callee_pc, inclusive_cost in inclusive_cost_dict[pc].items():
-                        # TODO Share object files case not implemented here
-                        callgrind_output += f"cob={posixpath.abspath(elf_file_path)}\n"
-                        callee_func = find_func_name(mapping, callee_pc)
-                        callgrind_output += f"cfi={find_srcFile(callee_func)}\n"
-                        if unmangle_names:
-                            callee_func = unmangle_helper(callee_func)
-                        callgrind_output += f"cfn={callee_func}\n"
-                        callgrind_output += f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
-                        callgrind_output += f"{position_info} {sum(inclusive_cost)}\n"
-
-            callgrind_output += "\n"
-
-    content = prologue + callgrind_output
-    return content
-
-
-def callgrind_format_converter(
     bb_trace_df: pd.DataFrame,
     unique_bbs_df: pd.DataFrame,
     trace_pcs: Set[int],
@@ -536,7 +342,6 @@ def callgrind_format_converter(
     # print("bb_cost_trace_df", bb_cost_trace_df)
     # event_arrays = {ev: bb_cost_trace_df[ev].to_numpy() for ev in event_names}
     event_arrays = np.vstack([bb_cost_trace_df[ev].to_numpy() for ev in event_names])
-    zero_vec = np.zeros(len(event_names), dtype=np.int64)
 
     inclusive_cost_dict = callgrind_format_get_inclusive_cost(
         bb_trace_df, unique_bbs_df, event_names=event_names, event_arrays=event_arrays
@@ -549,17 +354,6 @@ def callgrind_format_converter(
                 if target_func in funcs:
                     return srcFile
         return "???"
-
-    def aggregate_pos_cost_of_func(sorted_bb_lists: list, pcs_hist_df: pd.DataFrame):
-        position_cost_dict = defaultdict(int)
-        for bb_idx in sorted_bb_lists:
-            bb = unique_bbs_df.iloc[bb_idx]
-            for pc_ in range(bb.first_pc, bb.last_pc + 2, 2):
-                if pc_ not in trace_pcs:
-                    continue
-                # position_cost_dict[pc_] += bb.freq
-                position_cost_dict[pc_] += bb.freq
-        return position_cost_dict
 
     def aggregate_pos_cost_of_func(
         sorted_bb_lists: list,
