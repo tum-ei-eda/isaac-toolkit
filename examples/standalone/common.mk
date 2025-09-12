@@ -111,8 +111,8 @@ endef
         profile profile_pc profile_pos profile_both \
         callgraph kcachegrind kcachegrind_pc kcachegrind_pos \
 	function_trace flamegraph mermaid cachegrind lcov \
-	measure measure_flow measure_full_flow flow_load \
-	flow_analyze flow_visualize flow_profile
+	measure measure_flow measure_full_flow measure_mips measure_load flow_load \
+	flow_analyze flow_visualize flow_profile normalize normalize_trace, flow_normalize
 
 all: init compile run load analyze visualize profile callgraph
 
@@ -124,13 +124,15 @@ measure: $(OUT_DIR)
 	$(call time_stage,trace, $(MAKE) trace)
 	$(call time_stage,load_static, $(MAKE) load_static)
 	$(call time_stage,load_dynamic, $(MAKE) load_dynamic)
+	$(call time_stage,normalize, $(MAKE) normalize)
 	$(call time_stage,analyze_static, $(MAKE) analyze_static)
 	$(call time_stage,analyze_dynamic, $(MAKE) analyze_dynamic)
 	$(call time_stage,visualize_static, $(MAKE) visualize_static)
 	$(call time_stage,visualize_dynamic, $(MAKE) visualize_dynamic)
 	$(call time_stage,report, $(MAKE) report)
-	$(call time_stage,profile_pos, $(MAKE) profile_pos)
-	$(call time_stage,profile_pc, $(MAKE) profile_pc)
+	# $(call time_stage,profile_pos, $(MAKE) profile_pos)
+	# $(call time_stage,profile_pc, $(MAKE) profile_pc)
+	$(call time_stage,profile_both, $(MAKE) profile_both)
 	$(call time_stage,callgraph, $(MAKE) callgraph)
 	# $(call time_stage,kcachegrind_pc, $(MAKE) kcachegrind_pc)
 	# $(call time_stage,kcachegrind_pos, $(MAKE) kcachegrind_pos)
@@ -147,6 +149,7 @@ measure_flow: $(OUT_DIR)
 	$(call time_stage,run, $(MAKE) run)
 	$(call time_stage,trace, $(MAKE) trace)
 	$(call time_stage,flow_load, $(MAKE) flow_load)
+	$(call time_stage,flow_normalize, $(MAKE) flow_normalize)
 	$(call time_stage,flow_analyze, $(MAKE) flow_analyze)
 	$(call time_stage,flow_visualize, $(MAKE) flow_visualize)
 	$(call time_stage,flow_report, $(MAKE) flow_report)
@@ -173,6 +176,24 @@ measure_full_flow: $(OUT_DIR)
 	$(call time_stage,flamegraph, $(MAKE) flamegraph)
 	$(call time_stage,cachegrind, $(MAKE) cachegrind)
 	$(call time_stage,lcov, $(MAKE) lcov)
+
+
+measure_mips: $(OUT_DIR)
+	@echo "stage,time_ms" > $(TIMING_CSV)
+	$(call time_stage,init, $(MAKE) init)
+	$(call time_stage,compile, $(MAKE) compile)
+	$(call time_stage,run, $(MAKE) run)
+	$(call time_stage,trace, $(MAKE) trace)
+
+
+measure_load: $(OUT_DIR)
+	@echo "stage,time_ms" > $(TIMING_CSV)
+	$(call time_stage,init, $(MAKE) init)
+	$(call time_stage,compile, $(MAKE) compile)
+	$(call time_stage,run, $(MAKE) run)
+	$(call time_stage,trace, $(MAKE) trace)
+	$(call time_stage,flow_load, $(MAKE) flow_load)
+	$(call time_stage,flow_normalize, $(MAKE) flow_normalize)
 
 clean:
 	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_BOTH) $(CALLGRIND_PC) $(TRACE)
@@ -299,7 +320,7 @@ full_flow: $(ELF) $(MAP) $(DUMP) $(TRACE)
 	python3 -m isaac_toolkit.flow.rvf.full_flow --session $(SESS) --elf $(ELF) --linker-map $(MAP) --disass $(DUMP) --instr-trace $(TRACE) --report-fmt $(REPORT_FMT) --report-detailed --report-portable --report-style --report-topk $(REPORT_TOPK) $(FORCE_ARG)
 	# cp $(SESS)/profile/callgrind_pc.out $(CALLGRIND_PC)
 	# cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
-	cp $(SESS)/profile/callgrind_both.out $(CALLGRIND_BOTH)
+	cp $(SESS)/profile/callgrind_pc_pos.out $(CALLGRIND_BOTH)
 
 flow_load: $(ELF) $(MAP) $(DUMP) $(TRACE)
 	python3 -m isaac_toolkit.flow.rvf.stage.load --session $(SESS) --elf $(ELF) --linker-map $(MAP) --disass $(DUMP) --instr-trace $(TRACE)	$(FORCE_ARG)
@@ -323,6 +344,14 @@ else
 endif
 
 load: load_static load_dynamic
+
+normalize_trace:
+	time python3 -m isaac_toolkit.analysis.dynamic.trace_normalize_trace --session $(SESS) $(FORCE_ARG)
+
+flow_normalize:
+	time python3 -m isaac_toolkit.flow.rvf.stage.normalize --session $(SESS) $(FORCE_ARG)
+
+normalize: normalize_trace
 
 flow_analyze:
 	python3 -m isaac_toolkit.flow.rvf.stage.analyze --session $(SESS)
@@ -362,7 +391,8 @@ flow_profile:
 	python3 -m isaac_toolkit.flow.rvf.stage.profile --session $(SESS) $(FORCE_ARG)
 	# cp $(SESS)/profile/callgrind_pc.out $(CALLGRIND_PC)
 	# cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
-	cp $(SESS)/profile/callgrind_both.out $(CALLGRIND_BOTH)
+	cp $(SESS)/profile/callgrind_pc_pos.out $(CALLGRIND_BOTH)
+
 
 $(CALLGRIND_POS): | $(OUT_DIR)
 	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
@@ -377,8 +407,9 @@ profile_pc: $(CALLGRIND_PC)
 profile_pos: $(CALLGRIND_POS)
 profile_both: $(CALLGRIND_BOTH)
 
-$(CALLGRAPH_DOT): $(CALLGRIND_PC) | $(OUT_DIR)
-	gprof2dot --format=callgrind --output=$(CALLGRAPH_DOT) $(CALLGRIND_PC) -n 0.1 -e 0.1 --color-nodes-by-selftime
+
+$(CALLGRAPH_DOT): $(CALLGRIND_BOTH) | $(OUT_DIR)
+	gprof2dot --format=callgrind --output=$(CALLGRAPH_DOT) $(CALLGRIND_BOTH) -n 0.1 -e 0.1 --color-nodes-by-selftime
 
 $(CALLGRAPH_PDF): $(CALLGRAPH_DOT) | $(OUT_DIR)
 	dot -Tpdf $(CALLGRAPH_DOT) > $(CALLGRAPH_PDF)
