@@ -26,7 +26,7 @@ import pandas as pd
 
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact, FileArtifact
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact, FileArtifact, PythonArtifact
 
 from .report_utils import (
     save_pdf_report,
@@ -49,6 +49,10 @@ def get_artifact_size(artifact):
         total_mem = mem.sum() if not isinstance(mem, int) else mem
         print("total_mem", total_mem)
         return total_mem
+    if isinstance(artifact, PythonArtifact):
+        data = artifact.data
+        mem = sys.getsizeof(data)
+        return mem
     raise NotImplementedError(f"Unhandled type: {type(artifact).__name__}")
 
 
@@ -137,6 +141,7 @@ def handle(args):
         portable=args.portable,
         style=args.style,
         topk=args.topk,
+        raw=args.raw,
         force=args.force,
     )
     sess.save()
