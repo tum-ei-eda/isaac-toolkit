@@ -353,28 +353,46 @@ def collect_bbs_new(trace_df, mapping):
 
     # Deduplicate BBs using a deterministic key
     unique_bbs = []
-    unique_bb_map = {}
-    unique_bb_freq = defaultdict(int)
+    # unique_bb_map = {}
     func2bbs = defaultdict(list)
 
-    bb_trace_records = []
+    bb_hashes = (first_pcs.astype(np.int64) << 32) | last_pcs
+    unique_hashes, unique_idxs, inverse_idx = np.unique(bb_hashes, return_index=True, return_inverse=True)
+    bb_idx_ = inverse_idx
+    bb_idx_arr = np.empty(len(first_pcs), dtype=np.int32)
+    bb_call_arr = np.empty(len(first_pcs), dtype=np.int32)
+    trace_idx_arr = np.array(bb_end_indices, dtype=np.int32)
+    unique_bb_freq = defaultdict(int)
 
-    for idx, (fp, lp, n, sz, ei, func) in enumerate(zip(first_pcs, last_pcs, num_instrs, bb_sizes, end_instrs, funcs)):
-        bb_hash = (fp << 32) | lp
+    for unique_bb_idx in range(len(unique_hashes)):
+        idx = unique_idxs[unique_bb_idx]
+        fp = first_pcs[idx]
+        lp = last_pcs[idx]
+        n = num_instrs[idx]
+        sz = bb_sizes[idx]
+        ei = end_instrs[idx]
+        func = funcs[idx]
+        unique_bbs.append((fp, lp, n, sz, ei, func))
+        func2bbs[func].append(unique_bb_idx)
+
+    for idx in range(len(first_pcs)):
         # unique_bb_idx = bb_hash
-        unique_bb_idx = unique_bb_map.get(bb_hash)
-        if unique_bb_idx is None:
-            unique_bb_idx = len(unique_bbs)
-            unique_bbs.append((fp, lp, n, sz, ei, func))
-            unique_bb_map[bb_hash] = unique_bb_idx
-            func2bbs[func].append(unique_bb_idx)
+        unique_bb_idx = bb_idx_[idx]
 
         bb_call = unique_bb_freq[unique_bb_idx]
         unique_bb_freq[unique_bb_idx] += 1
-        bb_trace_records.append((unique_bb_idx, bb_call, bb_end_indices[idx]))
+        bb_idx_arr[idx] = unique_bb_idx
+        bb_call_arr[idx] = bb_call
+        trace_idx_arr[idx] = bb_end_indices[idx]
 
     # --- Convert to DataFrames ---
-    bb_trace_df = pd.DataFrame(bb_trace_records, columns=["bb_idx", "bb_call", "trace_idx"])
+    bb_trace_df = pd.DataFrame(
+        {
+            "bb_idx": bb_idx_arr,  # .astype("category"),
+            "bb_call": bb_call_arr.astype(np.uint32),
+            "trace_idx": trace_idx_arr.astype(np.uint32),
+        }
+    )
     bb_trace_df["bb_idx"] = bb_trace_df["bb_idx"].astype("category")
     bb_trace_df["bb_call"] = pd.to_numeric(bb_trace_df["bb_call"], downcast="unsigned")
     bb_trace_df["trace_idx"] = pd.to_numeric(bb_trace_df["trace_idx"], downcast="unsigned")
