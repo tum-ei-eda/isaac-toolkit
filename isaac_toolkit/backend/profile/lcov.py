@@ -2,9 +2,6 @@
 # TODO TUM+MINRES LICENSE
 
 import argparse
-import csv
-import glob
-import gzip
 import logging
 import os.path as op
 import subprocess
@@ -14,10 +11,9 @@ from typing import Optional, Union
 from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
+from isaac_toolkit.session.artifact import filter_artifacts
 
 
 def create_output(histogram, outputfile):
@@ -25,10 +21,10 @@ def create_output(histogram, outputfile):
     Write the histogram to the specified outputfile in lcov format
     """
     with open(outputfile, "w") as f:
-        for file, list in histogram.items():
+        for file, lst in histogram.items():
             f.write(f"SF:{file}\n")
-            executed = list[0]
-            functions = list[1]
+            executed = lst[0]
+            functions = lst[1]
             # print("file", file)
             # print("executed", executed)
             # print("functions", functions)
@@ -50,6 +46,7 @@ def generate_lcov_output(
     genhtml: Optional[Union[str, Path]] = None,
     force: bool = False,
 ):
+    del force  # TODO: use
     artifacts = sess.artifacts
 
     func2pc_artifacts = filter_artifacts(artifacts, lambda x: x.name == "func2pc")
@@ -93,10 +90,11 @@ def generate_lcov_output(
         return None
 
     # Annotate pcs_hist_df
+    func_agg = "all"
     if func_agg == "all":
         pcs_hist_df["func_name"] = pcs_hist_df["pc"].apply(get_func_name)
     elif func_agg == "first":
-        pass
+        raise NotImplementedError(f"func_agg: {func_agg}")
     else:
         raise ValueError(f"Invalid func_agg: {func_agg}")
     # print("pcs_hist_df_", pcs_hist_df)
@@ -229,7 +227,8 @@ def generate_lcov_output(
                     output,
                     "--ignore-errors",
                     "source",
-                ]
+                ],
+                check=True,
             )
         except FileNotFoundError:
             logging.error('Could not find "genhtml", is the lcov package installed?')
@@ -265,7 +264,10 @@ def get_parser():
         metavar="<directory>",
         nargs="?",
         default=None,  # TODO: ?
-        help="calls the genhtml command from lcov, will generate a directory for the generated output if not specified otherwise",
+        help=(
+            "calls the genhtml command from lcov, will generate a directory for the "
+            "generated output if not specified otherwise"
+        ),
     )
     parser.add_argument(
         "--binary",
