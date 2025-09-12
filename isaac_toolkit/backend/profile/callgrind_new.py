@@ -202,7 +202,7 @@ def callgrind_format_get_inclusive_cost(
             bb_stack[-1].append(bb_idx)
         # elif prev_bb.end_instr in return_instrs:
         # elif prev_bb.end_instr in riscv_return_instrs:
-        elif bb_end_instrs[prev_bb_idx] in riscv_return_instrs or bb_num_instrs[prev_bb_idx].num_instrs == 1:
+        elif bb_end_instrs[prev_bb_idx] in riscv_return_instrs or bb_num_instrs[prev_bb_idx] == 1:
             # Check whether jalr refer to return
             # sometimes jalr simply means indirect jump
             # TODO: Redundant? Is it already handled in the above condition?
