@@ -45,7 +45,7 @@ def parse_dwarf(elf_path):
 
         # mapping function symbol to pc range
         symtab = elffile.get_section_by_name(".symtab")
-        strtab = elffile.get_section_by_name(".strtab")
+        # strtab = elffile.get_section_by_name(".strtab")
 
         for symbol in symtab.iter_symbols():
             symbol_type = symbol["st_info"]["type"]

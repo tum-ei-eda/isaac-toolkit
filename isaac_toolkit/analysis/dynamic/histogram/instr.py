@@ -23,8 +23,6 @@ from pathlib import Path
 
 # from collections import defaultdict
 
-import pandas as pd
-
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 

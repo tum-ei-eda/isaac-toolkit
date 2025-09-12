@@ -17,14 +17,12 @@
 # limitations under the License.
 #
 import sys
+import logging
 import argparse
 from typing import Optional
 from pathlib import Path
 
-import pandas as pd
-
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, ElfArtifact
 
 # from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.frontend.elf.riscv import load_elf
@@ -46,7 +44,6 @@ from isaac_toolkit.frontend.disass.objdump import load_disass
 # from isaac_toolkit.frontend.compile_commands.json import load_compile_commands_json
 
 # logger = get_logger()
-import logging
 
 logger = logging.getLogger()
 

@@ -21,8 +21,6 @@ import argparse
 from typing import Optional
 from pathlib import Path
 
-import pandas as pd
-
 from isaac_toolkit.session import Session
 
 # from isaac_toolkit.logging import get_logger, set_log_level

@@ -19,14 +19,13 @@
 import sys
 import argparse
 from pathlib import Path
-from typing import Optional, List
 
 import humanize
 import pandas as pd
 
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact, FileArtifact, PythonArtifact
+from isaac_toolkit.session.artifact import TableArtifact, FileArtifact, PythonArtifact
 
 from .report_utils import (
     save_pdf_report,
@@ -36,18 +35,14 @@ from .sess_disk_usage import size_df_to_markdown, size_df_to_html, get_file_size
 
 
 def get_artifact_size(artifact):
-    print("get_artifact_size", artifact, type(artifact).__name__)
     if isinstance(artifact, FileArtifact):
         path = artifact.path
         mem = get_file_size(path)
         return mem
     if isinstance(artifact, TableArtifact):
         df = artifact.df
-        print("df", df)
         mem = df.memory_usage(deep=True)
-        print("mem", mem)
         total_mem = mem.sum() if not isinstance(mem, int) else mem
-        print("total_mem", total_mem)
         return total_mem
     if isinstance(artifact, PythonArtifact):
         data = artifact.data
@@ -84,7 +79,7 @@ def generate_sess_mem_usage(
     if topk is not None:
         artifacts_df = artifacts_df.iloc[:topk]
 
-    print("Sorted Artifacts DF", artifacts_df)
+    # print("Sorted Artifacts DF", artifacts_df)
 
     if fmt in ("md", "txt"):
         content = "# Session Memory Usage Report\n\n"

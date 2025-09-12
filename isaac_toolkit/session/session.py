@@ -181,8 +181,6 @@ class Session:
                 raise RuntimeError(
                     f"Artifact with name {artifact.name} already exists. Use override=True or cleanup session."
                 )
-        if isinstance(artifact, TableArtifact):
-            table_artifact_settings = self.config.artifacts.table
         self._artifacts.append(artifact)
 
     # @property

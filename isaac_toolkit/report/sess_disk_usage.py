@@ -26,7 +26,6 @@ import pandas as pd
 
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 
 from .report_utils import (
     save_pdf_report,

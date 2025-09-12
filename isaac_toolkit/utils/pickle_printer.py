@@ -45,7 +45,7 @@ def handle(args):
             data = pd.read_pickle(args.file, compression="infer")
         elif ".parquet" in file.name:
             data = pd.read_parquet(args.file, compression="infer")
-    except Exception as ex:
+    except Exception:
         # Falling back to non-pandas
         with open(args.file, "rb") as f:
             data = pickle.load(f)
