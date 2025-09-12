@@ -18,24 +18,21 @@
 #
 
 # import time
+import io
 import sys
-import time
 import argparse
 import multiprocessing
 from typing import List, Union, Optional
 from pathlib import Path
-from contextlib import contextmanager
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 import pandas as pd
 from tqdm import tqdm
-from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV64, CS_MODE_RISCV32, CS_MODE_RISCVC
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import InstrTraceArtifact
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 
 from .helper import process_df
 
@@ -81,18 +78,12 @@ def disassemble_word(md, pc, word, size=4, endian="little", operands: bool = Fal
         if operands:
             return insn.mnemonic, insn.op_str
         return insn.mnemonic
-    except Exception as e:
+    except Exception:
         # print(e)
         # input("%2")
         if operands:
             return "unknown", ""
         return "unknown"
-
-
-import io
-import pandas as pd
-from concurrent.futures import ProcessPoolExecutor
-from functools import partial
 
 
 def parse_and_process(chunk_bytes):
@@ -179,25 +170,24 @@ def load_instr_trace(
     assert len(input_files) > 0
     name = input_files[0].name
 
-    artifacts = sess.artifacts
-    elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
+    # elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
     # print("elf_artifacts", elf_artifacts)
-    assert len(elf_artifacts) == 1, "TGC pctrace needs ELF artifact to lookup instructions"
-    elf_artifact = elf_artifacts[0]
+    # assert len(elf_artifacts) == 1, "TGC pctrace needs ELF artifact to lookup instructions"
+    # elf_artifact = elf_artifacts[0]
 
     # sort input files by name
     sorted_files = sorted(input_files, key=lambda x: x.name)
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
-    with open(elf_artifact.path, "rb") as f:
-        elf = ELFFile(f)
-    xlen = elf.elfclass
-    mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
+    # with open(elf_artifact.path, "rb") as f:
+    #     elf = ELFFile(f)
+    # xlen = elf.elfclass
+    # mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
 
-    md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
-    md.detail = False
+    # md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
+    # md.detail = False
 
-    fetcher = ELFInstructionFetcher(elf_artifact.path)
+    # fetcher = ELFInstructionFetcher(elf_artifact.path)
     # pc2bytecode = {}
 
     # def lookup_bytecode(pc, size):
@@ -225,7 +215,7 @@ def load_instr_trace(
     #     return name
 
     # print("A", time.time())
-    t0 = time.time()
+    # t0 = time.time()
     # executor =
     executor_map = {
         "thread_pool": ThreadPoolExecutor,
@@ -234,7 +224,7 @@ def load_instr_trace(
     executor_cls = executor_map.get(executor)
     assert executor_cls is not None, f"Unsupported Executor: {executor}"
     with executor_cls(max_workers=num_workers) as executor:  # tune workers
-        futures = []
+        # futures = []
         for input_file in sorted_files:
             assert input_file.is_file()
             # print("file", input_file)

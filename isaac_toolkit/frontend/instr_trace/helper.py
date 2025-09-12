@@ -17,33 +17,11 @@
 # limitations under the License.
 #
 
-# import time
-import sys
-import time
-import pandas as pd
-import argparse
-from typing import List, Union
-from pathlib import Path
-from contextlib import contextmanager
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-
-from tqdm import tqdm
-from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV64, CS_MODE_RISCV32, CS_MODE_RISCVC
-from elftools.elf.elffile import ELFFile
-from elftools.elf.constants import SH_FLAGS
-
-from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import InstrTraceArtifact
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
-
-
 # from pandarallel import pandarallel
 
 # pandarallel.initialize()
 
 
-# def process_df(df: pd.DataFrame, fetcher, md):
-# def process_df(df: pd.DataFrame):
 def process_df(df):
     # print("process_df", len(df), df.memory_usage(deep=True).sum())
     # return None
