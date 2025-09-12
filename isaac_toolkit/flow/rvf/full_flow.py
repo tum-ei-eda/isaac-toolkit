@@ -31,6 +31,7 @@ from .stage.analyze import analyze_artifacts
 from .stage.visualize import visualize_artifacts
 from .stage.report import generate_reports
 from .stage.profile import generate_profile
+from .stage.lcov import generate_lcov
 
 # logger = get_logger()
 import logging
@@ -75,6 +76,7 @@ def run_full_flow(
         force=force,
     )
     generate_profile(sess, force=force, unmangle=unmangle)
+    generate_lcov(sess, force=force, unmangle=unmangle)
 
 
 def handle(args):
