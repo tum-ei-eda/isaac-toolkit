@@ -112,7 +112,7 @@ endef
         callgraph kcachegrind kcachegrind_pc kcachegrind_pos \
 	function_trace flamegraph mermaid cachegrind lcov \
 	measure measure_flow measure_full_flow measure_mips measure_load flow_load \
-	flow_analyze flow_visualize flow_profile normalize normalize_trace, flow_normalize
+	flow_analyze flow_visualize flow_profile flow_lcov_new normalize normalize_trace, flow_normalize
 
 all: init compile run load analyze visualize profile callgraph
 
@@ -154,6 +154,7 @@ measure_flow: $(OUT_DIR)
 	$(call time_stage,flow_visualize, $(MAKE) flow_visualize)
 	$(call time_stage,flow_report, $(MAKE) flow_report)
 	$(call time_stage,flow_profile, $(MAKE) flow_profile)
+	$(call time_stage,flow_lcov, $(MAKE) flow_lcov)
 	$(call time_stage,callgraph, $(MAKE) callgraph)
 	# $(call time_stage,kcachegrind_pc, $(MAKE) kcachegrind_pc)
 	# $(call time_stage,kcachegrind_pos, $(MAKE) kcachegrind_pos)
@@ -393,6 +394,8 @@ flow_profile:
 	# cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
 	cp $(SESS)/profile/callgrind_pc_pos.out $(CALLGRIND_BOTH)
 
+flow_lcov:
+	python3 -m isaac_toolkit.flow.rvf.stage.lcov --session $(SESS) $(FORCE_ARG)
 
 $(CALLGRIND_POS): | $(OUT_DIR)
 	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
@@ -407,6 +410,9 @@ profile_pc: $(CALLGRIND_PC)
 profile_pos: $(CALLGRIND_POS)
 profile_both: $(CALLGRIND_BOTH)
 
+# TODO: refactor and replace
+lcov_new:
+	python3 -m isaac_toolkit.backend.profile.lcov --session $(SESS) $(FORCE_ARG)
 
 $(CALLGRAPH_DOT): $(CALLGRIND_BOTH) | $(OUT_DIR)
 	gprof2dot --format=callgrind --output=$(CALLGRAPH_DOT) $(CALLGRIND_BOTH) -n 0.1 -e 0.1 --color-nodes-by-selftime
