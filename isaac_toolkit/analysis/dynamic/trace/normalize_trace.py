@@ -16,46 +16,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Dict, List, Set, Tuple, Optional, Union
-
-import bisect
-import time
-
 import sys
 import logging
 import argparse
-import posixpath
+import itertools
 from pathlib import Path
-from collections import defaultdict
-from cpp_demangle import demangle
+from typing import Union, Optional
+from concurrent.futures import ProcessPoolExecutor
+
+# import multiprocessing
+
+
+# from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 
 import pandas as pd
 import numpy as np
 
-from isaac_toolkit.session import Session
-from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
-from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
+# from tqdm import tqdm
 
-# import time
-import sys
-import time
-import argparse
-import multiprocessing
-from typing import List, Union, Optional
-from pathlib import Path
-from contextlib import contextmanager
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+# from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 
-import pandas as pd
-from tqdm import tqdm
 from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV64, CS_MODE_RISCV32, CS_MODE_RISCVC
 from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import InstrTraceArtifact
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, InstrTraceArtifact
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
@@ -97,9 +83,7 @@ def disassemble_word(md, pc, word, size=4, endian="little", operands: bool = Fal
         if operands:
             return insn.mnemonic, insn.op_str
         return insn.mnemonic
-    except Exception as e:
-        # print(e)
-        # input("%2")
+    except Exception:
         if operands:
             return "unknown", ""
         return "unknown"
@@ -114,9 +98,6 @@ def get_disassembler(elf_path):
     md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
     md.detail = False
     return md
-
-
-from concurrent.futures import ProcessPoolExecutor
 
 
 def build_entries(rows, elf_path):
@@ -140,9 +121,6 @@ def worker(row_chunk, elf_path):
         instr = disassemble_word(md, pc, bytecode, size=size, operands=False)
         out[(pc, size)] = (bytecode, instr)
     return out
-
-
-import itertools
 
 
 def parallel_dict_builder(rows, elf_path, nprocs=16):
