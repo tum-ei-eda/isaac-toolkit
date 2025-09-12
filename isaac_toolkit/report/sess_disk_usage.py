@@ -169,6 +169,7 @@ def handle(args):
         portable=args.portable,
         style=args.style,
         topk=args.topk,
+        raw=args.raw,
         force=args.force,
     )
     sess.save()
