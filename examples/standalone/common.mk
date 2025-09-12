@@ -22,6 +22,7 @@ SPIKE ?= $(INSTALL_DIR)/spike/spike
 PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
 ETISS ?= $(INSTALL_DIR)/etiss/install/bin/run_helper.sh
 ETISS_INI ?= $(INSTALL_DIR)/etiss/install/custom.ini
+ETISS_JIT ?= TCC
 
 
 PERF_MODEL ?= cv32e40p
@@ -38,6 +39,10 @@ TGC_BSP_DIR ?= /path/to/tgc/bsp
 TGC_SRC_DIR ?= /path/to/tgc/src/dir
 TGC_BUILD_DIR ?= $(TGC_SRC_DIR)/build
 TGC_INSTALL_DIR ?= $(TGC_SRC_DIR)/install
+TGC_BACKEND ?= interp
+# TGC_BACKEND ?= asmjit
+
+# TGC_NEW ?= 0  # TODO
 
 ifeq ($(SIMULATOR),tgc)
   ifneq ($(wildcard $(TGC_INSTALL_DIR)),)
@@ -253,8 +258,7 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
-	cd $(OUT_DIR) && $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
-	mv $(OUT_DIR)/instr_trace.csv $(TRACE)
+	cd $(OUT_DIR) && $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
 else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin TracePrinterPlugin]"            >  $(OUT_DIR)/custom.ini
@@ -265,9 +269,9 @@ else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "plugin.tracePrinter.stream.rotateSize=0x100000" >> $(OUT_DIR)/custom.ini
 	test -d $(TRACE) && rm -r $(TRACE) || :
 	mkdir $(TRACE)
-	cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(OUT_DIR)/custom.ini
+	cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
 else ifeq ($(SIMULATOR),tgc)
-	cd $(OUT_DIR) && $(TGC_SIM) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML) && mv output.trc $(TRACE)  # TODO: move to OUT_DIR
+	cd $(OUT_DIR) && $(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML) && mv output.trc $(TRACE)  # TODO: move to OUT_DIR
 endif
 
 $(OUTP): $(ELF) | $(OUT_DIR)
@@ -279,13 +283,13 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) -s | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss)
 	set -o pipefail && \
-	$(ETISS) $(ELF) -i$(ETISS_INI) | tee $(OUTP)
+	$(ETISS) $(ELF) -i$(ETISS_INI) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss_perf)
 	set -o pipefail && \
-	$(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) | tee $(OUTP)
+	$(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
 else ifeq ($(SIMULATOR),tgc)
 	set -o pipefail && \
-	$(TGC_SIM) -f $(ELF) | tee $(OUTP)
+	$(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) | tee $(OUTP)
 endif
 
 trace: $(TRACE)
