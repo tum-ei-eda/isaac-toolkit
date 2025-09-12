@@ -304,11 +304,6 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
 #     return trace_pcs, func2bbs, unique_bbs_df, bb_trace_df
 
 
-import numpy as np
-import pandas as pd
-from collections import defaultdict
-
-
 def collect_bbs_new(trace_df, mapping):
     # --- Extract columns as NumPy ---
     pcs = trace_df["pc"].to_numpy()
