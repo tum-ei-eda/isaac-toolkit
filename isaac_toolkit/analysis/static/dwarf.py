@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import sys
 import logging
 import argparse
@@ -107,6 +108,7 @@ def parse_dwarf(elf_path):
                 return file_entry.name.decode()
 
             directory = lp_header["include_directory"][dir_index]
+            # TODO: try out actual_path = op.normpath(CU.get_top_DIE().get_full_path())?
             return posixpath.join(directory, file_entry.name).decode()
 
         for CU in dwarfinfo.iter_CUs():
@@ -150,16 +152,22 @@ def parse_dwarf(elf_path):
                 logger.warning("  DWARF info is missing a line program for this CU")
                 continue
 
-            CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
+            # CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
+            actual_path = os.path.normpath(CU.get_top_DIE().get_full_path())
+            print("actual_path", actual_path)
 
             for entry in line_program.get_entries():
                 if entry.state:
                     pc = entry.state.address
                     line = entry.state.line
-                    pc_to_source_line_mapping[CU_name].append((pc, line))
+                    print("line", line)
+                    # pc_to_source_line_mapping[CU_name].append((pc, line))
+                    pc_to_source_line_mapping[actual_path].append((pc, line))
 
-            if CU_name in pc_to_source_line_mapping:
-                pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
+            # if CU_name in pc_to_source_line_mapping:
+            if actual_path in pc_to_source_line_mapping:
+                # pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
+                pc_to_source_line_mapping[actual_path].sort(key=lambda x: x[0])
     return func2pcs_data, srcFile_func_dict, pc_to_source_line_mapping
 
 
