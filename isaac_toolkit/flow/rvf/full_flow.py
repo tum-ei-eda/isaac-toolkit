@@ -28,6 +28,7 @@ from isaac_toolkit.session import Session
 # from isaac_toolkit.logging import get_logger, set_log_level
 
 from .stage.load import load_artifacts
+from .stage.normalize import normalize_artifacts
 from .stage.analyze import analyze_artifacts
 from .stage.visualize import visualize_artifacts
 from .stage.report import generate_reports
@@ -63,6 +64,7 @@ def run_full_flow(
         disass_file=disass_file,
         force=force,
     )
+    normalize_artifacts(sess, force=force)
     analyze_artifacts(sess, force=force)
     visualize_artifacts(sess, force=force)
     generate_reports(
