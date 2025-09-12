@@ -54,6 +54,8 @@ def handle(args):
         with pd.option_context(
             "display.max_rows",
             args.max_rows,
+            "display.min_rows",
+            args.min_rows,
             "display.max_columns",
             args.max_columns,
             "display.width",
@@ -61,8 +63,16 @@ def handle(args):
             "max_colwidth",
             150,
         ):
-            print(data)
-            print(f"len={len(data)}")
+            print(
+                data
+                if (args.print_topk is None or not isinstance(data, (pd.DataFrame, pd.Series)))
+                else data.iloc[: args.print_topk]
+            )
+
+    if isinstance(data, (pd.DataFrame, pd.Series)):
+        print("Shape:", data.shape)
+    else:
+        print(f"len={len(data)}")
 
     if args.memory:
         assert isinstance(data, (pd.DataFrame, pd.Series)), "Memory footprint only available for pandas types"
@@ -74,7 +84,9 @@ def get_parser():
     parser.add_argument("file")
     parser.add_argument("--skip-print", action="store_true")
     parser.add_argument("--memory", action="store_true")
+    parser.add_argument("--print-topk", type=int, default=None)
     parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument("--min-rows", type=int, default=None)
     parser.add_argument("--max-columns", type=int, default=None)
     # TODO: allow overriding memgraph config?
     return parser
