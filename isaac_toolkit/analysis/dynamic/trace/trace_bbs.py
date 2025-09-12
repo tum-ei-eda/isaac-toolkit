@@ -19,7 +19,6 @@
 from typing import Dict, List, Set, Tuple, Optional, Union
 
 import bisect
-import time
 
 import sys
 import logging
@@ -33,7 +32,6 @@ import pandas as pd
 import numpy as np
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 
@@ -294,7 +292,8 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
 #     bb_trace_df["trace_idx"] = pd.to_numeric(bb_trace_df["trace_idx"], downcast="unsigned")
 #     # print("bb_trace_df", bb_trace_df)
 #     # input("1")
-#     unique_bbs_df = pd.DataFrame(unique_bbs, columns=["first_pc", "last_pc", "num_instrs", "size", "end_instr", "func"])
+#     unique_bbs_df = pd.DataFrame(unique_bbs,
+#         columns=["first_pc", "last_pc", "num_instrs", "size", "end_instr", "func"])
 #     unique_bbs_df["freq"] = list(unique_bb_freq.values())  # assume ordered dict
 #     # td = time.time() - t0
 #     # print("tdfin", td, td/len(pcs))
@@ -414,7 +413,7 @@ def callgrind_format_get_inclusive_cost(bb_trace_df: pd.DataFrame, unique_bbs_df
     total_cost = 0
     inclusive_cost_dict = defaultdict(lambda: defaultdict(list))
     prev_bb_idx = None
-    unique_bbs_records = unique_bbs_df.to_records(index=False)
+    # unique_bbs_records = unique_bbs_df.to_records(index=False)
 
     # call_stack: [A, B]
     # [Given] bb_stack: [[bb1, bb2, bb3], [bb4, bb5, bb6]]
@@ -430,19 +429,19 @@ def callgrind_format_get_inclusive_cost(bb_trace_df: pd.DataFrame, unique_bbs_df
     # t0 = time.time()
     # ts = [t0]
     # for i, bb_idx in enumerate(bb_trace_df["bb_idx"].values):
-    for i, bb_idx in enumerate(bb_trace_df["bb_idx"].values):
+    for _, bb_idx in enumerate(bb_trace_df["bb_idx"].values):
         # ts.append(time.time())
         # if i == 100:
         #     break
         func = bb_funcs[bb_idx]
         n_instr = bb_num_instrs[bb_idx]
-        end_instr = bb_end_instrs[bb_idx]
-        first_pc = bb_first_pc[bb_idx]
-        last_pc = bb_last_pc[bb_idx]
+        # end_instr = bb_end_instrs[bb_idx]
+        # first_pc = bb_first_pc[bb_idx]
+        # last_pc = bb_last_pc[bb_idx]
         # print("progress", float(i)/len(bb_trace_df))
         # bb_idx = bb_trace_row.bb_idx
         # bb = unique_bbs_df.iloc[bb_idx]
-        bb = unique_bbs_records[bb_idx]
+        # bb = unique_bbs_records[bb_idx]
         # print("i,bb_idx,bb", i, bb_idx, bb)
         total_cost += n_instr
         # print("bb", bb)
