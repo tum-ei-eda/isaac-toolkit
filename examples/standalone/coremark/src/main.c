@@ -12,5 +12,5 @@ int main() {
     res = coremark_run();
     res = coremark_deinit();
     res = coremark_check();
-    return 0;
+    return res;
 }
