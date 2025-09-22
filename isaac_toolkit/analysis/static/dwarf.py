@@ -35,7 +35,8 @@ logger = logging.getLogger("dwarf")
 
 
 def parse_dwarf(elf_path):
-    func2pcs_data = []
+    # func2pcs_data = []
+    func_ranges = {}
     # the mapping between source file and its function
     srcFile_func_dict = defaultdict(lambda: [set(), set(), set()])
     # the mapping between program counter and source line
@@ -45,40 +46,68 @@ def parse_dwarf(elf_path):
 
         # mapping function symbol to pc range
         symtab = elffile.get_section_by_name(".symtab")
-        # strtab = elffile.get_section_by_name(".strtab")
+        if symtab is None:
+            raise RuntimeError("No symbol table found (.symtab missing)")
 
+        funcs_by_section = defaultdict(list)  # shndx -> list of (start, size, name, symbol)
         for symbol in symtab.iter_symbols():
-            symbol_type = symbol["st_info"]["type"]
-            if symbol_type == "STT_FUNC":
-                start_pc = symbol["st_value"]
-                size = symbol["st_size"]
-                if size == 0:
-                    # Fall back to section boundaries
-                    section_idx = symbol["st_shndx"]
-                    section = None
-                    if section_idx != "SHN_UNDEF" and section_idx != "SHN_ABS":
-                        section = elffile.get_section(section_idx)
-                    if section:
-                        end_pc = section["sh_addr"] + section["sh_size"] - 1
-                    else:
-                        end_pc = start_pc  # fallback: unknown end
-                else:
-                    end_pc = start_pc + symbol["st_size"] - 1
-                # range = (start_pc, end_pc)
-                # mapping[symbol.name] = range
-                new = (symbol.name, (start_pc, end_pc))
-                func2pcs_data.append(new)
-            # else:
-            #     if symbol.entry.st_name:
-            #         str_name = strtab.get_string(symbol.entry.st_name)
-            #         if "$" in str_name:
-            #             continue
-            #         start_pc = symbol["st_value"]
-            #         end_pc = start_pc + symbol["st_size"] - 1
-            #         new = (str_name, (start_pc, end_pc))
-            #         func2pcs_data.append(new)
-            #         symbol_type = symbol["st_info"]["type"]
+            try:
+                st_type = symbol["st_info"]["type"]
+            except Exception:
+                continue
+            if st_type != "STT_FUNC":
+                continue
+            start = symbol["st_value"]
+            size = symbol["st_size"]
+            shndx = symbol["st_shndx"]
+            name = symbol.name or "<anon>"
+            funcs_by_section[shndx].append((start, size, name, symbol))
 
+        # 3) For each section, sort by start addr and compute ranges
+        for shndx, syms in funcs_by_section.items():
+            # skip special indices (we still handle them but there might be no section)
+            section = None
+            try:
+                if isinstance(shndx, int):
+                    section = elffile.get_section(shndx)
+                else:
+                    # PyElfTools may give SHN_UNDEF as string, leave section None
+                    section = None
+            except Exception:
+                section = None
+
+            syms_sorted = sorted(syms, key=lambda x: x[0])
+            for idx, (start, size, name, symbol) in enumerate(syms_sorted):
+
+                if size and size != 0:
+                    end = start + size - 1
+                    func_ranges[name] = (start, end)
+                    continue
+
+                # size == 0: try to infer from next symbol in same section
+                end = None
+                # find next symbol with start > this start
+                next_start = None
+                for j in range(idx + 1, len(syms_sorted)):
+                    candidate_start = syms_sorted[j][0]
+                    if candidate_start > start:
+                        next_start = candidate_start
+                        break
+                if next_start is not None:
+                    end = next_start - 1
+                elif section is not None:
+                    # fallback to section end
+                    sec_start = section["sh_addr"]
+                    sec_size = section["sh_size"]
+                    end = sec_start + sec_size - 1
+                else:
+                    # last resort: set end == start (or None)
+                    end = start
+
+                func_ranges[name] = (start, end)
+
+
+        func2pcs_data = list(func_ranges.items())
         # mapping source file to function
         if not elffile.has_dwarf_info():
             logger.error("ELF file has no DWARF info!")
