@@ -92,7 +92,7 @@ def generate_ranges_yaml(
         num_instrs = bb_row.num_instrs
         func_bb_idx = bb_row.func_bb_idx
         call = bb_row.bb_call
-        end = start + num_instrs  # TODO: check?
+        end = start + num_instrs - 1
         # name = f"{func}@bb{func_bb_idx}-BB{bb_idx}-I{call}"
         # TODO: add func_bb_idx to artifact!
         name = f"bb{func_bb_idx}@{func}-BB{bb_idx}-I{call}"
