@@ -90,6 +90,9 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
     df = pd.concat(dfs, axis=0)
     df["instr"] = df["instr"].astype("category")
     df["size"] = df["size"].astype("category")
+    df["pc"] = pd.to_numeric(df["pc"], downcast="unsigned")
+    df["bytecode"] = pd.to_numeric(df["bytecode"], downcast="unsigned")
+    df.reset_index(drop=True, inplace=True)
 
     attrs = {
         "simulator": "etiss",
