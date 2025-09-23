@@ -71,7 +71,7 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
                 return func
     ret = hex(pc)
     # print("hex")
-    input("???")
+    # input("???")
     PC_FUNC_NAME_CACHE[pc] = ret
     return ret
 
