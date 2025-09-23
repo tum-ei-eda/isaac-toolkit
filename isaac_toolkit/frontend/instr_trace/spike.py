@@ -185,6 +185,7 @@ def load_instr_trace(
     df["size"] = df["size"].astype("category")
     df["core"] = df["core"].astype("category")
     df["pc"] = pd.to_numeric(df["pc"], downcast="unsigned")
+    df["is_trap"] = df["pc"] >= 0x80000000  # TODO: check if assumption can be made. PK only?
     df["bytecode"] = df["bytecode"].astype("category")
     df.reset_index(drop=True, inplace=True)
 
