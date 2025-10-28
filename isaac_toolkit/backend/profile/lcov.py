@@ -1,5 +1,23 @@
-#!/usr/bin/env python3
-# TODO TUM+MINRES LICENSE
+#
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Parts of the following code have been provided by MINRES Technologies.
+#
 
 import argparse
 import logging
@@ -53,34 +71,22 @@ def generate_lcov_output(
     assert len(func2pc_artifacts) == 1
     func2pc_artifact = func2pc_artifacts[0]
     func2pc_df = func2pc_artifact.df
-    # print("func2pc_df", func2pc_df)
 
     pcs_hist_artifacts = filter_artifacts(artifacts, lambda x: x.name == "pcs_hist")
     assert len(pcs_hist_artifacts) == 1
     pcs_hist_artifact = pcs_hist_artifacts[0]
     pcs_hist_df = pcs_hist_artifact.df
-    # print("pcs_hist_df", pcs_hist_df)
-
-    # file2funcs_artifacts = filter_artifacts(artifacts, lambda x: x.name == "file2funcs")
-    # assert len(file2funcs_artifacts) == 1
-    # file2funcs_artifact = file2funcs_artifacts[0]
-    # file2funcs_df = file2funcs_artifact.df
-    # print("file2funcs_df", file2funcs_df)
 
     pc2locs_artifacts = filter_artifacts(artifacts, lambda x: x.name == "pc2locs")
     assert len(pc2locs_artifacts) == 1
     pc2locs_artifact = pc2locs_artifacts[0]
     pc2locs_df = pc2locs_artifact.df
-    # print("pc2locs_df", pc2locs_df)
-    # print("pc2locs_df[2]", pc2locs_df.iloc[2].values)
 
     # Build IntervalIndex
     if "start" not in func2pc_df.columns:
         func2pc_df[["start", "end"]] = func2pc_df["pc_range"].apply(pd.Series)
     intervals = pd.IntervalIndex.from_arrays(func2pc_df["start"], func2pc_df["end"], closed="both")
-    # print("intervals", intervals)
     func_names = func2pc_df["func"].values
-    # print("func_names", func_names)
 
     # Map function to a PC
     def get_func_name(pc):
@@ -97,10 +103,7 @@ def generate_lcov_output(
         raise NotImplementedError(f"func_agg: {func_agg}")
     else:
         raise ValueError(f"Invalid func_agg: {func_agg}")
-    # print("pcs_hist_df_", pcs_hist_df)
 
-    # pc2locs_exploded = pc2locs_df.explode("locs")
-    # pc2locs_df = pc2locs_exploded
     pc2locs_df["locs"] = pc2locs_df["locs"].apply(list)
 
     # Extract the loc with the smallest line number
@@ -109,31 +112,12 @@ def generate_lcov_output(
         return min(locs, key=lambda x: int(x.split(":")[1]))
 
     pc2locs_df["locs"] = pc2locs_df["locs"].apply(pick_min_loc)
-    # pc2locs_df["func_name"] = pc2locs_df["pc"].apply(get_func_name)
-    # print("pc2locs_df", pc2locs_df[pc2locs_df["func_name"].isin(["core_init_matrix"])])
-    # input("!")
-    # pc2locs_min = pc2locs_df.explode("locs")
-    # pc2locs_min = pc2locs_df.explode("locs")
 
-    # merged_df = pcs_hist_df.merge(pc2locs_df, on="pc", how="left")
     merged_df = pcs_hist_df.merge(pc2locs_df, on="pc", how="left")
     # Sort by function and pc
     merged_df = merged_df.sort_values(["func_name", "pc"]).reset_index(drop=True)
     # Forward-fill locs *within each function*
     merged_df["locs"] = merged_df.groupby("func_name")["locs"].ffill()
-    # with pd.option_context(
-    #     "display.max_columns",
-    #     10,
-    #     "display.width",
-    #     None,
-    #     "max_colwidth",
-    #     150,
-    # ):
-    #     # print("merged_df", merged_df)
-    #     print("merged_df", merged_df[merged_df["func_name"].isin(["core_init_matrix"])])
-    #     print("pcs", len(merged_df[merged_df["func_name"].isin(["core_init_matrix"])]["pc"].unique()))
-    #     print("total_count", merged_df[merged_df["func_name"].isin(["core_init_matrix"])]["count"].sum())
-    # input("!")
 
     # Now group by locs and sum counts
     locs_hist_df = (
@@ -149,21 +133,12 @@ def generate_lcov_output(
     # Split into file and line
     locs_hist_df[["file", "line"]] = locs_hist_df["locs"].str.split(":", n=1, expand=True)
     locs_hist_df = locs_hist_df.drop(columns=["locs", "rel_count"])
-    # locs_hist_df["file"] = locs_hist_df["file"].fillna("?")
     locs_hist_df["line"] = locs_hist_df["line"].fillna(0)
     locs_hist_df["line"] = locs_hist_df["line"].astype(int)
-    # print("locs_hist_df", locs_hist_df)
-    # locs_hist_df2 = locs_hist_df[locs_hist_df["func_name"].isin(["core_init_matrix"])].sort_values("line")
-    # print("locs_hist_df2", locs_hist_df2)
-    # print("lines", list(sorted(locs_hist_df2["line"].unique())), len(locs_hist_df2["line"].unique()))
-    # print("count", locs_hist_df2["count"].sum())
-    # # locs_hist_df = locs_hist_df2
-    # input("!")
 
     # Structure: {filename: [executed_dict, functions_dict]}
     # executed_dict: line → count
     # functions_dict: line → [count, name]
-    # TODO: handle binary mode
     histogram = defaultdict(lambda: [defaultdict(int), defaultdict(lambda: [0, ""])])
     for _, row in locs_hist_df.iterrows():
         file = row["file"]
@@ -185,14 +160,6 @@ def generate_lcov_output(
                 histogram[file][1][line][0] += count
             histogram[file][1][line][1] = func_name  # store function name
 
-    # print("histogram", histogram)
-
-    # address_line_map = ?
-    # function_map = ?
-    # pc_hist = ?
-    # loc_hist = ?
-    # histogram = ?
-
     if output is None:
         profile_dir = sess.directory / "profile"
         profile_dir.mkdir(exist_ok=True)
@@ -203,7 +170,6 @@ def generate_lcov_output(
             genhtml = profile_dir / "html"
 
     create_output(
-        # create_histogram(address_line_map, function_map, traces), args.output
         histogram,
         output,
     )
