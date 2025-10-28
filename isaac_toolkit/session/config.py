@@ -324,6 +324,7 @@ class ChooseSettings(YAMLSettings):
     allow_custom: Optional[bool] = None
     allow_fp: Optional[bool] = None
     allow_system: Optional[bool] = None
+    allow_rvv: Optional[bool] = None
 
 
 @dataclass
