@@ -36,7 +36,9 @@ def memgraph_to_nx(results):
         else:
             label = "?!"
         name = node._properties.get("name", "?")
-        graph.add_node(int(node.element_id), key=int(node.element_id), xlabel=label, label=name, properties=node._properties)
+        graph.add_node(
+            int(node.element_id), key=int(node.element_id), xlabel=label, label=name, properties=node._properties
+        )
 
     rels = list(results.graph()._relationships.values())
     for rel in rels:
