@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -e
 
 if [ "$#" -lt 3 ]; then

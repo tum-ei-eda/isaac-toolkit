@@ -65,7 +65,7 @@ def generate_top_bb_table_html(df: pd.DataFrame, top_n: int = 10) -> str:
         norm = (s - s.min()) / (s.max() - s.min())
         # Compute RGB as a gradient from red to green
         colors = [f"rgb({int(255*(1-v))},{int(255*v)},0)" for v in norm]
-        print("colors", colors, len(colors))
+        # print("colors", colors, len(colors))
         return colors
 
     # Apply Pandas Styler for a nicer HTML table
@@ -240,6 +240,9 @@ def generate_runtime_report(
     sess, output=None, fmt="md", detailed=False, portable=False, style=False, topk=10, force=False
 ):
     pc2bb_df, instrs_hist_df, opcodes_hist_df = load_runtime_dfs(sess)
+    # TODO: by object & by library
+    # TODO: disass_counts
+    # TODO: mem_footprint
     summary_df = generate_runtime_summary(pc2bb_df)
 
     # Determine output dir
@@ -263,9 +266,9 @@ def generate_runtime_report(
         if pc2bb_df is not None:
             lines = body.splitlines()
             pre = "\n".join(lines[:-1])
-            print("pre", pre, len(pre))
+            # print("pre", pre, len(pre))
             post = lines[-1]
-            print("post", post, len(post))
+            # print("post", post, len(post))
             new = "\n<h2>Runtime per Trace BB</h2>\n\n"
             new += generate_top_bb_table_html(pc2bb_df, top_n=topk)
             new = new.replace("<table id=", "<table border='1' class='dataframe dataframe' id=")
