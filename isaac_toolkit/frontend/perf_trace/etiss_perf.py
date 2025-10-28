@@ -25,7 +25,6 @@ from pathlib import Path
 
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TraceArtifact
@@ -35,6 +34,7 @@ from isaac_toolkit.session.artifact import TraceArtifact
 
 
 def load_perf_trace(sess: Session, input_files: List[Path], force: bool = False, operands: bool = False):
+    del operands
     assert len(input_files) > 0
     name = input_files[0].name
     # sort input files by name

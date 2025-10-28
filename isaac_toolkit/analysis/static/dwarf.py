@@ -127,7 +127,6 @@ def parse_dwarf(elf_path):
 
             # File and directory indices are 1-indexed.
             file_entry = file_entries[file_index] if line_program.header.version >= 5 else file_entries[file_index - 1]
-            # file_entry = file_entries[file_index] if line_program.header.version >= 4 else file_entries[file_index - 1]
             # num_dirs = len(lp_header["include_directory"])
             # max_dir_index = max([file_entry["dir_index"] for file_entry in file_entries])
             # min_dir_index = min([file_entry["dir_index"] for file_entry in file_entries])

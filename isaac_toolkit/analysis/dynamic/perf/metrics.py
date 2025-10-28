@@ -19,9 +19,7 @@
 import sys
 import logging
 import argparse
-import humanize
 from pathlib import Path
-from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -98,7 +96,7 @@ def collect_perf_metrics(
     # verbose: bool = False,
     # TODO: add agg=avg!
 ):
-    stages = timing_df.columns
+    # stages = timing_df.columns
     # print(timing_df)
 
     # timing_df.drop(index=[*range(100000, 200000), *range(2000000, 3000000)], inplace=True)

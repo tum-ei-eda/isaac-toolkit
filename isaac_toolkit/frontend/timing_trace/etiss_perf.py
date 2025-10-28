@@ -24,8 +24,6 @@ import argparse
 from typing import List
 from pathlib import Path
 
-from tqdm import tqdm
-
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TraceArtifact
 
