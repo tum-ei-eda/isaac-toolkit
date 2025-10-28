@@ -306,39 +306,141 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
 
 def collect_bbs_new(trace_df, mapping):
     # --- Extract columns as NumPy ---
+    # print("before", trace_df, len(trace_df))
+    if "is_trap" in trace_df:
+        trace_df = trace_df[~trace_df["is_trap"]]
+    # print("after", trace_df, len(trace_df))
     pcs = trace_df["pc"].to_numpy()
+    # print("pcs", pcs, len(pcs))
+    # print("0x12f56 in pcs", 0x12F56 in pcs)
+    # print("count", np.count_nonzero(pcs == 0x12F56))
     instrs = trace_df["instr"].str.strip().to_numpy()
     sizes = np.where(trace_df["size"].to_numpy() == 2, 2, 4)
+    # TODO: deal with missing idxes
 
-    # --- Fast branch/return detection ---
+    ### # --- Fast branch/return detection ---
     branch_ret_set = set(riscv_branch_instrs + riscv_return_instrs)
     is_branch_return = trace_df["instr"].isin(branch_ret_set).to_numpy()
+    branch_indices = np.where(is_branch_return)[0]
+    ### branch_indices = branch_indices[branch_indices + 1 < len(pcs)]  # drop last element if needed
+    ### branch_targets = pcs[branch_indices + 1]
+    ### branch_targets_sizes = sizes[branch_indices + 1]
+    ### branch_target_prev_pcs = branch_targets - branch_targets_sizes
+    ### # print("branch_target_prev_pcs", branch_target_prev_pcs)
+    ### # unique, counts = np.unique(branch_target_prev_pcs, return_counts=True)
+    ### # import sys
 
-    # --- Detect irregular steps ---
+    ### # np.set_printoptions(threshold=sys.maxsize)
+    ### # np.set_printoptions(formatter={"int": hex})
+    ### # print(np.asarray((unique, counts)).T)
+    ### # input("?!")
+
+    ### # --- Detect irregular steps ---
+    ### steps = pcs[1:] - pcs[:-1]
+    ### expected_steps = sizes[:-1]
+    ### irregular_step = steps != expected_steps
+
+    ### # --- Combine into a mask marking BB ends ---
+    ### mask = is_branch_return.copy()
+    ### mask[:-1] |= irregular_step
+    ### branch_split_indices = np.searchsorted(pcs, branch_target_prev_pcs)
+    ### branch_split_indices = branch_split_indices[branch_split_indices < len(mask)]
+    ### mask[branch_split_indices] = True
+
+    ### # --- Indices of BB ends ---
+    ### bb_end_indices = np.where(mask)[0]
+    ### if len(bb_end_indices) == 0:
+    ###     return set(pcs), {}, pd.DataFrame(), pd.DataFrame()
+
+    ### # --- Indices of BB starts ---
+    ### bb_start_indices = np.empty_like(bb_end_indices)
+    ### bb_start_indices[0] = 0
+    ### bb_start_indices[1:] = bb_end_indices[:-1] + 1
+
+    ### # new
+    ### all_starts = np.unique(np.concatenate([bb_start_indices, np.searchsorted(pcs, branch_targets)]))
+    ### all_starts = all_starts[all_starts < len(pcs)]  # safety
+    ### all_ends = np.empty_like(all_starts)
+    ### all_ends[:-1] = all_starts[1:] - 1
+    ### all_ends[-1] = len(pcs) - 1
+
+    ### all_bb_end_indices = np.unique(np.concatenate([bb_end_indices, branch_split_indices]))
+
+    ### # 3. Compute BB starts as usual
+    ### all_starts = np.empty_like(all_bb_end_indices)
+    ### all_starts[0] = 0
+    ### all_starts[1:] = all_bb_end_indices[:-1] + 1
+
+    ### # 4. The ends are now exactly all_bb_end_indices
+    ### all_ends = all_bb_end_indices
+
+    ### # --- Build unique BBs ---
+    ### # first_pcs = pcs[bb_start_indices]
+    ### first_pcs = pcs[all_starts]
+    ### # print("first_pcs", list(filter(lambda x: not x.startswith("0x800"), map(hex, first_pcs))))
+    ### # last_pcs = pcs[bb_end_indices]
+    ### last_pcs = pcs[all_ends]
+    ### # print("last_pcs", list(filter(lambda x: not x.startswith("0x800"), map(hex, last_pcs))))
+    ### # input("!!!")
+    ### num_instrs = bb_end_indices - bb_start_indices + 1
+    ### bb_sizes = np.add.reduceat(sizes, bb_start_indices)
+    ### end_instrs = instrs[bb_end_indices]
     steps = pcs[1:] - pcs[:-1]
     expected_steps = sizes[:-1]
     irregular_step = steps != expected_steps
 
-    # --- Combine into a mask marking BB ends ---
+    # --- Step 2: initial BB ends (branch/return + irregular steps) ---
+    is_branch_return = np.zeros_like(pcs, dtype=bool)
+    is_branch_return[branch_indices] = True
+    # --- Step 3: compute branch target splits ---
+    valid_branch_mask = branch_indices < len(pcs) - 1
+    valid_branch_indices = branch_indices[valid_branch_mask]
+
+    branch_targets = pcs[valid_branch_indices + 1]
+    branch_target_sizes = sizes[valid_branch_indices + 1]
+    branch_target_prev_pcs = branch_targets - branch_target_sizes
+    # print("branch_target_prev_pcs", branch_target_prev_pcs, len(branch_target_prev_pcs))
+    # print("0x12f56 in branch_target_prev_pcs", 0x12F56 in branch_target_prev_pcs)
+    # print("count", np.count_nonzero(branch_target_prev_pcs == 0x12F56))
+
+    # find the trace indices corresponding to "prev instruction before branch target"
+    # branch_split_indices = np.searchsorted(pcs, branch_target_prev_pcs)
+    # branch_split_indices = branch_split_indices[branch_split_indices < len(pcs)]
+    branch_split_mask = np.isin(pcs, branch_target_prev_pcs)
     mask = is_branch_return.copy()
+    # print("sum(mask) A", sum(mask))
     mask[:-1] |= irregular_step
-
-    # --- Indices of BB ends ---
+    # print("sum(mask) B", sum(mask))
+    # mask[branch_split_indices] = True
+    mask |= branch_split_mask
+    # print("sum(mask) C", sum(mask))
     bb_end_indices = np.where(mask)[0]
-    if len(bb_end_indices) == 0:
-        return set(pcs), {}, pd.DataFrame(), pd.DataFrame()
+    # bb_end_pcs = pcs[bb_end_indices]
+    # print("bb_end_pcs", bb_end_pcs, len(bb_end_pcs))
+    # print("0x12F56 in bb_end_pcs", 0x12F56 in bb_end_pcs)
+    # print("count", np.count_nonzero(bb_end_pcs == 0x12F56))
+    # print("bb_end_pcs?", 0x12F96 in bb_end_pcs, np.count_nonzero(bb_end_pcs == 0x12F96))
+    # print("bb_end_pcs?", 0x12DE4 in bb_end_pcs, np.count_nonzero(bb_end_pcs == 0x12DE4))
+    # print("bb_end_pcs?", 0x12DE4 - 2 in bb_end_pcs, np.count_nonzero(bb_end_pcs == (0x12DE4 - 2)))
+    # print("bb_end_pcs?", 0x12DE4 - 4 in bb_end_pcs, np.count_nonzero(bb_end_pcs == (0x12DE4 - 4)))
+    # input("!!")
 
-    # --- Indices of BB starts ---
-    bb_start_indices = np.empty_like(bb_end_indices)
-    bb_start_indices[0] = 0
-    bb_start_indices[1:] = bb_end_indices[:-1] + 1
+    # --- Step 4: combine all BB ends ---
+    # all_bb_end_indices = np.unique(np.concatenate([bb_end_indices, branch_split_indices]))
+    all_bb_end_indices = bb_end_indices
 
-    # --- Build unique BBs ---
-    first_pcs = pcs[bb_start_indices]
-    last_pcs = pcs[bb_end_indices]
-    num_instrs = bb_end_indices - bb_start_indices + 1
-    bb_sizes = np.add.reduceat(sizes, bb_start_indices)
-    end_instrs = instrs[bb_end_indices]
+    # --- Step 5: compute BB starts ---
+    all_starts = np.empty_like(all_bb_end_indices)
+    all_starts[0] = 0
+    all_starts[1:] = all_bb_end_indices[:-1] + 1
+    all_ends = all_bb_end_indices
+    end_instrs = instrs[all_ends]
+
+    # --- Step 6: compute BB sizes and instruction counts ---
+    num_instrs = all_ends - all_starts + 1
+    bb_sizes = np.add.reduceat(sizes, all_starts)
+    first_pcs = pcs[all_starts]
+    last_pcs = pcs[all_ends]
 
     # Map PCs to funcs once
     unique_pcs = np.unique(np.concatenate([first_pcs, last_pcs]))
@@ -350,12 +452,13 @@ def collect_bbs_new(trace_df, mapping):
     # unique_bb_map = {}
     func2bbs = defaultdict(list)
 
-    bb_hashes = (first_pcs.astype(np.int64) << 32) | last_pcs
+    bb_hashes = (first_pcs.astype(np.int64) << 32) | last_pcs.astype(np.int64)
     unique_hashes, unique_idxs, inverse_idx = np.unique(bb_hashes, return_index=True, return_inverse=True)
     bb_idx_ = inverse_idx
     bb_idx_arr = np.empty(len(first_pcs), dtype=np.int32)
     bb_call_arr = np.empty(len(first_pcs), dtype=np.int32)
-    trace_idx_arr = np.array(bb_end_indices, dtype=np.int32)
+    trace_idx_arr = np.array(all_starts, dtype=np.int32)
+    df_trace_idx_arr = np.zeros_like(trace_idx_arr, dtype=bool)
     unique_bb_freq = defaultdict(int)
 
     for unique_bb_idx in range(len(unique_hashes)):
@@ -377,14 +480,20 @@ def collect_bbs_new(trace_df, mapping):
         unique_bb_freq[unique_bb_idx] += 1
         bb_idx_arr[idx] = unique_bb_idx
         bb_call_arr[idx] = bb_call
-        trace_idx_arr[idx] = bb_end_indices[idx]
+        # trace_idx_arr[idx] = all_ends[idx]
+        # trace_idx_arr[idx] = all_starts[idx]
+        # print("?!1", all_starts[idx])
+        # print("?!2", trace_df.iloc[all_starts[idx]])
+        # print("?!3", trace_df.index[all_starts[idx]])
+        # input("???")
+        df_trace_idx_arr[idx] = trace_df.index[all_starts[idx]]
 
     # --- Convert to DataFrames ---
     bb_trace_df = pd.DataFrame(
         {
             "bb_idx": bb_idx_arr,  # .astype("category"),
             "bb_call": bb_call_arr.astype(np.uint32),
-            "trace_idx": trace_idx_arr.astype(np.uint32),
+            "trace_idx": df_trace_idx_arr.astype(np.uint32),
         }
     )
     bb_trace_df["bb_idx"] = bb_trace_df["bb_idx"].astype("category")
