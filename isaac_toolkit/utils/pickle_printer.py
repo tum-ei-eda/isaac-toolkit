@@ -45,6 +45,8 @@ def handle(args):
     if not args.skip_print:
         print("Unpickled Data:")
         with pd.option_context(
+            "display.min_rows",
+            args.max_rows,
             "display.max_rows",
             args.max_rows,
             "display.max_columns",
