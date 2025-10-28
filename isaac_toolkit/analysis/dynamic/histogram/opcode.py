@@ -93,6 +93,8 @@ RISCV_COMPRESSED_OPCODE_MAPPING = {
 def decode_opcode(instr_word: Union[str, int]):
     if isinstance(instr_word, str):
         instr_word = int(instr_word, 0)
+    elif isinstance(instr_word, float):
+        instr_word = int(instr_word)
     assert isinstance(instr_word, int)
     opcode = instr_word & 0b1111111
     lsbs = opcode & 0b11

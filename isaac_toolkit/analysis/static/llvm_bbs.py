@@ -44,16 +44,31 @@ def parse_elf(elf_path):
         elffile = ELFFile(f)
 
         # extract disassembly to count instructions per bb
+        # see https://isleem.medium.com/create-your-own-disassembler-in-python-pefile-capstone-754f863b2e1c
         code = elffile.get_section_by_name(".text")
         ops = code.data()
-        addr = code["sh_addr"]
+        begin = code["sh_addr"]
+        sz = code["sh_size"]
+        end = begin + sz
         xlen = elffile.elfclass
+        assert xlen is not None
+
         mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
         md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
-        valid_pcs = set(x.address for x in md.disasm(ops, addr))
+        # md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
+        # valid_pcs = set(x.address for x in md.disasm(ops, addr))
+        valid_pcs = set()
+        while True:
+            temp = [(x.address, x.size) for x in md.disasm(ops, begin)]
+            valid_pcs_ = set(pc for pc, size in temp)
+            last = temp[-1]
+            last_pc, last_size = last
+            begin = max(last_pc, begin) + last_size
+            valid_pcs.update(valid_pcs_)
+            if begin >= end:
+                break
 
         section = elffile.get_section_by_name(".symtab")
-        assert xlen is not None
         addr_bytes = int(xlen / 8)
 
         if not section:
@@ -148,7 +163,7 @@ def parse_elf(elf_path):
                         assert sz >= 0
                         start = cur
                         end = cur + sz
-                        pcs = [pc for pc in range(start, end + 2, 2) if pc in valid_pcs]
+                        pcs = [pc for pc in range(start, end, 2) if pc in valid_pcs]
                         num_instrs = len(pcs)
                         cur += sz
                         if GISEL:

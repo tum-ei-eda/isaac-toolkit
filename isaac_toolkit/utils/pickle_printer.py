@@ -69,7 +69,7 @@ def handle(args):
                 else data.iloc[: args.print_topk]
             )
 
-    if isinstance(data, (pd.DataFrame, pd.Series)):
+    if isinstance(data, (pd.DataFrame, pd.Series)) or hasattr(data, "__len__"):
         print("Shape:", data.shape)
     else:
         print(f"len={len(data)}")
