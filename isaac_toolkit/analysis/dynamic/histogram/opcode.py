@@ -110,20 +110,23 @@ def decode_opcode(instr_word: Union[str, int]):
 
 
 def collect_opcodes(trace_df):
-    # avoid modifying original df and copying whole df
-    temp_df = trace_df[["bytecode"]].copy()
-    temp_df["opcode"] = temp_df["bytecode"].apply(lambda x: decode_opcode(x))
-    opcodes = temp_df["opcode"].value_counts().to_dict()
-    opcodes_data = []
-    for opcode_name, opcode_count in opcodes.items():
-        opcode_data = {"opcode": opcode_name, "count": opcode_count}
-        opcodes_data.append(opcode_data)
-    opcodes_df = pd.DataFrame(opcodes_data)
+    # Step 1: Count bytecode frequencies directly
+    bytecode_counts = trace_df["bytecode"].value_counts()
+
+    # Step 2: Decode each unique bytecode only once
+    decoded_map = {bc: decode_opcode(bc) for bc in bytecode_counts.index}
+
+    # Step 3: Replace bytecodes with opcodes and sum counts
+    opcode_counts = {}
+    for bc, count in bytecode_counts.items():
+        op = decoded_map[bc]
+        opcode_counts[op] = opcode_counts.get(op, 0) + count
+
+    # Step 4: Build DataFrame
+    opcodes_df = pd.DataFrame([{"opcode": op, "count": cnt} for op, cnt in opcode_counts.items()])
     total_count = opcodes_df["count"].sum()
     opcodes_df["rel_count"] = opcodes_df["count"] / total_count
-    opcodes_df.sort_values("count", ascending=False, inplace=True)
-
-    return opcodes_df
+    return opcodes_df.sort_values("count", ascending=False)
 
 
 def create_opcode_hist(sess: Session, force: bool = False):

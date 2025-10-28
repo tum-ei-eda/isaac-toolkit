@@ -69,7 +69,7 @@ def load_riscvovpsimplus_trace(
             line = line.strip()
             if not line.startswith("Info"):
                 continue
-            #print("line0", line)
+            # print("line0", line)
             # Instruction line
             if re.match(r"Info '.*cpu.*',", line):
                 m = re.match(
@@ -78,15 +78,17 @@ def load_riscvovpsimplus_trace(
                 )
                 if m:
                     pc, symbol, bytecode, instr, args = m.groups()
-                    buffer_instr.append({
-                        #"idx": instr_idx,
-                        "pc": int(pc, 16),
-                        "symbol": symbol,
-                        "bytecode": int(bytecode, 16),
-                        "instr": instr,
-                        "args": args if args else "",
-                        "size": 2 if instr.startswith("c.") or len(bytecode) <= 4 else 4,
-                    })
+                    buffer_instr.append(
+                        {
+                            # "idx": instr_idx,
+                            "pc": int(pc, 16),
+                            "symbol": symbol,
+                            "bytecode": int(bytecode, 16),
+                            "instr": instr,
+                            "args": args if args else "",
+                            "size": 2 if instr.startswith("c.") or len(bytecode) <= 4 else 4,
+                        }
+                    )
                     instr_idx += 1
 
             # Register update line
@@ -95,31 +97,35 @@ def load_riscvovpsimplus_trace(
                 m = re.match(r"Info\s+(\w+)\s+([0-9a-fA-F]+)\s*->\s*([0-9a-fA-F]+)", line)
                 if m:
                     reg, old_val, new_val = m.groups()
-                    buffer_reg.append({
-                        "idx": instr_idx - 1,  # belongs to last instr
-                        "reg": reg,
-                        "old_val": int(old_val, 16),
-                        "new_val": int(new_val, 16),
-                    })
+                    buffer_reg.append(
+                        {
+                            "idx": instr_idx - 1,  # belongs to last instr
+                            "reg": reg,
+                            "old_val": int(old_val, 16),
+                            "new_val": int(new_val, 16),
+                        }
+                    )
 
                 m = re.match(
                     r"Info\s+(MEM\w)\s+(0x[0-9a-fA-F]+)\s+(0x[0-9a-fA-F]+)\s+(\d+)\s+([0-9a-fA-F]+)",
                     line,
                 )
-                
-                #if "MEM" in line:
+
+                # if "MEM" in line:
                 #    # print("line", line)
                 #    print("m", m)
                 if m:
                     acc_type, addr_lo, addr_hi, size, data = m.groups()
-                    buffer_mem.append({
-                        "idx": instr_idx - 1,  # belongs to last instr
-                        "type": acc_type,
-                        "addr_lo": int(addr_lo, 16),
-                        "addr_hi": int(addr_hi, 16),
-                        "size": int(size),
-                        "data": int(data, 16),
-                    })
+                    buffer_mem.append(
+                        {
+                            "idx": instr_idx - 1,  # belongs to last instr
+                            "type": acc_type,
+                            "addr_lo": int(addr_lo, 16),
+                            "addr_hi": int(addr_hi, 16),
+                            "size": int(size),
+                            "data": int(data, 16),
+                        }
+                    )
 
             # Flush to disk in batches
             if len(buffer_instr) >= chunksize:
