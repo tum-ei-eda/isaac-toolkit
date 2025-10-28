@@ -21,13 +21,14 @@ from pathlib import Path
 
 import yaml
 
-from .config import IsaacConfig, DEFAULT_CONFIG
+from .config import IsaacConfig, DEFAULT_CONFIG, ArtifactsSettings, TableArtifactsSettings
 from .artifact import (
     FileArtifact,
     ElfArtifact,
     InstrTraceArtifact,  # TODO: drop
     TraceArtifact,
     SourceArtifact,
+    DisassArtifact,
     TableArtifact,
     M2ISARArtifact,
     GraphArtifact,
@@ -46,6 +47,62 @@ logger = logging.getLogger("session")
 #     assert isinstance(base, Path)
 #     for dirname in dirnames:
 #         (base / dirname).mkdir()
+
+COMPRESSION_EXT = {
+    "zip": "zip",
+    # "gzip": ".gz",
+    "gzip": "gz",
+    "bz2": "bz2",
+    "zstd": "zst",
+    "xz": "tar.xz",
+    "tar": "tar",
+}
+
+FMT_EXT = {
+    "pickle": "pkl",
+    "parquet": "parquet",
+}
+
+
+def get_table_artifact_ext(table_artifacts_settings: TableArtifactsSettings):
+
+    fmt = table_artifacts_settings.fmt
+    # engine = table_artifacts_settings.engine
+    compression_method = table_artifacts_settings.compression_method
+    # compression_level = table_artifacts_settings.compression_level
+
+    fmt_ext = FMT_EXT.get(fmt, None)
+    assert fmt_ext is not None, f"Unsupported fmt: {fmt}"
+    ret = fmt_ext
+
+    compression_ext = None
+    if compression_method is not None and compression_method != "none":
+        compression_ext = COMPRESSION_EXT.get(compression_method, compression_method)
+    if compression_ext:
+        ret += f".{compression_ext}"
+    return ret
+
+
+def get_artifact_ext(flags: ArtifactFlag, artifacts_settings: ArtifactsSettings):
+    if flags & ArtifactFlag.ELF:
+        ext = None
+    elif flags & ArtifactFlag.INSTR_TRACE:
+        ext = get_table_artifact_ext(artifacts_settings.instr_trace)
+    elif flags & ArtifactFlag.TRACE:
+        ext = get_table_artifact_ext(artifacts_settings.trace)
+    elif flags & (ArtifactFlag.SOURCE | ArtifactFlag.DISASS):
+        ext = None
+    elif flags & ArtifactFlag.GRAPH:
+        ext = "pkl"
+    elif flags & ArtifactFlag.TABLE:
+        ext = get_table_artifact_ext(artifacts_settings.table)
+    elif flags & ArtifactFlag.M2ISAR:
+        ext = "m2isarmodel"
+    elif flags & ArtifactFlag.PYTHON:
+        ext = "pkl"
+    else:
+        raise RuntimeError("Unhandled case!")
+    return ext
 
 
 def load_artifacts(base):
@@ -78,8 +135,10 @@ def load_artifacts(base):
             artifact_ = InstrTraceArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.TRACE:
             artifact_ = TraceArtifact.from_dict(artifact)
-        elif flags_ & (ArtifactFlag.SOURCE | ArtifactFlag.DISASS):
+        elif flags_ & ArtifactFlag.SOURCE:
             artifact_ = SourceArtifact.from_dict(artifact)
+        elif flags_ & ArtifactFlag.DISASS:
+            artifact_ = DisassArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.GRAPH:
             artifact_ = GraphArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.TABLE:
@@ -177,32 +236,29 @@ class Session:
         for artifact in self.artifacts:
             dest_dir = None
             dest_file = artifact.name
+            ext = get_artifact_ext(artifact.flags, self.config.artifacts)
+            if ext is not None and len(ext) > 0:
+                dest_file = f"{dest_file}.{ext}"
             if isinstance(artifact, ElfArtifact):
                 dest_dir = self.directory / "elf"
             elif isinstance(artifact, InstrTraceArtifact):
                 dest_dir = self.directory / "instr_trace"
-                dest_file = f"{dest_file}.pkl"
             elif isinstance(artifact, TraceArtifact):
                 dest_dir = self.directory / "trace"
-                dest_file = f"{dest_file}.pkl"
             elif isinstance(artifact, SourceArtifact):
                 dest_dir = self.directory / "source"
             elif isinstance(artifact, GraphArtifact):
                 # assert not artifact.is_input and not artifact.is_output
                 dest_dir = self.directory / "graph"
-                dest_file = f"{dest_file}.pkl"
             elif isinstance(artifact, TableArtifact):
                 # assert not artifact.is_input and not artifact.is_output
                 dest_dir = self.directory / "table"
-                dest_file = f"{dest_file}.pkl"
             elif isinstance(artifact, M2ISARArtifact):
                 # assert not artifact.is_input and not artifact.is_output
                 dest_dir = self.directory / "model"
-                dest_file = f"{dest_file}.m2isarmodel"
             elif isinstance(artifact, PythonArtifact):
                 # assert not artifact.is_input and not artifact.is_output
                 dest_dir = self.directory / "misc"
-                dest_file = f"{dest_file}.pkl"
             if dest_dir is None:
                 dest_dir = self.directory / "misc"
             assert dest_file is not None
@@ -210,7 +266,7 @@ class Session:
             assert dest_file[0] != "/"
             dest = dest_dir / dest_file
             dest.parent.mkdir(parents=True, exist_ok=True)
-            artifact.save(dest)
+            artifact.save(dest, self.config.artifacts)
             metadata = artifact.to_dict()
             metadata["dest"] = str(dest)
             artifacts_.append(metadata)

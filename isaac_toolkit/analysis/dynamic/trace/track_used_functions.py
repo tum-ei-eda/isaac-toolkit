@@ -42,19 +42,15 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
         # print("row", row)
         func_name = row["func"]
         matches = func2pc_df.where(lambda x: x["func"] == func_name).dropna()
-        print("matches", matches)
+        # print("matches", matches)
         assert len(matches) > 0
-        for _, match_ in matches.iterrows():
-            print("match_", match_)
-            pc_range = match_["pc_range"]
-            # print("pc_range", pc_range)
+        for pc_range in matches["pc_range"].values:
             start_pc, end_pc = pc_range
             if end_pc < 0:
                 continue
-            matches2 = trace_df_unique.where(lambda x: x["pc"] >= start_pc).dropna()
-            matches2 = matches2.where(lambda x: x["pc"] < end_pc).dropna()
-            if len(matches2) > 0:
-                # print("matches", matches)
+            matches = trace_df_unique.where(lambda x: x["pc"] >= start_pc).dropna()
+            matches = matches.where(lambda x: x["pc"] < end_pc).dropna()
+            if len(matches) > 0:
                 df.loc[index, "Used"] = True
                 break
     # bytes_before = df["bytes"].sum()

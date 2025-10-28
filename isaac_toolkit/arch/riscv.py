@@ -19,10 +19,6 @@
 riscv_branch_instrs = [
     "j",  # pseudo
     "jr",  # pseudo
-    "ret",  # pseudo
-    "mret",  # pseudo
-    "sret",  # pseudo
-    "uret",  # pseudo
     "call",  # pseudo
     "tail",  # pseudo
     "jal",
@@ -36,6 +32,7 @@ riscv_branch_instrs = [
     "bge",  # pseudo
     "bgez",  # pseudo
     "ble",
+    "blez",  # new?
     "bltu",
     "bgtu",  # pseudo
     "bgtu",  # pseudo
@@ -49,10 +46,15 @@ riscv_branch_instrs = [
     "cbeqz",
     "cjal",
     "c.j",
-    "c.jr",
     "c.j",
     "c.beqz",
-    "c.jalr",
     "c.jal",
+    # "ret",  # pseudo
+    # "mret",  # pseudo
+    # "sret",  # pseudo
+    # "uret",  # pseudo
+    # "jalr"  # return if rd=x0, rs1=x1
+    # "c.jr",  # return if rs1=x1
+    # "c.jalr",  # return if  rs1=x1
 ]
-riscv_return_instrs = ["jalr", "cjalr", "cjr"]  # TODO
+riscv_return_instrs = ["jalr", "cjalr", "cjr", "c.jr", "c.jalr", "ret", "mret", "sret", "uret"]  # TODO

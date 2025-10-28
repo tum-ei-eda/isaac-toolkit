@@ -60,7 +60,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
         num_instrs = row["num_instrs"]
         if size == 0:
             continue
-        assert num_instrs != 0
+        # assert num_instrs != 0  # TODO: handle pcs missing in capstone disassembly?
         assert size > 0, "Encountered basic block with negative size"
         # num_instrs = row["num_instrs"]
 
