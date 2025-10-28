@@ -87,6 +87,8 @@ def retarget_etiss_iss(
 
         # input("!")
         try:
+            # print("command", command)
+            # input(">")
             subprocess.run(command, check=True, shell=True, **kwargs)
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Command failed with return code {e.returncode}")

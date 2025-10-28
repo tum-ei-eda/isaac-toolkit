@@ -48,6 +48,11 @@ from isaac_toolkit.analysis.dynamic.trace.track_used_functions import (
 logger = get_logger()
 
 
+def has_operands(sess: Session):
+    # TODO: use extra operands_trace artifact
+    return False
+
+
 def analyze_artifacts(sess: Session, force: bool = False, progress: bool = False):
     logger.info("Analyzing ISAAC Demo artifacts...")
     analyze_dwarf(sess, force=force)
@@ -56,7 +61,8 @@ def analyze_artifacts(sess: Session, force: bool = False, progress: bool = False
     analyze_linker_map(sess, force=force)
     trunc_trace(sess, start_func="mlonmcu_run", force=force)
     trunc_trace(sess, end_func="stop_bench", force=force)
-    analyze_instr_operands(sess, force=force)
+    if has_operands(sess):
+        analyze_instr_operands(sess, force=force)
     create_opcode_hist(sess, force=force)
     create_opcode_per_llvm_bb_hist(sess, force=force)
     create_instr_hist(sess, force=force)

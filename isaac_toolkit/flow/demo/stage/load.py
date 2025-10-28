@@ -39,16 +39,12 @@ from isaac_toolkit.frontend.compile_commands.json import load_compile_commands_j
 logger = get_logger()
 
 
-def load_mlonmcu_exported_run(
-    sess: Session, run_dir: Path, force: bool = False, progress: bool = False
-):
+def load_mlonmcu_exported_run(sess: Session, run_dir: Path, force: bool = False, progress: bool = False):
     logger.info("Loading MLonMCU exported run...")
     assert run_dir.is_dir(), f"MLonMCU run dir does not exist: {run_dir}"
     elf_file = run_dir / "generic_mlonmcu"
     load_elf(sess, elf_file, force=force)
-    linker_map_file = (
-        run_dir / "mlif" / "generic" / "linker.map"
-    )  # TODO: move to real artifacts?
+    linker_map_file = run_dir / "mlif" / "generic" / "linker.map"  # TODO: move to real artifacts?
     load_linker_map(sess, linker_map_file, force=force)
     # TODO: load report via frontend?
     # TODO: load initializer?
@@ -60,23 +56,22 @@ def load_mlonmcu_exported_run(
     target = report_df["Target"].iloc[0]
     instr_trace_frontends = {
         "etiss": load_etiss_instr_trace,
-        "spike": load_etiss_instr_trace,
+        "spike": load_spike_instr_trace,
+        "spike_rv32": load_spike_instr_trace,
+        "spike_rv64": load_spike_instr_trace,
     }
     load_instr_trace = instr_trace_frontends.get(target)
+    assert load_instr_trace is not None, f"Frontend lookup failed for target: {target}"
     instr_trace_file = run_dir / f"{target}_instrs.log"
     operands = True  # TODO: store operands in extra artifact!
-    load_instr_trace(
-        sess, instr_trace_file, force=force, progress=progress, operands=operands
-    )
+    load_instr_trace(sess, instr_trace_file, force=force, progress=progress, operands=operands)
     dump_file = run_dir / "generic_mlonmcu.dump"
     load_disass(sess, dump_file, force=force)
     compile_commands_file = run_dir / "mlif" / "compile_commands.json"
     load_compile_commands_json(sess, compile_commands_file, force=force)
 
 
-def load_artifacts(
-    sess: Session, run_dir: Path, force: bool = False, progress: bool = False
-):
+def load_artifacts(sess: Session, run_dir: Path, force: bool = False, progress: bool = False):
     logger.info("Loading ISAAC Demo artifacts...")
     load_mlonmcu_exported_run(sess, run_dir, force=force, progress=progress)
 
