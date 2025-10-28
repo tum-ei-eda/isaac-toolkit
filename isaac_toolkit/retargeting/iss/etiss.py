@@ -116,7 +116,9 @@ def retarget_etiss_iss(
         # TODO: ship with isaac?
         etiss_script_args = [output_dir, top_file]
         try:
-            subprocess.run([etiss_script, *etiss_script_args], check=True, **kwargs, env=env)
+            subprocess.run(
+                [etiss_script, *etiss_script_args], check=True, **kwargs, env=env
+            )
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Command failed with return code {e.returncode}")
             if e.stdout:
