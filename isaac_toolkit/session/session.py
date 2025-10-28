@@ -85,7 +85,7 @@ def load_artifacts(base):
         else:
             logger.warning("Unhandled artifact type!")
             artifact_ = FileArtifact.from_dict(artifact)
-            raise RuntimeError("Unhandled case!")
+            # raise RuntimeError("Unhandled case!")
         artifacts_.append(artifact_)
     # TODO: check for duplicates
     # print("artifacts", artifacts)
