@@ -127,13 +127,20 @@ def parse_dwarf(elf_path):
 
             # File and directory indices are 1-indexed.
             file_entry = file_entries[file_index] if line_program.header.version >= 5 else file_entries[file_index - 1]
-            dir_index = file_entry["dir_index"] if line_program.header.version >= 5 else file_entry["dir_index"] - 1
+            # num_dirs = len(lp_header["include_directory"])
+            # max_dir_index = max([file_entry["dir_index"] for file_entry in file_entries])
+            # min_dir_index = min([file_entry["dir_index"] for file_entry in file_entries])
+            dir_index = file_entry["dir_index"]
             assert dir_index >= 0
 
             # A dir_index of 0 indicates that no absolute directory was recorded during
             # compilation; return just the basename.
             if dir_index == 0:
                 return file_entry.name.decode()
+
+            # if min_dir_index == 0:
+            if True:
+                dir_index -= 1
 
             directory = lp_header["include_directory"][dir_index]
             # TODO: try out actual_path = op.normpath(CU.get_top_DIE().get_full_path())?
