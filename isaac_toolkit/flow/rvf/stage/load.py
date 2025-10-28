@@ -70,9 +70,12 @@ def load_artifacts(
             "etiss": load_etiss_instr_trace,
             "etiss_perf": load_etiss_perf_instr_trace,
             "spike": load_spike_instr_trace,
+            "spike_rv32": load_spike_instr_trace,
+            "spike_rv64": load_spike_instr_trace,
             "spike_bm": load_spike_instr_trace,
         }
         load_instr_trace = instr_trace_frontends.get(simulator)
+        assert load_instr_trace is not None
         operands = False  # TODO: store operands in extra artifact!
         load_instr_trace(
             # sess, instr_trace_file, force=force, progress=progress, operands=operands
