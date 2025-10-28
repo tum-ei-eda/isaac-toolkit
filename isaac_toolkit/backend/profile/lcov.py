@@ -16,8 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Parts of the following code have been provided by MINRES Technologies.
-#
 
 import argparse
 import logging
@@ -32,6 +30,8 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import filter_artifacts
+
+# Parts of the following code have been provided by MINRES Technologies.
 
 
 def create_output(histogram, outputfile):
