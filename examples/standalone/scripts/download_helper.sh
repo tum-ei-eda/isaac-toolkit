@@ -44,13 +44,11 @@ then
 elif [[ "$tool_lower" == "spike" ]]
 then
     # TODO: label?
-    archive=spike-linux-gnu-$dist_lower-$release.$ext
+    archive=spike-x86_64-linux-gnu-$dist_lower-$release.$ext
 elif [[ "$tool_lower" == "etiss" ]]
 then
     # TODO: label?
-    archive=etiss-linux-gnu-$dist_lower-$release.$ext
-    echo "ETISS tool not implemented!"
-    exit 1
+    archive=etiss-x86_64-linux-gnu-$dist_lower-$release.$ext
 else
     echo "Unsupported tool: $toolchain_lower"
     exit 1

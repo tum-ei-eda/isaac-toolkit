@@ -31,13 +31,14 @@ jobs:
         # simulator: ["etiss", "spike"]
         simulator: ["etiss"]
         full: ["0", "1"]
+        config:
+        - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1"}
+        - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1"}
+        # TODO: rv64 and rvv
     env:
       INSTALL_DIR: ${{ github.workspace }}/examples/standalone/install
       VENV_DIR: ${{ github.workspace }}/venv
       PYTHONPATH: ${{ github.workspace }}
-      RISCV_NAME: "riscv32-unknown-elf"
-      RISCV_ARCH: "rv32im_zicsr_zifencei"
-      RISCV_ABI: "ilp32"
       SIMULATOR: ${{ matrix.simulator }}
       TOOLCHAIN: ${{ matrix.toolchain }}
       FULL: ${{ matrix.full }}
@@ -64,7 +65,7 @@ jobs:
     - name: Setup dependencies
       working-directory: examples/standalone
       run: |
-        ./scripts/download_helper.sh $INSTALL_DIR/rv32im_ilp32/ gnu 2024.09.03 rv32im_zicsr_zifencei_ilp32
+        ./scripts/download_helper.sh $INSTALL_DIR/${{ matrix.config.arch }}_${{ matrix.config.abi }}/ gnu 2024.09.03 rv32im_zicsr_zifencei_ilp32
 
         if [[ "$TOOLCHAIN" == "llvm" ]]
         then
@@ -83,10 +84,10 @@ jobs:
         export SESS=$(pwd)/sess
         export BUILD_DIR=$(pwd)/build
 
-        export RISCV_PREFIX=$INSTALL_DIR/rv32im_ilp32
-        export SYSROOT=$RISCV_PREFIX/$RISCV_NAME
-        export CC=$RISCV_PREFIX/bin/$RISCV_NAME-gcc
-        export OBJDUMP=$RISCV_PREFIX/bin/$RISCV_NAME-objdump
+        export RISCV_PREFIX=$INSTALL_DIR/${{ matrix.config.arch }}_${{ matrix.config.abi }}
+        export SYSROOT=$RISCV_PREFIX/${{ matrix.config.gnu_name }}
+        export CC=$RISCV_PREFIX/bin/${{ matrix.config.gnu_name }}-gcc
+        export OBJDUMP=$RISCV_PREFIX/bin/${{ matrix.config.gnu_name }}-objdump
 
         if [[ "$SIMULATOR" == "etiss" ]]
         then
@@ -109,10 +110,10 @@ jobs:
         mkdir -p $BUILD_DIR
         if [[ "$SIMULATOR" == "etiss" ]]
         then
-            $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c $ETISS_CRT/crt0.S $ETISS_CRT/trap_handler.c -T $ETISS_LDSCRIPT -nostdlib -lc -lgcc -lsemihost -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
+            $CC -march=${{ matrix.config.arch }} -mabi=${{ matrix.config.abi }} src/*.c $ETISS_CRT/crt0.S $ETISS_CRT/trap_handler.c -T $ETISS_LDSCRIPT -nostdlib -lc -lgcc -lsemihost -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
         elif [[ "$SIMULATOR" == "spike" ]]
         then
-            $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
+            $CC -march=${{ matrix.config.arch }} -mabi=${{ matrix.config.abi }} src/*.c -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
         else
             echo "Unsupported SIMULATOR=$SIMULATOR"
             exit 1
