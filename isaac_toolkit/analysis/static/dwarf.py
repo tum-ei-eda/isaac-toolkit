@@ -183,13 +183,13 @@ def parse_dwarf(elf_path):
 
             # CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
             actual_path = os.path.normpath(CU.get_top_DIE().get_full_path())
-            print("actual_path", actual_path)
+            # print("actual_path", actual_path)
 
             for entry in line_program.get_entries():
                 if entry.state:
                     pc = entry.state.address
                     line = entry.state.line
-                    print("line", line)
+                    # print("line", line)
                     # pc_to_source_line_mapping[CU_name].append((pc, line))
                     pc_to_source_line_mapping[actual_path].append((pc, line))
 
