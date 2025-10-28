@@ -20,13 +20,10 @@ import sys
 import argparse
 from pathlib import Path
 
-from neo4j import GraphDatabase
 import networkx as nx
-from networkx.drawing.nx_agraph import write_dot
-import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import GraphArtifact, filter_artifacts
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
@@ -112,10 +109,7 @@ def maxmiso_algo(G):
                     for in_ in ins:
                         # print("in_", in_, G.nodes[in_[0]].get("label"))
                         src = in_[0]
-                        if (
-                            not max_miso[topo.index(src)]
-                            and not inputs[topo.index(src)]
-                        ):
+                        if not max_miso[topo.index(src)] and not inputs[topo.index(src)]:
                             ret += 1
                             inputs[topo.index(src)] = True
                 # print("ret", ret)
@@ -146,9 +140,9 @@ def maxmiso_algo(G):
                 # input("1")
                 return ret
 
-            num_inputs = calc_inputs(max_miso)
+            # num_inputs = calc_inputs(max_miso)
             # print("num_inputs", num_inputs)
-            num_outputs = calc_outputs(max_miso)
+            # num_outputs = calc_outputs(max_miso)
             # print("num_outputs", num_outputs)
             # input(">")
             max_misos.append(max_miso)
@@ -165,9 +159,7 @@ def maxmiso_algo(G):
     max_misos__ = [G.subgraph(max_miso) for max_miso in max_misos_]
     reverse_mapping = {v: k for k, v in mapping.items()}
     G = nx.relabel_nodes(G, reverse_mapping)
-    max_misos__ = [
-        nx.relabel_nodes(max_miso, reverse_mapping) for max_miso in max_misos__
-    ]
+    max_misos__ = [nx.relabel_nodes(max_miso, reverse_mapping) for max_miso in max_misos__]
     # print("max_misos__", max_misos__)
     # for i, mig in enumerate(max_misos__):
     #     print("i,mig", i, mig)
@@ -214,14 +206,8 @@ def handle(args):
             # TODO: module_name
             view = nx.subgraph_view(
                 G,
-                filter_node=lambda node: (
-                    bb_name is None
-                    or G.nodes[node]["properties"].get("basic_block") == bb_name
-                )
-                and (
-                    func_name is None
-                    or G.nodes[node]["properties"].get("func_name") == func_name
-                )
+                filter_node=lambda node: (bb_name is None or G.nodes[node]["properties"].get("basic_block") == bb_name)
+                and (func_name is None or G.nodes[node]["properties"].get("func_name") == func_name)
                 and "%bb" not in G.nodes[node].get("label"),
             )
             G_ = G.subgraph([node for node in view.nodes])
