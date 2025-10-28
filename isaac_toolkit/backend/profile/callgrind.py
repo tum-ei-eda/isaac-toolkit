@@ -46,16 +46,28 @@ def unmangle_helper(func_name: Optional[str]):
     return demangle(func_name)
 
 
+PC_FUNC_NAME_CACHE = {}
+
+
+# TODO: reset?
+
+
 def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
     # TODO: refactor to use existing tables
     """
     Given a program counter, find the function it belongs to
     """
+    found = PC_FUNC_NAME_CACHE.get(pc)
+    if found is not None:
+        return found
     for func, ranges in mapping.items():
         for range_ in ranges:
             if pc >= range_[0] and pc <= range_[1]:
+                PC_FUNC_NAME_CACHE[pc] = func
                 return func
-    return hex(pc)
+    ret = hex(pc)
+    PC_FUNC_NAME_CACHE[pc] = ret
+    return ret
 
 
 def collect_bbs(trace_df, mapping):
@@ -420,7 +432,6 @@ def generate_callgrind_output(
     dump_pos: bool = False,
     unmangle_names: bool = False,
 ):
-    assert output is not None
     artifacts = sess.artifacts
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
     assert len(elf_artifacts) == 1
@@ -484,6 +495,17 @@ def generate_callgrind_output(
         elf_file_path=elf_file_path,
         unmangle_names=unmangle_names,
     )
+
+    if output is None:
+        profile_dir = sess.directory / "profile"
+        profile_dir.mkdir(exist_ok=True)
+        out_name = "callgrind"
+        if dump_pc:
+            out_name += "_pc"
+        if dump_pos:
+            out_name += "_pos"
+        out_name += ".out"
+        output = profile_dir / out_name
     with open(output, "w") as f:
         f.write(content)
 
