@@ -16,25 +16,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import io
 import sys
-import leb128
 import logging
 import argparse
-import posixpath
 from typing import Optional, Union
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
-from elftools.elf.sections import SymbolTableSection
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import TableArtifact
 
 
 logger = logging.getLogger("compare_bench")
+
+
+COLS = ["Model", "Arch", "Run Instructions", "Run Instructions (rel.)"]
+MEM_COLS = ["Model", "Arch", "Total ROM", "Total RAM", "ROM code", "ROM code (rel.)"]
+COMMON_COLS = list(set(COLS) & set(MEM_COLS))
 
 
 def compare_bench(
@@ -43,9 +42,6 @@ def compare_bench(
     mem_report: Optional[Union[str, Path]] = None,
     force: bool = False,
 ):
-    COLS = ["Model", "Arch", "Run Instructions", "Run Instructions (rel.)"]
-    MEM_COLS = ["Model", "Arch", "Total ROM", "Total RAM", "ROM code", "ROM code (rel.)"]
-    COMMON_COLS = list(set(COLS) & set(MEM_COLS))
 
     assert report is not None
 

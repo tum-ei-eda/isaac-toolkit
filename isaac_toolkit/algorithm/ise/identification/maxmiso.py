@@ -139,9 +139,9 @@ def maxmiso_algo(G):
                 # input("1")
                 return ret
 
-            num_inputs = calc_inputs(max_miso)
+            # num_inputs = calc_inputs(max_miso)
             # print("num_inputs", num_inputs)
-            num_outputs = calc_outputs(max_miso)
+            # num_outputs = calc_outputs(max_miso)
             # print("num_outputs", num_outputs)
             # input(">")
             max_misos.append(max_miso)
