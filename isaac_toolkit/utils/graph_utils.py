@@ -76,7 +76,7 @@ def calc_inputs(G, sub):
             # print("src", src, G.nodes[src].get("label"))
             # print("src in sub_nodes", src in sub_nodes)
             # print("src not in inputs", src not in inputs)
-            op_type = G.nodes[src]["properties"]["op_type"]
+            # op_type = G.nodes[src]["properties"]["op_type"]
             if not (src in sub_nodes) and (src not in inputs):
                 # print("IN")
                 if G.nodes[src]["properties"]["op_type"] == "constant":

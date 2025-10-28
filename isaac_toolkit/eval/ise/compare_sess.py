@@ -61,32 +61,32 @@ def compare_with_sess(
     pc2bb_artifact_ = pc2bb_artifacts_[0]
     pc2bb_df_ = pc2bb_artifact_.df
 
-    symbol_map_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "symbol_map"
-    )
-    symbol_map_df = None
-    if len(symbol_map_artifacts) > 0:
-        assert len(symbol_map_artifacts) == 1
-        symbol_map_artifact = symbol_map_artifacts[0]
-        symbol_map_df = symbol_map_artifact.df
+    # symbol_map_artifacts = filter_artifacts(
+    #     artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "symbol_map"
+    # )
+    # symbol_map_df = None
+    # if len(symbol_map_artifacts) > 0:
+    #     assert len(symbol_map_artifacts) == 1
+    #     symbol_map_artifact = symbol_map_artifacts[0]
+    #     symbol_map_df = symbol_map_artifact.df
 
-    instrs_hist_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "instrs_hist"
-    )
-    instrs_hist_df = None
-    if len(instrs_hist_artifacts) > 0:
-        assert len(instrs_hist_artifacts) == 1
-        instrs_hist_artifact = instrs_hist_artifacts[0]
-        instrs_hist_df = instrs_hist_artifact.df
+    # instrs_hist_artifacts = filter_artifacts(
+    #     artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "instrs_hist"
+    # )
+    # instrs_hist_df = None
+    # if len(instrs_hist_artifacts) > 0:
+    #     assert len(instrs_hist_artifacts) == 1
+    #     instrs_hist_artifact = instrs_hist_artifacts[0]
+    #     instrs_hist_df = instrs_hist_artifact.df
 
-    opcodes_hist_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "opcodes_hist"
-    )
-    opcodes_hist_df = None
-    if len(opcodes_hist_artifacts) > 0:
-        assert len(opcodes_hist_artifacts) == 1
-        opcodes_hist_artifact = opcodes_hist_artifacts[0]
-        opcodes_hist_df = opcodes_hist_artifact.df
+    # opcodes_hist_artifacts = filter_artifacts(
+    #     artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "opcodes_hist"
+    # )
+    # opcodes_hist_df = None
+    # if len(opcodes_hist_artifacts) > 0:
+    #     assert len(opcodes_hist_artifacts) == 1
+    #     opcodes_hist_artifact = opcodes_hist_artifacts[0]
+    #     opcodes_hist_df = opcodes_hist_artifact.df
 
     llvm_bbs_artifacts = filter_artifacts(
         artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "llvm_bbs_new"

@@ -65,7 +65,10 @@ def generate_memgraph_cdfg_via_compile_commands(
 
     files = choices_df["file"].unique()
 
-    extra_args = f"-mllvm -cdfg-enable=1 -mllvm -cdfg-memgraph-session={label} -mllvm -cdfg-memgraph-purge=0 -mllvm -cdfg-stage-mask={stage}"
+    extra_args = (
+        f"-mllvm -cdfg-enable=1 -mllvm -cdfg-memgraph-session={label} -mllvm -cdfg-memgraph-purge=0"
+        "-mllvm -cdfg-stage-mask={stage}"
+    )
 
     for file in files:
         # print("file", file)
