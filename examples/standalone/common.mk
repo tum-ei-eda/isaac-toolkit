@@ -12,8 +12,7 @@ SYSROOT ?= $(RISCV_PREFIX)/$(RISCV_NAME)
 CC := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-gcc
 OBJDUMP := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objdump
 
-
-FORCE ?= 0
+FORCE ?= 1
 FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
 
 # Simulation
@@ -264,7 +263,6 @@ else
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 endif
-endif
 
 $(DUMP): $(ELF)
 	$(OBJDUMP) -d $(ELF) > $(DUMP)
@@ -359,7 +357,10 @@ flow_analyze:
 
 analyze_static:
 	python3 -m isaac_toolkit.analysis.static.dwarf --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.linker_map --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.static.mem_footprint --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $(SESS) $(FORCE_ARG)
 
 analyze_dynamic:
 	time python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
@@ -376,6 +377,7 @@ flow_visualize:
 # TODO: visualize diass counts?
 visualize_static:
 	python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $(SESS) --legend $(FORCE_ARG)
+	python3 -m isaac_toolkit.visualize.pie.disass_counts --session $(SESS) --legend $(FORCE_ARG)
 
 visualize_dynamic:
 	python3 -m isaac_toolkit.visualize.pie.runtime --session $(SESS) --legend $(FORCE_ARG)
