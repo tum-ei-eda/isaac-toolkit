@@ -711,9 +711,9 @@ def collect_trace_bbs(
     force: bool = False,
 ):
     artifacts = sess.artifacts
-    elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
-    assert len(elf_artifacts) == 1
-    elf_artifact = elf_artifacts[0]
+    # elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
+    # assert len(elf_artifacts) == 1
+    # elf_artifact = elf_artifacts[0]
 
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1

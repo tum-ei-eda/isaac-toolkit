@@ -127,7 +127,6 @@ def load_instr_trace(
             dfs_ = list(
                 tqdm(
                     executor.map(
-                        # lambda x: parse_and_process(x, operands=operands), chunk_iter(input_file, chunk_size=chunk_size)
                         parse_and_process,
                         chunk_iter(input_file, chunk_size=chunk_size),
                         itertools.repeat(operands),
