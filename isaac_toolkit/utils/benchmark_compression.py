@@ -46,7 +46,7 @@ def handle(args):
     t1 = time.time()
     del trace_df
     artifact_size = get_artifact_size(trace_artifact)
-    print("artifact_size", round(artifact_size/1000, 2))
+    print("artifact_size", round(artifact_size / 1000, 2))
     # print("trace_df", trace_df)
     artifacts_settings_dict = {
         "instr_trace": {
@@ -68,7 +68,7 @@ def handle(args):
         # input("!")
         t3 = time.time()
         compressed_size = get_file_size(temp_file)
-        print("compressed_size", round(compressed_size/1000, 2))
+        print("compressed_size", round(compressed_size / 1000, 2))
         t4 = time.time()
         trace_artifact._load(temp_file)
         t5 = time.time()

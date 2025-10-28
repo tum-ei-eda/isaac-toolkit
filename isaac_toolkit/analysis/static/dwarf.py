@@ -106,7 +106,6 @@ def parse_dwarf(elf_path):
 
                 func_ranges[name] = (start, end)
 
-
         func2pcs_data = list(func_ranges.items())
         # mapping source file to function
         if not elffile.has_dwarf_info():
