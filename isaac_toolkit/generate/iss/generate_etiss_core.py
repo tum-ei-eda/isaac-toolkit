@@ -47,6 +47,8 @@ def get_cdsl_sets(ext: str, xlen: int = 32, compressed: bool = False):
         "d": [f"RV{xlen}D"] + ([f"RV{xlen}DC"] if compressed else []),
         "zifencei": ["Zifencei"],
         "zicsr": ["Zicsr"],
+        "zve32x": ["Zve32x"],
+        "zve32f": ["Zve32f"],
     }
     ret = cdsl_sets.get(ext, None)
     assert ret is not None, f"Lookup failed for ext: {ext}"
@@ -109,6 +111,15 @@ def get_cdsl_includes(
         "tum_rvm.core_desc": ["tum_rvm"],
         "tum_rva.core_desc": ["tum_rva", "tum_rva64"],
         "tum_mod.core_desc": ["tum_ret", "tum_csr", "tum_semihosting"],
+        "RVV.core_desc": [
+            "RV32V",
+            "RV64V",
+            "Zve32x",
+            "Zve32f",
+            "Zve64x",
+            "Zve64f",
+            "Zve64d",
+        ],
     }
     ret = set()
     for set_name in sets:
