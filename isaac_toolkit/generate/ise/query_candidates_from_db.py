@@ -159,6 +159,7 @@ def query_candidates_from_db(
     sort_by: Optional[str] = "IsoWeight",
     topk: Optional[int] = None,
     partition_with_maxmiso: Union[str, bool] = "auto",
+    enable_venn: bool = False,
 ):
     logger.info("Querying candidates from DB...")
     artifacts = sess.artifacts
@@ -495,9 +496,10 @@ def query_candidates_from_db(
         "--out",
         combined_index_file,
     ]
-    if len(index_files) in [2, 3]:
-        venn_diagram_file = workdir / "venn.jpg"
-        combine_args += ["--venn", venn_diagram_file]
+    if enable_venn:
+        if len(index_files) in [2, 3]:
+            venn_diagram_file = workdir / "venn.jpg"
+            combine_args += ["--venn", venn_diagram_file]
     sankey_diagram_file = workdir / "sankey.md"
     combine_args += ["--sankey", sankey_diagram_file]
     overlaps_file = workdir / "overlaps.csv"
