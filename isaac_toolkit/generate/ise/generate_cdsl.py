@@ -19,8 +19,12 @@
 import sys
 import argparse
 import subprocess
+import multiprocessing
 from typing import Optional, Union
 from pathlib import Path
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
@@ -33,6 +37,7 @@ def generate_cdsl(
     workdir: Optional[Union[str, Path]] = None,
     index_file: Optional[Union[str, Path]] = None,
     gen_dir: Optional[Union[str, Path]] = None,
+    n_parallel: Optional[int] = None,
     force: bool = False,
 ):
     del sess, force
@@ -53,6 +58,8 @@ def generate_cdsl(
         "--progress",
         "--inplace",  # TODO use gen/index.yml instead!
     ]
+    if n_parallel is not None:
+        generate_args += ["--parallel", str(n_parallel)]
     generate_cdsl_args = [
         "python3",
         "-m",
@@ -91,6 +98,7 @@ def handle(args):
         gen_dir=args.gen_dir,
         index_file=args.index,
         force=args.force,
+        n_parallel=args.parallel,
     )
     sess.save()
 
@@ -107,6 +115,7 @@ def get_parser():
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--gen-dir", type=str, default=None)
     parser.add_argument("--index", type=str, default=None)
+    parser.add_argument("--parallel", type=int, default=multiprocessing.cpu_count(), default=None)
     return parser
 
 

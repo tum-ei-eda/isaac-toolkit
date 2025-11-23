@@ -22,6 +22,8 @@ import pickle
 import argparse
 from typing import Optional, Union, List
 from pathlib import Path
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
 
 import m2isar
 import m2isar.metamodel.arch
@@ -35,6 +37,45 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
+
+
+def parse_generated_set(set_file, skip_errors: bool = False):
+    try:
+        models = parse_cdsl2_set(set_file, extra_includes)
+    except Exception as e:
+        if skip_errors:
+            logger.exception(e)
+            return None, str(e)
+        else:
+            raise e
+    instr_sets = list(models.values())
+    instr_sets = [
+        instr_set
+        for instr_set in instr_sets
+        if len(instr_set.instructions) > 0
+        or len(instr_set.unencoded_instructions) > 0
+    ]
+    if len(instr_sets) == 1:
+        instr_set = instr_sets[0]
+    else:
+        instr_set = instr_sets[-1]
+    assert len(instr_set.instructions) == 0
+    assert len(instr_set.unencoded_instructions) > 0
+    ret = {}
+    for instr_def in instr_set.unencoded_instructions.values():
+        name = instr_def.name
+        if add_mnemonic_prefix:
+            prefix = set_name.lower()
+            name_lower = name.lower()
+            mnemonic = f"{prefix}.{name_lower}"
+            instr_def.mnemonic = mnemonic
+        assert (
+            name not in ret
+        ), f"Duplicate instrustion name: {name}"
+        ret[name] = instr_def
+    # contributing_types.append(set_name_)
+    # break  # TODO
+    return ret, None
 
 
 def get_cdsl_sets(ext: str, xlen: int = 32, compressed: bool = False):
@@ -181,6 +222,7 @@ def generate_etiss_core(
     skip_errors: bool = True,
     extra_includes: Optional[List[Union[str, Path]]] = None,
     add_mnemonic_prefix: bool = False,
+    n_parallel: int = 1,
 ):
     logger.info("Generating ETISS core...")
     # artifacts = sess.artifacts
@@ -275,59 +317,21 @@ def generate_etiss_core(
     # name_idx = 0
     errs_file = gen_dir / "errs.txt"
     errs = {}
-    from collections import defaultdict
-
     unencoded_instructions_per_set = defaultdict(dict)
-    for set_name, set_name_, set_file in generated_sets:
-        # print("set_name_", set_name_)
-        # print("set_file", set_file)
-        # input(">>>")
-        try:
-            models = parse_cdsl2_set(set_file, extra_includes)
-        except Exception as e:
-            errs[(set_name, set_name_)] = str(e)
-            if skip_errors:
-                logger.exception(e)
-            else:
-                raise e
-        instr_sets = list(models.values())
-        # for instr_set in instr_sets:
-        #     print("instr_set", instr_set)
-        #     print("instr_set.instructions", instr_set.instructions)
-        #     print("instr_set.unencoded_instructions", instr_set.unencoded_instructions)
-        # print("instr_sets", instr_sets)
-        instr_sets = [
-            instr_set
-            for instr_set in instr_sets
-            if len(instr_set.instructions) > 0
-            or len(instr_set.unencoded_instructions) > 0
-        ]
-        # print("instr_sets", instr_sets)
-        if len(instr_sets) == 1:
-            instr_set = instr_sets[0]
-        else:
-            instr_set = instr_sets[-1]
-        # print("instr_set", instr_set)
-        assert len(instr_set.instructions) == 0
-        assert len(instr_set.unencoded_instructions) > 0
-        # instructions.update(instr_set.instructions)
-        for instr_def in instr_set.unencoded_instructions.values():
-            name = instr_def.name
-            if add_mnemonic_prefix:
-                prefix = set_name.lower()
-                name_lower = name.lower()
-                mnemonic = f"{prefix}.{name_lower}"
-                instr_def.mnemonic = mnemonic
-            # name = f"CUSTOM{name_idx}"
-            # name_idx += 1
-            # instr_def.name = name
-            # instr_def.mnemonic = name.lower()
-            assert (
-                name not in unencoded_instructions_per_set
-            ), f"Duplicate instrustion name: {name}"
-            unencoded_instructions_per_set[set_name][name] = instr_def
-        # contributing_types.append(set_name_)
-        # break  # TODO
+    with ProcessPoolExecutor(n_parallel) as pool:
+        futures = []
+        for set_name, set_name_, set_file in generated_sets:
+            future = pool.submit(parse_generated_set, set_file, skip_errors=skip_errors)
+            futures.append(future)
+        for future in futures:
+            # TODO: except failing?
+            result = future.result()
+            unencoded_instructions, err_msg = result
+            if unencoded_instructions is None:
+                assert err_msg is not None
+                errs[(set_name, set_name_)] = err_msg
+            assert set_name not in unencoded_instructions_per_set, f"Duplicate set name: {set_name}"
+            unencoded_instructions_per_set[set_name] = unencoded_instructions
 
     instructions_per_set = defaultdict(dict)
     for set_name, unencoded_instructions in unencoded_instructions_per_set.items():
@@ -478,6 +482,7 @@ def handle(args):
             args.extra_includes.split(";") if args.extra_includes is not None else None
         ),
         add_mnemonic_prefix=args.add_mnemonic_prefix,
+        n_parallel=args.parallel,
     )
     if sess is not None:
         sess.save()
@@ -506,6 +511,7 @@ def get_parser():
     parser.add_argument("--split", action="store_true")
     parser.add_argument("--base-dir", type=str, default="rv_base")
     parser.add_argument("--tum-dir", type=str, default=".")
+    parser.add_argument("--parallel", type=int, default=multiprocessing.cpu_count(),)
     parser.add_argument(
         "--extra-includes", type=str, default=None
     )  # semicolon separated
