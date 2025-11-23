@@ -11,7 +11,7 @@ Utilities in the [`scripts/`](scripts/) directory are used to select the appropr
 Most tools are hosted [here](https://github.com/PhilippvK/riscv-tools/releases) and can be manually downloaded via:
 
 ```sh
-wget https://github.com/PhilippvK/riscv-tools/releases/download/gnu_2024.09.03/riscv64-unknown-elf-ubuntu-20.04-rv32gc_ilp32d.tar.xz
+wget https://github.com/PhilippvK/riscv-tools/releases/download/gnu_2024.09.03/riscv32-unknown-elf-ubuntu-20.04-rv32gc_ilp32d.tar.xz
 ```
 
 or similar.

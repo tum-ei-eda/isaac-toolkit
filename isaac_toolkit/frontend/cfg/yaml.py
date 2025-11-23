@@ -23,7 +23,6 @@ from pathlib import Path
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.config import IsaacConfig
-from isaac_toolkit.session.artifact import ArtifactFlag, ElfArtifact
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()

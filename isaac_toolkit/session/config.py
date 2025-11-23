@@ -47,6 +47,26 @@ DEFAULT_CONFIG = {
         "password": "",
         "database": "memgraph",
     },
+    "artifacts": {
+        "instr_trace": {
+            "fmt": "pickle",
+            "engine": None,
+            "compression_method": "zstd",
+            "compression_level": None,
+        },
+        "trace": {
+            "fmt": "pickle",
+            "engine": None,
+            "compression_method": "zstd",
+            "compression_level": None,
+        },
+        "table": {
+            "fmt": "pickle",
+            "engine": None,
+            "compression_method": None,
+            "compression_level": None,
+        },
+    },
     "flow": {
         "demo": {
             "stages": None,
@@ -198,6 +218,22 @@ class MemgraphSettings(YAMLSettings):
     user: Optional[str] = None
     password: Optional[str] = None
     database: Optional[str] = "memgraph"
+
+
+@dataclass
+class TableArtifactsSettings(YAMLSettings):
+    # compression: Optional[CompressionSettings] = None
+    fmt: Optional[str] = None
+    engine: Optional[str] = None
+    compression_method: Optional[str] = None
+    compression_level: Optional[int] = None
+
+
+@dataclass
+class ArtifactsSettings(YAMLSettings):
+    instr_trace: Optional[TableArtifactsSettings] = None
+    trace: Optional[TableArtifactsSettings] = None
+    table: Optional[TableArtifactsSettings] = None
 
 
 @dataclass
@@ -406,3 +442,4 @@ class IsaacConfig(YAMLSettings):
     logging: Optional[LoggingSettings] = None
     memgraph: Optional[MemgraphSettings] = None
     flow: Optional[FlowSettings] = None
+    artifacts: Optional[ArtifactsSettings] = None

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -22,8 +22,6 @@ from pathlib import Path
 
 # from collections import defaultdict
 
-import pandas as pd
-
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 from isaac_toolkit.logging import get_logger, set_log_level
@@ -32,16 +30,15 @@ logger = get_logger()
 
 
 def collect_instructions(trace_df):
-    instrs = trace_df["instr"].value_counts().to_dict()
-    instrs_data = []
-    for instr_name, instr_count in instrs.items():
-        instr_data = {"instr": instr_name, "count": instr_count}
-        instrs_data.append(instr_data)
-    instrs_df = pd.DataFrame(instrs_data)
+    instrs_df = (
+        trace_df["instr"]
+        .value_counts()
+        .rename_axis("instr")  # makes 'instr' a column
+        .reset_index(name="count")  # turns counts into a column
+    )
     total_count = instrs_df["count"].sum()
     instrs_df["rel_count"] = instrs_df["count"] / total_count
     instrs_df.sort_values("count", ascending=False, inplace=True)
-
     return instrs_df
 
 
@@ -49,9 +46,7 @@ def create_instr_hist(sess: Session, force: bool = False):
     logger.info("Creating instrution histogram...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     # print("elf_artifacts", elf_artifacts)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]

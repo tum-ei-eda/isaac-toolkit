@@ -1,0 +1,3 @@
+[submodule "examples/standalone/embench/embench-iot"]
+	path = examples/standalone/embench/embench-iot
+	url = https://github.com/embench/embench-iot.git

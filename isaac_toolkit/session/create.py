@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,18 +17,18 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from typing import Optional
 from pathlib import Path
 
-from . import Session
 from isaac_toolkit.logging import get_logger, set_log_level
+from . import Session
 
 logger = get_logger()
 
 
 def create(session_dir: Path, force: bool = False, interactive: bool = False, default_log_level: Optional[str] = None):
+    del force
     if session_dir.is_dir():
         logger.info("Re-initializing existing session: %s", session_dir)
         if interactive:

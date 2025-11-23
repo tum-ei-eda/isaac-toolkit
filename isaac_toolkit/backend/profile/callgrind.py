@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -29,7 +29,7 @@ from cpp_demangle import demangle
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 from isaac_toolkit.logging import get_logger, set_log_level
 
@@ -44,16 +44,28 @@ def unmangle_helper(func_name: Optional[str]):
     return demangle(func_name)
 
 
+PC_FUNC_NAME_CACHE = {}
+
+
+# TODO: reset?
+
+
 def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
     # TODO: refactor to use existing tables
     """
     Given a program counter, find the function it belongs to
     """
+    found = PC_FUNC_NAME_CACHE.get(pc)
+    if found is not None:
+        return found
     for func, ranges in mapping.items():
         for range_ in ranges:
             if pc >= range_[0] and pc <= range_[1]:
+                PC_FUNC_NAME_CACHE[pc] = func
                 return func
-    return hex(pc)
+    ret = hex(pc)
+    PC_FUNC_NAME_CACHE[pc] = ret
+    return ret
 
 
 def collect_bbs(trace_df, mapping):
@@ -63,7 +75,7 @@ def collect_bbs(trace_df, mapping):
     bb_freq = defaultdict(int)
     prev_pc = None
     prev_size = None
-    prev_instr = None
+    # prev_instr = None
     bbs = []
     bb_instrs = []
     bb_size = 0
@@ -130,7 +142,7 @@ def collect_bbs(trace_df, mapping):
                 bb_freq[bb] += 1
             first_pc = None
         prev_pc = pc
-        prev_instr = instr
+        # prev_instr = instr
         prev_size = sz
     if first_pc is not None:
         func = None
@@ -507,6 +519,17 @@ def generate_callgrind_output(
         elf_file_path=elf_file_path,
         unmangle_names=unmangle_names,
     )
+
+    if output is None:
+        profile_dir = sess.directory / "profile"
+        profile_dir.mkdir(exist_ok=True)
+        out_name = "callgrind"
+        if dump_pc:
+            out_name += "_pc"
+        if dump_pos:
+            out_name += "_pos"
+        out_name += ".out"
+        output = profile_dir / out_name
     with open(output, "w") as f:
         f.write(content)
 

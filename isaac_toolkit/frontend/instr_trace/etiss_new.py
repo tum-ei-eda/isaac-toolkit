@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -16,7 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import time
+
+# import time
 import sys
 import pandas as pd
 import argparse
@@ -51,27 +52,18 @@ def load_instr_trace(
     dfs = []
     for input_file in sorted_files:
         assert input_file.is_file(), f"File not found: {input_file}"
-        # print("file", input_file)
         with pd.read_csv(input_file, sep=";", chunksize=2**22, header=0) as reader:
             for df in tqdm(reader, disable=not progress):
                 df = df.rename(columns=lambda x: x.strip())
-                # print("df", df)
-                # print("A", time.time())
                 df["pc"] = df["pc"].apply(lambda x: int(x, 0))
                 df["pc"] = pd.to_numeric(df["pc"])
-                # print("B", time.time())
                 # TODO: normalize instr names
                 df[["instr", "rest"]] = df["assembly"].str.split(
                     " # ", n=1, expand=True
                 )
                 df["instr"] = df["instr"].apply(lambda x: x.strip())
                 df["instr"] = df["instr"].astype("category")
-                # print("C", time.time())
-                # print("D", time.time())
-                df[["bytecode", "operands"]] = df["rest"].str.split(
-                    " ", n=1, expand=True
-                )
-                # print("E", time.time())
+                df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
 
                 def detect_size(bytecode):
                     if bytecode[:2] == "0x":
@@ -84,7 +76,6 @@ def load_instr_trace(
 
                 df["size"] = df["bytecode"].apply(detect_size)
                 df["size"] = df["size"].astype("category")
-                # print("F", time.time())
                 df["bytecode"] = df["bytecode"].apply(
                     lambda x: (
                         int(x, 16)
@@ -93,7 +84,6 @@ def load_instr_trace(
                     )
                 )
                 df["bytecode"] = pd.to_numeric(df["bytecode"])
-                # print("H", time.time())
 
                 def convert(x):
                     ret = {}
@@ -114,11 +104,13 @@ def load_instr_trace(
                     df.drop(columns=["operands"], inplace=True)
                 df.drop(columns=["rest"], inplace=True)
                 df.drop(columns=["assembly"], inplace=True)
-                # print("I", time.time())
                 dfs.append(df)
     df = pd.concat(dfs, axis=0)
     df["instr"] = df["instr"].astype("category")
     df["size"] = df["size"].astype("category")
+    df["pc"] = pd.to_numeric(df["pc"], downcast="unsigned")
+    df["bytecode"] = pd.to_numeric(df["bytecode"], downcast="unsigned")
+    df.reset_index(drop=True, inplace=True)
 
     attrs = {
         "simulator": "etiss",

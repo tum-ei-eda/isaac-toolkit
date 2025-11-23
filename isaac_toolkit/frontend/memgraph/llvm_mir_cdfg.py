@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -22,11 +22,11 @@ from pathlib import Path
 
 from neo4j import GraphDatabase, Query
 import networkx as nx
-from networkx.drawing.nx_agraph import write_dot
-import matplotlib.pyplot as plt
+
+# import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, GraphArtifact
+from isaac_toolkit.session.artifact import GraphArtifact
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
@@ -78,7 +78,6 @@ def get_cfg_artifacts(driver, label: str = "default"):
         for rel in rels:
             props = rel._properties
             label = rel.type
-            # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
             G.add_edge(
                 rel.start_node.id,
                 rel.end_node.id,
@@ -99,10 +98,8 @@ def get_cfg_artifacts(driver, label: str = "default"):
                     "module_name": module_name,
                     "func_name": func_name,
                 }
-                artifact = GraphArtifact(
-                    f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs
-                )
-                # logger.debug("artifact", artifact, dir(artifact), artifact.flags)
+                artifact = GraphArtifact(f"{legalize_str(module_name)}/{func_name}/llvm_cfg", G_, attrs=attrs)
+                # print("artifact", artifact, dir(artifact), artifact.flags)
                 ret.append(artifact)
     finally:
         session.close()
@@ -153,7 +150,6 @@ def get_dfg_artifacts(driver, label: str = "default"):
         for rel in rels:
             props = rel._properties
             label = rel.type
-            # G.add_edge(rel.start_node.element_id, rel.end_node.element_id, key=rel.element_id, label=label, type=rel.type, properties=rel._properties)
             G.add_edge(
                 rel.start_node.id,
                 rel.end_node.id,

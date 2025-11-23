@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,24 +17,12 @@
 # limitations under the License.
 #
 import sys
-import yaml
-import logging
 import argparse
 import subprocess
 from typing import Optional, Union
 from pathlib import Path
-from collections import defaultdict
-
-import pandas as pd
-from neo4j import GraphDatabase, Query
-import networkx as nx
-import networkx.algorithms.isomorphism as iso
-
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
-from isaac_toolkit.utils.graph_utils import memgraph_to_nx
-from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
@@ -47,10 +35,9 @@ def generate_cdsl(
     gen_dir: Optional[Union[str, Path]] = None,
     force: bool = False,
 ):
+    del sess, force
     logger.info("Generating CDSL...")
-    combined_index_file = (
-        workdir / "combined_index.yml" if index_file is None else Path(index_file)
-    )
+    combined_index_file = workdir / "combined_index.yml" if index_file is None else Path(index_file)
     assert combined_index_file.is_file()
     # with open(combined_index_file, "r") as f:
     #     index_data = yaml.safe_load(f)

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import sys
 import argparse
 import posixpath
@@ -33,70 +34,79 @@ logger = get_logger()
 
 
 def parse_dwarf(elf_path):
-    func2pcs_data = []
+    # func2pcs_data = []
+    func_ranges = {}
     # the mapping between source file and its function
     srcFile_func_dict = defaultdict(lambda: [set(), set(), set()])
     # the mapping between program counter and source line
     pc_to_source_line_mapping = defaultdict(list)
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
-        #### ###
-        #### from elftools.elf.sections import SymbolTableSection
-        #### # print('  %s sections' % elffile.num_sections())
-        #### section = elffile.get_section_by_name('.symtab')
-
-        #### assert section, "Symbol Table not found!"
-        #### # print('  Section name: %s, type: %s' %(section.name, section['sh_type']))
-        #### if isinstance(section, SymbolTableSection):
-        ####    num_symbols = section.num_symbols()
-        ####    # print("  It's a symbol section with %s symbols" % num_symbols)
-        ####    start_symbol = section.get_symbol_by_name("_start")
-        ####    assert len(start_symbol) == 1
-        ####    start_symbol = start_symbol[0]
-        ####    # print("start_symbol", start_symbol, start_symbol.entry, start_symbol.name)
-        ####    start_addr = start_symbol.entry["st_value"]
-        ####    # print("start_addr", start_addr)
-        ####    total_footprint = 0
-        ####    func_footprint = {}
-        ####    for i, sym in enumerate(section.iter_symbols()):
-        ####        # print("i", s]ym.entry)
-        ####        ty = sym.entry["st_info"]["type"]
-        ####        if ty != "STT_FUNC":
-        ####            continue
-        ####        func = sym.name
-        ####        sz = sym.entry["st_size"]
-        ####        # print("ty", ty)
-        ####        # print("sz", sz)
-        ####        func_footprint[func] = sz
-        ####        total_footprint += sz
-        ####    # print("total_footprint", total_footprint)
-        ####    # print("func_footprint", func_footprint)
-        ####    footprint_df = pd.DataFrame(func_footprint.items(), columns=["func", "bytes"])
-        ####    footprint_df.sort_values("bytes", inplace=True, ascending=False)
-        ####    footprint_df["rel_bytes"] = footprint_df["bytes"] / total_footprint
-        ####    # print("footprint_df", footprint_df)
-        ####    # print("  The name of the last symbol in the section is: %s" % (section.get_symbol(num_symbols - 1).name))
-        #### # input("123")
-        #### ###
 
         # mapping function symbol to pc range
-        for section in elffile.iter_sections():
-            if section.name == ".symtab":
-                symbol_table = section
-                break
+        symtab = elffile.get_section_by_name(".symtab")
+        if symtab is None:
+            raise RuntimeError("No symbol table found (.symtab missing)")
 
-        for symbol in symbol_table.iter_symbols():
-            symbol_type = symbol["st_info"]["type"]
-            if symbol_type == "STT_FUNC":
-                start_pc = symbol["st_value"]
-                end_pc = start_pc + symbol["st_size"] - 1
-                range = (start_pc, end_pc)
-                # mapping[symbol.name] = range
-                new = (symbol.name, (start_pc, end_pc))
-                func2pcs_data.append(new)
-            # Warning: this mapping uses mangled func names
+        funcs_by_section = defaultdict(list)  # shndx -> list of (start, size, name, symbol)
+        for symbol in symtab.iter_symbols():
+            try:
+                st_type = symbol["st_info"]["type"]
+            except Exception:
+                continue
+            if st_type != "STT_FUNC":
+                continue
+            start = symbol["st_value"]
+            size = symbol["st_size"]
+            shndx = symbol["st_shndx"]
+            name = symbol.name or "<anon>"
+            funcs_by_section[shndx].append((start, size, name, symbol))
 
-        ## mapping source file to function
+        # 3) For each section, sort by start addr and compute ranges
+        for shndx, syms in funcs_by_section.items():
+            # skip special indices (we still handle them but there might be no section)
+            section = None
+            try:
+                if isinstance(shndx, int):
+                    section = elffile.get_section(shndx)
+                else:
+                    # PyElfTools may give SHN_UNDEF as string, leave section None
+                    section = None
+            except Exception:
+                section = None
+
+            syms_sorted = sorted(syms, key=lambda x: x[0])
+            for idx, (start, size, name, symbol) in enumerate(syms_sorted):
+
+                if size and size != 0:
+                    end = start + size - 1
+                    func_ranges[name] = (start, end)
+                    continue
+
+                # size == 0: try to infer from next symbol in same section
+                end = None
+                # find next symbol with start > this start
+                next_start = None
+                for j in range(idx + 1, len(syms_sorted)):
+                    candidate_start = syms_sorted[j][0]
+                    if candidate_start > start:
+                        next_start = candidate_start
+                        break
+                if next_start is not None:
+                    end = next_start - 1
+                elif section is not None:
+                    # fallback to section end
+                    sec_start = section["sh_addr"]
+                    sec_size = section["sh_size"]
+                    end = sec_start + sec_size - 1
+                else:
+                    # last resort: set end == start (or None)
+                    end = start
+
+                func_ranges[name] = (start, end)
+
+        func2pcs_data = list(func_ranges.items())
+        # mapping source file to function
         if not elffile.has_dwarf_info():
             logger.error("ELF file has no DWARF info!")
             return func2pcs_data, None, None
@@ -133,6 +143,7 @@ def parse_dwarf(elf_path):
                 return file_entry.name.decode()
 
             directory = lp_header["include_directory"][dir_index]
+            # TODO: try out actual_path = op.normpath(CU.get_top_DIE().get_full_path())?
             return posixpath.join(directory, file_entry.name).decode()
 
         for CU in dwarfinfo.iter_CUs():
@@ -166,7 +177,7 @@ def parse_dwarf(elf_path):
                         file_index = DIE.attributes["DW_AT_decl_file"].value
                         filename = lpe_filename(line_program, file_index)
                     else:
-                        file_name = "???"
+                        filename = "???"
 
                     srcFile_func_dict[filename][0].add(func_name)
                     srcFile_func_dict[filename][1].add(linkage_name)
@@ -178,16 +189,22 @@ def parse_dwarf(elf_path):
                 logger.warning("  DWARF info is missing a line program for this CU")
                 continue
 
-            CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
+            # CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
+            actual_path = os.path.normpath(CU.get_top_DIE().get_full_path())
+            # print("actual_path", actual_path)
 
             for entry in line_program.get_entries():
                 if entry.state:
                     pc = entry.state.address
                     line = entry.state.line
-                    pc_to_source_line_mapping[CU_name].append((pc, line))
+                    # print("line", line)
+                    # pc_to_source_line_mapping[CU_name].append((pc, line))
+                    pc_to_source_line_mapping[actual_path].append((pc, line))
 
-            if CU_name in pc_to_source_line_mapping:
-                pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
+            # if CU_name in pc_to_source_line_mapping:
+            if actual_path in pc_to_source_line_mapping:
+                # pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
+                pc_to_source_line_mapping[actual_path].sort(key=lambda x: x[0])
     return func2pcs_data, srcFile_func_dict, pc_to_source_line_mapping
 
 
@@ -232,9 +249,9 @@ def analyze_dwarf(sess: Session, force: bool = False):
         "by": "isaac_toolkit.analysis.static.dwarf",
     }
 
-    func2pc_artifact = TableArtifact(f"func2pc", func2pc_df, attrs=attrs)
-    file2funcs_artifact = TableArtifact(f"file2funcs", file2funcs_df, attrs=attrs)
-    pc2locs_artifact = TableArtifact(f"pc2locs", pc2locs_df, attrs=attrs)
+    func2pc_artifact = TableArtifact("func2pc", func2pc_df, attrs=attrs)
+    file2funcs_artifact = TableArtifact("file2funcs", file2funcs_df, attrs=attrs)
+    pc2locs_artifact = TableArtifact("pc2locs", pc2locs_df, attrs=attrs)
     # print("artifact1", func2pc_artifact)
     # print("artifact2", file2funcs_artifact)
     # print("artifact3", pc2locs_artifact)

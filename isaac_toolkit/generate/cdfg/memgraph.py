@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -38,9 +38,7 @@ def get_command_for_file(compile_commands_df: pd.DataFrame, file: str):
     if len(matches) == 0:
         matches = compile_commands_df[compile_commands_df["file_name"] == file]
     assert len(matches) > 0, "Could not find compile commands for file: {file}"
-    assert (
-        len(matches) == 1
-    ), "Too many matches during compile commands lookup for file: {file}"
+    assert len(matches) == 1, "Too many matches during compile commands lookup for file: {file}"
     command = matches["command"].values[0]
     directory = matches["directory"].values[0]
     return command, directory
@@ -52,11 +50,10 @@ def generate_memgraph_cdfg_via_compile_commands(
     stage: int = 32,
     force: bool = False,
 ):
+    del stage, force
     logger.info("Generating Memgraph CDFG via compile commands...")
     artifacts = sess.artifacts
-    choices_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices"
-    )
+    choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
     assert len(choices_artifacts) == 1
     choices_artifact = choices_artifacts[0]
     choices_df = choices_artifact.df
@@ -64,31 +61,29 @@ def generate_memgraph_cdfg_via_compile_commands(
 
     compile_commands_artifacts = filter_artifacts(
         artifacts,
-        lambda x: x.flags & ArtifactFlag.TABLE
-        and x.attrs.get("kind") == "compile_commands",
+        lambda x: x.flags & ArtifactFlag.TABLE and x.attrs.get("kind") == "compile_commands",
     )
     assert len(compile_commands_artifacts) == 1
     compile_commands_artifact = compile_commands_artifacts[0]
     compile_commands_df = compile_commands_artifact.df
-    compile_commands_df["file_resolved"] = compile_commands_df["file"].apply(
-        lambda x: Path(x).resolve()
-    )
-    compile_commands_df["file_name"] = compile_commands_df["file"].apply(
-        lambda x: Path(x).name
-    )
+    compile_commands_df["file_resolved"] = compile_commands_df["file"].apply(lambda x: Path(x).resolve())
+    compile_commands_df["file_name"] = compile_commands_df["file"].apply(lambda x: Path(x).name)
 
-    symbol_map_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "symbol_map"
-    )
-    symbol_map_df = None
-    if len(symbol_map_artifacts) > 0:
-        assert len(symbol_map_artifacts) == 1
-        symbol_map_artifact = symbol_map_artifacts[0]
-        symbol_map_df = symbol_map_artifact.df
+    # symbol_map_artifacts = filter_artifacts(
+    #     artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "symbol_map"
+    # )
+    # symbol_map_df = None
+    # if len(symbol_map_artifacts) > 0:
+    #     assert len(symbol_map_artifacts) == 1
+    #     symbol_map_artifact = symbol_map_artifacts[0]
+    #     symbol_map_df = symbol_map_artifact.df
 
     files = choices_df["file"].unique()
 
-    extra_args = f"-mllvm -cdfg-enable=1 -mllvm -cdfg-memgraph-session={label} -mllvm -cdfg-memgraph-purge=0 -mllvm -cdfg-stage-mask={stage}"
+    extra_args = (
+        f"-mllvm -cdfg-enable=1 -mllvm -cdfg-memgraph-session={label} -mllvm -cdfg-memgraph-purge=0"
+        "-mllvm -cdfg-stage-mask={stage}"
+    )
 
     for file in files:
         # print("file", file)
@@ -114,9 +109,7 @@ def handle(args):
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
-    generate_memgraph_cdfg_via_compile_commands(
-        sess, label=args.label, stage=args.stage, force=args.force
-    )
+    generate_memgraph_cdfg_via_compile_commands(sess, label=args.label, stage=args.stage, force=args.force)
     sess.save()
 
 

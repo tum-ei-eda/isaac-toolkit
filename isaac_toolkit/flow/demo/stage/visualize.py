@@ -22,7 +22,6 @@ from pathlib import Path
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
-from isaac_toolkit.analysis.static.dwarf import analyze_dwarf
 from isaac_toolkit.visualize.pie.runtime import create_runtime_pie_plots
 from isaac_toolkit.visualize.pie.mem_footprint import create_mem_footprint_pie_plots
 from isaac_toolkit.visualize.pie.disass_counts import create_disass_counts_pie_plots
@@ -31,6 +30,7 @@ logger = get_logger()
 
 
 def visualize_artifacts(sess: Session, force: bool = False, progress: bool = False):
+    del progress
     logger.info("Visualizing ISAAC Demo artifacts...")
     create_runtime_pie_plots(sess, force=force)
     create_mem_footprint_pie_plots(sess, force=force)

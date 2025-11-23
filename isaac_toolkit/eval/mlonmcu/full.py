@@ -24,7 +24,7 @@ from pathlib import Path
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.session.artifact import filter_artifacts
 from isaac_toolkit.frontend.elf.riscv import load_elf
 from isaac_toolkit.frontend.linker_map import load_linker_map
 from isaac_toolkit.frontend.instr_trace.etiss import (

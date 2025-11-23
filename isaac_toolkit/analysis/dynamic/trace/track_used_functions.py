@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -18,12 +18,9 @@
 #
 import sys
 import argparse
-import posixpath
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
-from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
@@ -44,20 +41,17 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
         func_name = row["func"]
         matches = func2pc_df.where(lambda x: x["func"] == func_name).dropna()
         # print("matches", matches)
-        # assert len(matches) == 1
         assert len(matches) > 0
-        for _, m in matches.iterrows():
-            pc_range = m["pc_range"]
-            # print("pc_range", pc_range)
+        for pc_range in matches["pc_range"].values:
             start_pc, end_pc = pc_range
             if end_pc < 0:
                 continue
             matches = trace_df_unique.where(lambda x: x["pc"] >= start_pc).dropna()
             matches = matches.where(lambda x: x["pc"] < end_pc).dropna()
             if len(matches) > 0:
-                # print("matches", matches)
                 df.loc[index, "Used"] = True
-    bytes_before = df["bytes"].sum()
+                break
+    # bytes_before = df["bytes"].sum()
     df = df[df["Used"]]
     bytes_after = df["bytes"].sum()
     df["eff_rel_bytes"] = df["bytes"] / bytes_after

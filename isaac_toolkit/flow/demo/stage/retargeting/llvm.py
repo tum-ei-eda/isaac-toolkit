@@ -63,7 +63,7 @@ def retarget_llvm_auto(
     assert demo_config is not None
     docker_config = demo_config.docker
     assert docker_config is not None
-    use_docker = docker_config.enable
+    use_docker = docker_override if docker_override is not None else docker_config.enable
     riscv_config = demo_config.riscv
     assert riscv_config is not None
     coredsl_config = demo_config.coredsl
@@ -93,7 +93,8 @@ def retarget_llvm_auto(
         label=label,
         force=force,
         verbose=verbose,
-        cleanup=args.cleanup,
+        cleanup=cleanup,
+        progress=progress,
     )
 
 
@@ -118,7 +119,7 @@ def handle(args):
         splitted=args.splitted,
         force=args.force,
         docker_override=docker_override,
-        verbose=verbose,
+        verbose=args.verbose,
         cleanup=args.cleanup,
     )
     sess.save()

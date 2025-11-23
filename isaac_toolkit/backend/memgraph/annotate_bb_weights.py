@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -57,7 +57,8 @@ def anonotate_helper(
 
     session = driver.session()
     try:
-        results = session.run(bb_query)
+        # results = session.run(bb_query)
+        _ = session.run(bb_query)
         # print("results", results)
         # print("results.df", results.df)
         # input("<>")
@@ -81,7 +82,8 @@ def anonotate_helper(
 
     session = driver.session()
     try:
-        results = session.run(instrs_query)
+        # results = session.run(instrs_query)
+        _ = session.run(instrs_query)
         # print("results", results, dir(results))
         if check:
             pass

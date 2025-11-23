@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,11 +17,6 @@
 # limitations under the License.
 #
 import sys
-import argparse
-from pathlib import Path
-
-from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, SourceArtifact
 
 from .c import get_parser, handle
 

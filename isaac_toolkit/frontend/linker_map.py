@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -23,7 +23,7 @@ from pathlib import Path
 from mapfile_parser import mapfile
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, PythonArtifact
+from isaac_toolkit.session.artifact import PythonArtifact
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
