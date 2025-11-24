@@ -24,7 +24,7 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
-from .opcode import collect_opcodes
+from .opcode import collect_opcodes, decode_opcode
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
@@ -47,29 +47,50 @@ def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
     llvm_bbs_df[["start", "end"]] = llvm_bbs_df["pcs"].apply(pd.Series)
     # print("llvm_bbs_df", llvm_bbs_df)
 
+    # TODO: use pc_hist
+    pc_counts = trace_df["pc"].value_counts().rename("count").reset_index()
+    pc_counts.columns = ["pc", "count"]
+
+    # extract table of unique (pc, bytecode)
+    unique_pc_df = trace_df.drop_duplicates(subset=["pc"])[["pc", "bytecode"]]
+
+    # apply detect_opcode once per PC
+    unique_pc_df["opcode"] = unique_pc_df["bytecode"].apply(decode_opcode)
+
+    # keep only (pc, opcode)
+    pc_to_opcode = unique_pc_df[["pc", "opcode"]]
+
+    pc_opcode_df = (
+        pc_counts.merge(pc_to_opcode, on="pc", how="left")
+                 .sort_values("pc")
+                 .reset_index(drop=True)
+    )
+
     dfs = []
     for _, row in llvm_bbs_df.iterrows():
-        func_name = row["func_name"]
-        bb_name = row["bb_name"]
         start = row["start"]
-        end = row["end"]
-        # print("func_name", func_name)
-        # print("bb_name", bb_name)
-        trace_df_ = (
-            trace_df.where(lambda x: x["pc"] >= start)
-            .dropna()
-            .where(lambda x: x["pc"] < end)
-            .dropna()
-        )
-        if len(trace_df_) == 0:
+        end   = row["end"]
+
+        # Efficient filter: this DataFrame is tiny compared to trace_df
+        slice_df = pc_opcode_df.loc[
+            (pc_opcode_df["pc"] >= start) & (pc_opcode_df["pc"] < end)
+        ]
+
+        if slice_df.empty:
             continue
-        # print("trace_df_", trace_df_)
-        opcodes_df_ = collect_opcodes(trace_df_)
-        opcodes_df_.insert(0, "func_name", func_name)
-        opcodes_df_.insert(1, "bb_name", bb_name)
-        # print("opcodes_df_", opcodes_df_)
-        # input()
-        dfs.append(opcodes_df_)
+
+        # aggregate counts by opcode
+        op_hist = (
+            slice_df.groupby("opcode")["count"]
+                    .sum()
+                    .reset_index()
+        )
+
+        op_hist.insert(0, "func_name", row["func_name"])
+        op_hist.insert(1, "bb_name", row["bb_name"])
+
+        dfs.append(op_hist)
+
     df = pd.concat(dfs)
 
     attrs = {
