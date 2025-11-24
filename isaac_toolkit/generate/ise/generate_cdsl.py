@@ -115,7 +115,7 @@ def get_parser():
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--gen-dir", type=str, default=None)
     parser.add_argument("--index", type=str, default=None)
-    parser.add_argument("--parallel", type=int, default=multiprocessing.cpu_count(), default=None)
+    parser.add_argument("--parallel", type=int, default=multiprocessing.cpu_count())
     return parser
 
 
