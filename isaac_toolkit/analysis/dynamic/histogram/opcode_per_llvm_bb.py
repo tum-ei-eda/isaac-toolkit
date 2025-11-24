@@ -24,7 +24,7 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
-from .opcode import collect_opcodes, decode_opcode
+from .opcode import decode_opcode
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
@@ -50,6 +50,7 @@ def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
     # TODO: use pc_hist
     pc_counts = trace_df["pc"].value_counts().rename("count").reset_index()
     pc_counts.columns = ["pc", "count"]
+    total_count = pc_counts["count"].sum()
 
     # extract table of unique (pc, bytecode)
     unique_pc_df = trace_df.drop_duplicates(subset=["pc"])[["pc", "bytecode"]]
@@ -92,6 +93,7 @@ def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
         dfs.append(op_hist)
 
     df = pd.concat(dfs)
+    df["rel_count"] = df["count"] / total_count
 
     attrs = {
         "kind": "histogram",
