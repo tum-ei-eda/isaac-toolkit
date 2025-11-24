@@ -29,7 +29,7 @@ from isaac_toolkit.logging import get_logger, set_log_level
 logger = get_logger()
 
 
-def map_llvm_bbs_new(sess: Session, force: bool = False):
+def map_llvm_bbs_new(sess: Session, force: bool = False, sort_by: str = "weight"):
     logger.info("Mapping LLVM BBs...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
@@ -52,6 +52,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
     llvm_bbs_df = llvm_bbs_artifact.df.copy()
     llvm_bbs_df[["start", "end"]] = llvm_bbs_df["pcs"].apply(pd.Series)
     # print("llvm_bbs_df", llvm_bbs_df)
+    pc_counts = trace_df["pc"].value_counts()  # TODO: get from historgram?
     total_weight = 0
     for index, row in llvm_bbs_df.sort_values("start").iterrows():
         # print("row", row)
@@ -82,8 +83,19 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
             bb_weight = bb_count * num_instrs
             # print("bb_weight", bb_weight)
             return bb_count, bb_weight
+        def get_bb_freq_weight2(pc_counts, start, end, num_instrs):
+            if num_instrs == 0:
+                return 0, 0.0
+            assert num_instrs > 0
+            matches = pc_counts[pc_counts.index >= start].dropna()
+            matches = matches.where(matches.index < end).dropna()
+            count = sum(matches)
+            bb_count = count // num_instrs
+            bb_weight = bb_count * num_instrs
+            return bb_count, bb_weight
 
-        freq, weight = get_bb_freq_weight(trace_df, start, end, num_instrs)
+        # freq, weight = get_bb_freq_weight(trace_df, start, end, num_instrs)
+        freq, weight = get_bb_freq_weight2(pc_counts, start, end, num_instrs)
         llvm_bbs_df.loc[index, "freq"] = freq
         llvm_bbs_df.loc[index, "weight"] = weight
         llvm_bbs_df.loc[index, "num_instrs"] = num_instrs
@@ -93,7 +105,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False):
     # print("trace_length", trace_length)
     # print("total_weight", total_weight)
     # print("coverage", coverage)
-    llvm_bbs_df.sort_values("freq", inplace=True, ascending=False)
+    llvm_bbs_df.sort_values(sort_by, inplace=True, ascending=False)
     llvm_bbs_df["rel_weight"] = llvm_bbs_df["weight"] / trace_length
     # input(">")
 
