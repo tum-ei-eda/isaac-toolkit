@@ -39,6 +39,12 @@ from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
 
+import logging
+logging.getLogger("behav_builder").setLevel(logging.WARNING)
+logging.getLogger("arch_builder").setLevel(logging.WARNING)
+logging.getLogger("set_parser").setLevel(logging.WARNING)
+logging.getLogger("visit_importer").setLevel(logging.WARNING)
+
 
 def parse_generated_set(set_file, skip_errors: bool = False, extra_includes=None, add_mnemonic_prefix: bool = False, set_name: Optional[str] = None):
     try:
