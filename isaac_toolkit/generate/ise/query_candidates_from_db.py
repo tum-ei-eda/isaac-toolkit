@@ -35,6 +35,7 @@ from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, Table
 from isaac_toolkit.utils.graph_utils import memgraph_to_nx
 from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
 from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.assign_names import assign_names
 
 logger = get_logger()
 
@@ -515,15 +516,7 @@ def query_candidates_from_db(
     # names_df = pd.DataFrame({"instr": names, "num_fused_instrs": num_fused_instrs})
     # names_df["instr_lower"] = names_df["instr"].apply(lambda x: x.lower())
     names_csv = workdir / "names.csv"
-    assign_args = [
-        "python3",
-        "scripts/assign_names.py",  # TODO: move into toolkit
-        combined_index_file,
-        "--inplace",
-        "--csv",
-        names_csv,
-    ]
-    subprocess.run(assign_args, check=True)
+    assign_names(combined_index_file, inplace=True, csv=names_csv)
 
     names_df = pd.read_csv(names_csv)
 
