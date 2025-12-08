@@ -31,7 +31,7 @@ logger = get_logger()
 def retarget_llvm_auto(
     sess: Session,
     cfg_files: List[str],
-    label: str = "",
+    label: str = None,
     workdir: Optional[str] = None,
     splitted: bool = False,
     force: bool = False,
@@ -72,7 +72,8 @@ def retarget_llvm_auto(
     set_name = coredsl_config.set_name
     xlen = riscv_config.xlen
     seal5_sets = []
-    if splitted:
+    # if splitted:
+    if False:
         raise NotImplementedError("Splitted")
     else:
         seal5_sets.append(set_name)
@@ -95,6 +96,7 @@ def retarget_llvm_auto(
         verbose=verbose,
         cleanup=cleanup,
         progress=progress,
+        splitted=splitted,
     )
 
 
@@ -134,7 +136,7 @@ def get_parser():
         choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
-    parser.add_argument("--label", default="")
+    parser.add_argument("--label", default=None)
     parser.add_argument("--workdir", default=None)
     parser.add_argument("--splitted", action="store_true")
     parser.add_argument("--force", "-f", action="store_true")

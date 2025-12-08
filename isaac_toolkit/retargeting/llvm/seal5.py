@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# # import os
+import os
 import sys
 import shutil
 import subprocess
@@ -40,6 +40,7 @@ def retarget_seal5_llvm(
     mount_dir: Optional[Union[str, Path]] = None,
     docker_image: Optional[str] = None,
     seal5_sets: Optional[List[str]] = None,
+    name: Optional[str] = None,
     label: Optional[str] = None,
     cfg_files: Optional[List[Union[str, Path]]] = None,
     splitted: bool = False,
@@ -47,6 +48,7 @@ def retarget_seal5_llvm(
     force: bool = False,
     verbose: bool = False,
     cleanup: bool = False,
+    progress: bool = False,
 ):
     logger.info("Retargeting Seal5 LLVM...")
     assert xlen == 32
@@ -56,8 +58,12 @@ def retarget_seal5_llvm(
     assert workdir.is_dir()
     if seal5_sets is None:
         seal5_sets = ["XIsaac"]
+    print(f"label '{label}'")
     if label is None:
-        label = "default"
+        # label = "splitted" if splitted else ""
+        label = ""
+    if name is None:
+        name = "seal5_splitted" if splitted else "seal5"
     assert cfg_files is not None
     assert len(cfg_files) > 0
     use_docker = docker_image is not None
@@ -65,11 +71,9 @@ def retarget_seal5_llvm(
     base_dir = workdir / subdir
     # seal5_dir = base_dir / "seal5"
     # output_dir = seal5_dir / label
-    output_dir = (base_dir / "seal5") if label == "" else (base_dir / f"seal5_{label}")
+    output_dir = (base_dir / name) if label == "" else (base_dir / f"{name}_{label}")
     if output_dir.is_dir():
-        assert (
-            force
-        ), f"Directory already exists: {output_dir}. Use --force or different --label."
+        assert force, f"Directory already exists: {output_dir}. Use --force or different --label."
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
@@ -77,17 +81,15 @@ def retarget_seal5_llvm(
     # gen_dir = workdir / "gen" / label
     gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     cdsl_files = [
-        (
-            gen_dir / f"{set_name}.splitted.core_desl"
-            if splitted
-            else gen_dir / f"{set_name}.core_desc"
-        )
+        (gen_dir / f"{set_name}.splitted.core_desc" if splitted else gen_dir / f"{set_name}.core_desc")
         for set_name in seal5_sets
     ]
-    # print("cdsl_files", cdsl_files)
+    print("cdsl_files", cdsl_files)
+    print("cfg_files", cfg_files)
     # input("?")
+    # TODO: PROGRESS
     if use_docker:
-        command = "docker run -it --rm"
+        command = "docker run -i --rm"
         if mount_dir is not None:
             command += f" -v {mount_dir}:{mount_dir}"
         command += f" -e CLEANUP={int(cleanup)}"
@@ -111,13 +113,65 @@ def retarget_seal5_llvm(
             print(f"[ERROR] Command failed with return code {e.returncode}")
             if e.stdout:
                 print("--- STDOUT ---")
-                print(e.stdout.decode())
+                print(e.stdout)
             if e.stderr:
                 print("--- STDERR ---")
-                print(e.stderr.decode())
+                print(e.stderr)
             raise  # Re-raise if you want the caller to handle it too
     else:
-        raise NotImplementedError
+        seal5_script_local = os.environ.get("SEAL5_SCRIPT_LOCAL", None)
+        assert seal5_script_local is not None, "Undefined: SEAL5_SCRIPT_LOCAL"
+        args = [seal5_script_local]
+        env = os.environ.copy()
+        env["CLEANUP"] = str(int(cleanup))
+        env["MGCLIENT_ROOT"] = env["MGCLIENT_INSTALL_DIR"]
+        enable_cdfg_pass = True
+        env["ENABLE_CDFG_PASS"] = str(int(enable_cdfg_pass))
+        temp_dir = base_dir / "temp"
+        temp_seal5_home = temp_dir / "seal5_llvm"
+        env["SEAL5_HOME"] = temp_seal5_home
+        ccache = True  # TODO: expose
+        env["CCACHE"] = str(int(ccache))
+        if ccache:
+            ccache_dir = env.get("CCACHE_DIR", None)
+            assert ccache_dir is not None, "Undefined: CCACHE_DIR"
+            env["CCACHE_DIR"] = ccache_dir
+        seal5_cfg_dir = env.get("SEAL5_CFG_DIR", None)
+        assert seal5_cfg_dir is not None, "Undefined: SEAL5_CFG_DIR"
+        env["SEAL5_CFG_DIR"] = seal5_cfg_dir
+        seal5_dir = env.get("SEAL5_DIR", None)
+        assert seal5_dir is not None, "Undefined: SEAL5_DIR"
+        env["SEAL5_DIR"] = seal5_dir
+        llvm_dir = env.get("LLVM_DIR", None)
+        assert llvm_dir is not None, "Undefined: LLVM_DIR"
+        print("llvm_dir", llvm_dir)
+        env["LLVM_REPO"] = llvm_dir
+        llvm_ref = "isaacnew-base-3"  # TODO: expose
+        env["LLVM_REF"] = llvm_ref
+        clone_depth = 2  # TODO: expose?
+        env["CLONE_DEPTH"] = str(clone_depth)
+        args += [output_dir]
+        args += list(map(lambda x: str(Path(x).resolve()), cdsl_files))
+        args += list(map(lambda x: str(Path(x).resolve()), cfg_files))
+        # print("env", env)
+        # print("$$$", args)
+        kwargs = {}
+        # print("verbose", verbose)
+        if not verbose:
+            kwargs.setdefault("stdout", subprocess.PIPE)
+            kwargs.setdefault("stderr", subprocess.PIPE)
+            kwargs.setdefault("text", True)
+        try:
+            subprocess.run(args, check=True, env=env, **kwargs)
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Command failed with return code {e.returncode}")
+            if e.stdout:
+                print("--- STDOUT ---")
+                print(e.stdout)
+            if e.stderr:
+                print("--- STDERR ---")
+                print(e.stderr)
+            raise  # Re-raise if you want the caller to handle it too
 
 
 def handle(args):
@@ -149,9 +203,7 @@ def get_parser():
     # parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--session", "--sess", "-s", type=str, required=False)
     parser.add_argument("--force", "-f", action="store_true")
-    parser.add_argument(
-        "--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?"
-    )
+    parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
     # label: Optional[str] = None,
