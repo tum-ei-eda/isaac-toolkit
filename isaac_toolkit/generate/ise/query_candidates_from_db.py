@@ -36,6 +36,7 @@ from isaac_toolkit.utils.graph_utils import memgraph_to_nx
 from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
 from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.utils.assign_names import assign_names
+from isaac_toolkit.utils.combine_pdfs import combine_pdfs
 
 logger = get_logger()
 
@@ -519,6 +520,9 @@ def query_candidates_from_db(
     assign_names(combined_index_file, inplace=True, csv=names_csv)
 
     names_df = pd.read_csv(names_csv)
+    if len(names_df) > 0:
+        pdf_file = workdir / "all_io_subs.pdf"
+        combine_pdfs(combined_index_file, output=pdf_file)
 
     # Extract names
     with open(combined_index_file, "r") as f:
