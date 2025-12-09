@@ -28,6 +28,7 @@ from pathlib import Path
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.seal5_score import calc_seal5_score
 
 logger = get_logger()
 
@@ -172,6 +173,11 @@ def retarget_seal5_llvm(
                 print("--- STDERR ---")
                 print(e.stderr)
             raise  # Re-raise if you want the caller to handle it too
+    seal5_reports_dir = output_dir / "seal5_reports"
+    seal5_status_csv = seal5_reports_dir / "status.csv"
+    seal5_status_compact_csv = seal5_reports_dir / "status_compact.csv"
+    seal5_score_csv = output_dir / "seal5_score.csv"
+    calc_seal5_score(seal5_status_csv, seal5_status_compact_csv, output=seal5_score_csv)
 
 
 def handle(args):

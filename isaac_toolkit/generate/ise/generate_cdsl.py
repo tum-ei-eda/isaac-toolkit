@@ -22,12 +22,12 @@ import subprocess
 import multiprocessing
 from typing import Optional, Union
 from pathlib import Path
-from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor
 
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.annotate_enc_score import annotate_enc_score
+from isaac_toolkit.utils.analyze_encoding import analyze_encoding
 
 logger = get_logger()
 
@@ -38,10 +38,13 @@ def generate_cdsl(
     index_file: Optional[Union[str, Path]] = None,
     gen_dir: Optional[Union[str, Path]] = None,
     n_parallel: Optional[int] = None,
+    suffix: str = "",
     force: bool = False,
 ):
     del sess, force
     logger.info("Generating CDSL...")
+    if workdir is not None:
+        workdir = Path(workdir)
     combined_index_file = workdir / "combined_index.yml" if index_file is None else Path(index_file)
     assert combined_index_file.is_file()
     # with open(combined_index_file, "r") as f:
@@ -84,6 +87,10 @@ def generate_cdsl(
     subprocess.run(generate_cdsl_args, check=True)
     subprocess.run(generate_flat_args, check=True)
     subprocess.run(generate_fuse_cdsl_args, check=True)
+    enc_score_csv = workdir / f"encoding_score{suffix}.csv"
+    total_enc_metrics_csv = workdir / f"total_encoding_metrics{suffix}.csv"
+    analyze_encoding(combined_index_file, score=enc_score_csv, output=total_enc_metrics_csv)
+    annotate_enc_score(combined_index_file, inplace=True, enc_score_csv=enc_score_csv)
 
 
 def handle(args):
