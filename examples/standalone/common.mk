@@ -20,8 +20,9 @@ FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
 SIMULATOR ?= spike
 SPIKE ?= $(INSTALL_DIR)/spike/spike
 PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
-ETISS ?= $(INSTALL_DIR)/etiss/install/bin/run_helper.sh
-ETISS_INI ?= $(INSTALL_DIR)/etiss/install/custom.ini
+# ETISS ?= $(INSTALL_DIR)/etiss/bin/run_helper.sh
+ETISS ?= $(INSTALL_DIR)/etiss/bin/bare_etiss_processor
+ETISS_INI ?= $(INSTALL_DIR)/etiss/custom.ini
 ETISS_CRT0_DIR ?= $(INSTALL_DIR)/etiss_riscv_examples/riscv_crt0
 ETISS_STARTUP ?= $(ETISS_CRT0_DIR)/crt0.S
 ETISS_LDSCRIPT ?= $(INSTALL_DIR)/etiss/etiss.ld
@@ -282,7 +283,7 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
-	cd $(OUT_DIR) && $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
+	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) --jit.verify=false -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
 else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin TracePrinterPlugin]"            >  $(OUT_DIR)/custom.ini
@@ -307,7 +308,7 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) -s | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss)
 	set -o pipefail && \
-	$(ETISS) $(ELF) -i$(ETISS_INI) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+	$(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) --jit.verify=false --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss_perf)
 	set -o pipefail && \
 	$(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)

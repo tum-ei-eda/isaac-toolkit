@@ -26,7 +26,7 @@ if [[ -d $ETISS_SRC_DIR ]]
 then
     echo "ETISS already cloned!"
 else
-    git clone https://github.com/tum-ei-eda/etiss.git $ETISS_SRC_DIR
+    git clone https://github.com/tum-ei-eda/etiss.git $ETISS_SRC_DIR --recursive
 fi
 
 if [[ -d $ETISS_EXAMPLES_DIR ]]

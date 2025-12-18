@@ -56,7 +56,7 @@ or similar.
 
 ```sh
 # prebuilt
-# ./scripts/download_helper.sh $INSTALL_DIR/etiss/install etiss v0.11.2
+# ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss v0.11.2
 # ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
 #
 # from source:

@@ -35,9 +35,12 @@ jobs:
         optimize: ["3"]
         # TODO: update gnu version & llvm version
         config:
-          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "v0.11.2", etiss_arch: "RV32IMACFD"}
-          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "v0.11.2", etiss_arch: "RV32IMACFD"}
-          - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64, etiss_version: "v0.11.2", etiss_arch: "RV64IMACFD"}
+          # - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "v0.11.2", etiss_arch: "RV32IMACFD"}
+          # - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "v0.11.2", etiss_arch: "RV32IMACFD"}
+          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64, etiss_version: "v0.11.2", etiss_arch: "RV64IMACFD"}
+          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV32IMACFD"}
+          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV32IMACFD"}
+          - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV64IMACFD"}
         # include:
         #   # - python-version: ["3.10"]
         #   #   toolchain: ["gcc"]
@@ -138,9 +141,9 @@ jobs:
 
         if [[ "$SIMULATOR" == "etiss" ]]
         then
-            ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss ${{ matrix.config.etiss_version }}
+            # ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss ${{ matrix.config.etiss_version }}
+            ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_version }}
             ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
-            # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_version }}
         fi
 
         if [[ "$SIMULATOR" == "etiss_perf" ]]
