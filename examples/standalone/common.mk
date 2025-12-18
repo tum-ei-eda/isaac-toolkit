@@ -263,6 +263,7 @@ else
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 endif
+endif
 
 $(DUMP): $(ELF)
 	$(OBJDUMP) -d $(ELF) > $(DUMP)
@@ -476,6 +477,4 @@ $(LCOV_HTML): $(ELF) $(TRACE) | $(OUT_DIR)
 $(LCOV_OUT): $(LCOV_HTML)
 
 lcov: $(LCOV_HTML)
-
-
 endif
