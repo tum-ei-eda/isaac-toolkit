@@ -86,8 +86,8 @@ jobs:
       SPIKE: ${{ github.workspace }}/examples/standalone/install/spike/bin/spike
       PK: ${{ github.workspace }}/examples/standalone/install/gnu/bin/pk_${{ matrix.config.arch }}_${{ matrix.config.abi }}
       HTIF: ${{ github.workspace }}/examples/standalone/install/gnu/bin/htif_${{ matrix.config.arch }}_${{ matrix.config.abi }}
-      ETISS: ${{ github.workspace }}/examples/standalone/install/etiss/install/bin/run_helper.sh
-      ETISS_INI: ${{ github.workspace }}/examples/standalone/install/etiss/install/custom.ini
+      ETISS: ${{ github.workspace }}/examples/standalone/install/etiss/bin/run_helper.sh
+      ETISS_INI: ${{ github.workspace }}/examples/standalone/install/etiss/custom.ini
       ETISS_JIT: ${{ matrix.config.etiss_jit }}
       # PERF_MODEL: ?
       # ETISS_PERF: ?
