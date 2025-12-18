@@ -8,11 +8,8 @@ if [ "$#" -lt 1 ]; then
     exit 1
 fi
 
-ETISS_DIR=$(readlink -f $1)
-ETISS_EXAMPLES_DIR=$ETISS_DIR/etiss_riscv_examples
-ETISS_INSTALL_DIR=$ETISS_DIR/install
-
-mkdir -p $ETISS_DIR
+ETISS_INSTALL_DIR=$(readlink -f $1)
+ETISS_EXAMPLES_DIR=$(dirname $ETISS_INSTALL_DIR)/etiss_riscv_examples
 
 if [[ ! -d $ETISS_INSTALL_DIR ]]
 then
