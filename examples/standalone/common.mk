@@ -21,6 +21,9 @@ SPIKE ?= $(INSTALL_DIR)/spike/spike
 PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
 ETISS ?= $(INSTALL_DIR)/etiss/install/bin/run_helper.sh
 ETISS_INI ?= $(INSTALL_DIR)/etiss/install/custom.ini
+ETISS_CRT0_DIR ?= $(INSTALL_DIR)/etiss_riscv_examples/riscv_crt0
+ETISS_STARTUP ?= $(ETISS_CRT0_DIR)/crt0.S
+ETISS_LDSCRIPT ?= $(INSTALL_DIR)/etiss/etiss.ld
 ETISS_JIT ?= TCC
 
 
@@ -231,9 +234,8 @@ $(ELF): $(PROG_SRCS)
 	mkdir -p $(BUILD_DIR)
 ifeq ($(SIMULATOR),etiss)
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
-		$(PROG_SRCS) $(INSTALL_DIR)/etiss_riscv_examples/riscv_crt0/crt0.S \
-		$(INSTALL_DIR)/etiss_riscv_examples/riscv_crt0/trap_handler.c \
-		-T $(INSTALL_DIR)/etiss/install/etiss.ld -nostdlib -lc -lgcc -lsemihost \
+		$(PROG_SRCS) $(ETISS_STARTUP) $(ETISS_CRT0_DIR)/trap_handler.c \
+		-T $(ETISS_LDSCRIPT) -nostdlib -lc -lgcc -lsemihost \
 		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
