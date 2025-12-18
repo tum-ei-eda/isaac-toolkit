@@ -49,6 +49,10 @@ elif [[ "$tool_lower" == "etiss" ]]
 then
     # TODO: label?
     archive=etiss-x86_64-linux-gnu-$dist_lower-$release.$ext
+elif [[ "$tool_lower" == "etiss_perf" ]]
+then
+    # TODO: label?
+    archive=etiss-perf-x86_64-linux-gnu-$dist_lower-$release.$ext
 else
     echo "Unsupported tool: $toolchain_lower"
     exit 1

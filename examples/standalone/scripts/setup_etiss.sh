@@ -8,24 +8,25 @@ if [ "$#" -lt 1 ]; then
     exit 1
 fi
 
-ETISS_DIR=$(readlink -f $1)
+ETISS_INSTALL_DIR=$(readlink -f $1)
+ETISS_SRC_DIR=$(dirname $ETISS_INSTALL_DIR)/etiss_src
 ETISS_REF=${2:-e55e2c474013be6af44789e65699d13e14c7aab0}
 CMAKE_BUILD_TYPE=${3:-Release}
 
-ETISS_EXAMPLES_DIR=$ETISS_DIR/etiss_riscv_examples
-ETISS_BUILD_DIR=$ETISS_DIR/build
-ETISS_INSTALL_DIR=$ETISS_DIR/install
+ETISS_EXAMPLES_DIR=$(dirname $ETISS_INSTALL_DIR)/etiss_riscv_examples
+ETISS_BUILD_DIR=$ETISS_SRC_DIR/build
+# ETISS_INSTALL_DIR=$ETISS_DIR/install
 ETISS_INI=$ETISS_INSTALL_DIR/custom.ini
 ETISS_LDSCRIPT=$ETISS_INSTALL_DIR/etiss.ld
 
 
 NPROC=$(nproc)
 
-if [[ -d $ETISS_DIR ]]
+if [[ -d $ETISS_SRC_DIR ]]
 then
     echo "ETISS already cloned!"
 else
-    git clone https://github.com/tum-ei-eda/etiss.git $ETISS_DIR
+    git clone https://github.com/tum-ei-eda/etiss.git $ETISS_SRC_DIR
 fi
 
 if [[ -d $ETISS_EXAMPLES_DIR ]]
@@ -35,11 +36,11 @@ else
     git clone https://github.com/tum-ei-eda/etiss_riscv_examples.git $ETISS_EXAMPLES_DIR
 fi
 
-git -C $ETISS_DIR checkout $ETISS_REF
+git -C $ETISS_SRC_DIR checkout $ETISS_REF
 
 mkdir -p $ETISS_BUILD_DIR
 
-cmake -B $ETISS_BUILD_DIR -S $ETISS_DIR -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DCMAKE_INSTALL_PREFIX:PATH=$ETISS_INSTALL_DIR
+cmake -B $ETISS_BUILD_DIR -S $ETISS_SRC_DIR -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DCMAKE_INSTALL_PREFIX:PATH=$ETISS_INSTALL_DIR
 
 cmake --build $ETISS_BUILD_DIR -j$NPROC
 cmake --install $ETISS_BUILD_DIR

@@ -47,7 +47,7 @@ or similar.
 ./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 19.1.1
 
 # llvm 20
-./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 0.1.8
+./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 20.1.8
 ```
 
 ## Simulators
@@ -56,12 +56,12 @@ or similar.
 
 ```sh
 # prebuilt
-# ./scripts/download_helper.sh $INSTALL_DIR/etiss/install etiss 2024.11.28
+# ./scripts/download_helper.sh $INSTALL_DIR/etiss/install etiss v0.11.2
 # ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
-# 
+#
 # from source:
-./scripts/setup_etiss.sh $INSTALL_DIR/etiss
-./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
+./scripts/setup_etiss.sh $INSTALL_DIR/etiss v0.11.2
+./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss_riscv_examples
 ```
 
 ### Spike
@@ -70,5 +70,8 @@ Make sure to have `device-tree-compiler` (`dtc`) installed on your system.
 
 ```sh
 ./scripts/download_helper.sh $INSTALL_DIR/spike/ spike 0bc176b3
-```
 
+# from source:
+# ./scripts/setup_spike.sh $INSTALL_DIR/spike ?
+# ./scripts/setup_spike_pk.sh $INSTALL_DIR/spike rv32gc ilp32d
+```
