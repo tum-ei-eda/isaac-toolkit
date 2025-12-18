@@ -19,86 +19,22 @@
 
 # import time
 import sys
-import pandas as pd
 import argparse
 from typing import List
 from pathlib import Path
+
+import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TraceArtifact
 
 
-# TODO: logger
-
-
-def load_timing_trace(sess: Session, input_files: List[Path], force: bool = False, operands: bool = False):
+def load_timing_trace(sess: Session, input_files: List[Path], force: bool = False):
     assert len(input_files) > 0
     name = input_files[0].name
     # sort input files by name
     sorted_files = sorted(input_files, key=lambda x: x.name)
-    # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = list(map(lambda x: pd.read_csv(x, sep=","), sorted_files))
-    # for input_file in sorted_files:
-    #     assert input_file.is_file()
-    #     # print("file", input_file)
-    #     with pd.read_csv(input_file, sep=";", chunksize=2**22, header=0) as reader:
-    #         for df in tqdm(reader, disable=False):
-    #             df = df.rename(columns=lambda x: x.strip())
-    #             # print("df", df)
-    #             # print("A", time.time())
-    #             df["pc"] = df["pc"].apply(lambda x: int(x, 0))
-    #             df["pc"] = pd.to_numeric(df["pc"])
-    #             # print("B", time.time())
-    #             # TODO: normalize instr names
-    #             df[["instr", "rest"]] = df["assembly"].str.split(" # ", n=1, expand=True)
-    #             df["instr"] = df["instr"].apply(lambda x: x.strip())
-    #             df["instr"] = df["instr"].astype("category")
-    #             # print("C", time.time())
-    #             # print("D", time.time())
-    #             df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
-    #             # print("E", time.time())
-
-    #             def detect_size(bytecode):
-    #                 if bytecode[:2] == "0x":
-    #                     return len(bytecode[2:]) // 2
-    #                 elif bytecode[:2] == "0b":
-    #                     return len(bytecode[2:]) // 8
-    #                 else:
-    #                     assert len(set(bytecode)) == 2
-    #                     return len(bytecode) // 8
-
-    #             df["size"] = df["bytecode"].apply(detect_size)
-    #             df["size"] = df["size"].astype("category")
-    #             # print("F", time.time())
-    #             df["bytecode"] = df["bytecode"].apply(
-    #                 lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
-    #             )
-    #             df["bytecode"] = pd.to_numeric(df["bytecode"])
-    #             # print("H", time.time())
-
-    #             def convert(x):
-    #                 ret = {}
-    #                 for y in x:
-    #                     if "]" in y:  # WORKAROUND
-    #                         y = y.split("]", 1)[0]
-    #                         y = y.strip()
-    #                     if len(y.strip()) == 0:
-    #                         continue
-    #                     assert "=" in y
-    #                     k, v = y.split("=", 1)
-    #                     assert k not in ret
-    #                     # print(f"v=~{v}~")
-    #                     ret[k] = int(v)
-    #                 return ret
-
-    #             if operands:
-    #                 df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
-    #             else:
-    #                 df.drop(columns=["operands"], inplace=True)
-    #             df.drop(columns=["rest"], inplace=True)
-    #             df.drop(columns=["assembly"], inplace=True)
-    #             # print("I", time.time())
-    #             dfs.append(df)
     df = pd.concat(dfs, axis=0)
     df.reset_index(inplace=True, drop=True)
     # df["instr"] = df["instr"].astype("category")
