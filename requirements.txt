@@ -1,7 +1,7 @@
 tqdm
 pyyaml
 pyelftools
-pandas
+pandas>=2.1
 dacite
 pygraphviz
 matplotlib
@@ -15,7 +15,6 @@ networkx<3.0.0,>=2.5.1
 setuptools-rust
 # cpp-demangle # Broken on py3.13?
 cpp-demangle @ git+https://github.com/benfred/py-cpp-demangle@master
-
 # pdf reports
 weasyprint
 tabulate

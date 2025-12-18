@@ -35,29 +35,29 @@ logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
 
 
-def collect_operands(trace_df):
-    instrs_operands = defaultdict(list)
-    for row in trace_df.itertuples(index=False):
-        # pc = row.pc
-        instr = row.instr
-        instr = instr.strip()  # TODO: fix in frontend
-        operands = row.operands
-        instr_operands = instrs_operands[instr].append(operands)
-    del trace_df
-    operands_data = []
-    operand_names = set()
-    for instr, instr_operands in instrs_operands.items():
-        for operands in instr_operands:
-            operand_names |= set(operands.keys())
-            operands_data.append({"instr": instr, **operands})
-    operands_df = pd.DataFrame(operands_data)
-    del operands_data
-    operands_df["instr"] = operands_df["instr"].astype("category")
-    for op in operand_names:
-        operands_df[op] = operands_df[op].astype("UInt32")
-        # TODO: for smaller immediates, use smaller types?
-
-    return operands_df
+# def collect_operands(trace_operands_df):
+#     instrs_operands = defaultdict(list)
+#     for row in trace_operands_df.itertuples(index=False):
+#         # pc = row.pc
+#         instr = row.instr
+#         instr = instr.strip()  # TODO: fix in frontend
+#         operands = row.operands
+#         instr_operands = instrs_operands[instr].append(operands)
+#     del trace_operands_df
+#     operands_data = []
+#     operand_names = set()
+#     for instr, instr_operands in instrs_operands.items():
+#         for operands in instr_operands:
+#             operand_names |= set(operands.keys())
+#             operands_data.append({"instr": instr, **operands})
+#     operands_df = pd.DataFrame(operands_data)
+#     del operands_data
+#     operands_df["instr"] = operands_df["instr"].astype("category")
+#     for op in operand_names:
+#         operands_df[op] = operands_df[op].astype("UInt32")
+#         # TODO: for smaller immediates, use smaller types?
+#
+#     return operands_df
 
 
 def analyze_instr_operands(
@@ -75,15 +75,20 @@ def analyze_instr_operands(
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
+    operands_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "operands")
+    assert len(operands_artifacts) == 1
+    operands_artifact = operands_artifacts[0]
     # filter_instrs = "addi"
     # filter_operands = "imm"
 
-    operands_df = collect_operands(trace_artifact.df)
-    attrs = {
-        "trace": trace_artifact.name,
-        "kind": "table",
-        "by": __name__,
-    }
+    assert len(trace_artifact.df) == len(operands_artifact.df)
+    operands_df = pd.concat([trace_artifact.df[["instr"]], operands_artifact.df], axis=1).copy()
+    # operands_df = collect_operands(trace_operands_df)
+    # attrs = {
+    #     "trace": trace_artifact.name,
+    #     "kind": "table",
+    #     "by": __name__,
+    # }
     attrs2 = {
         "trace": trace_artifact.name,
         "kind": "histogram",
@@ -123,8 +128,8 @@ def analyze_instr_operands(
 
     instrs = sorted(operands_df["instr"].unique())
 
-    operands_artifact = TableArtifact("instr_operands", operands_df, attrs=attrs)
-    sess.add_artifact(operands_artifact, override=force)
+    # operands_artifact = TableArtifact("instr_operands", operands_df, attrs=attrs)
+    # sess.add_artifact(operands_artifact, override=force)
 
     plot = True
     if plot:

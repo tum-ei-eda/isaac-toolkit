@@ -72,6 +72,9 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                 def convert(x):
                     ret = {}
                     for y in x:
+                        if "]" in y:  # WORKAROUND
+                            y = y.split("]", 1)[0]
+                            y = y.strip()
                         if len(y.strip()) == 0:
                             continue
                         assert "=" in y
@@ -81,6 +84,7 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                     return ret
 
                 if operands:
+                    # TODO: fix after refactor into extra artifact
                     df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
                 else:
                     df.drop(columns=["operands"], inplace=True)
@@ -88,6 +92,7 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                 df.drop(columns=["assembly"], inplace=True)
                 dfs.append(df)
     df = pd.concat(dfs, axis=0)
+    df.reset_index(inplace=True, drop=True)
     df["instr"] = df["instr"].astype("category")
     df["size"] = df["size"].astype("category")
     df["pc"] = pd.to_numeric(df["pc"], downcast="unsigned")
