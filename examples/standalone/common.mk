@@ -1,4 +1,5 @@
 # Paths and toolchain
+SHELL := /bin/bash
 INSTALL_DIR ?= $(abspath ../install)
 SESS ?= $(abspath ./sess)
 BUILD_DIR ?= $(abspath ./build)
