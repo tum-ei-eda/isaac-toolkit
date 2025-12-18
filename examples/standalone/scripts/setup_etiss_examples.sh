@@ -10,6 +10,8 @@ fi
 
 ETISS_INSTALL_DIR=$(readlink -f $1)
 ETISS_EXAMPLES_DIR=$(dirname $ETISS_INSTALL_DIR)/etiss_riscv_examples
+ETISS_INI=$ETISS_INSTALL_DIR/custom.ini
+ETISS_LDSCRIPT=$ETISS_INSTALL_DIR/etiss.ld
 
 if [[ ! -d $ETISS_INSTALL_DIR ]]
 then
