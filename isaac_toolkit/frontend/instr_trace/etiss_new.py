@@ -84,6 +84,7 @@ def load_instr_trace(sess: Session, input_files: List[Path], force: bool = False
                     return ret
 
                 if operands:
+                    # TODO: fix after refactor into extra artifact
                     df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
                 else:
                     df.drop(columns=["operands"], inplace=True)
