@@ -61,7 +61,7 @@ or similar.
 #
 # from source:
 ./scripts/setup_etiss.sh $INSTALL_DIR/etiss v0.11.2
-./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss_riscv_examples
+./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
 ```
 
 ### ETISS Perf

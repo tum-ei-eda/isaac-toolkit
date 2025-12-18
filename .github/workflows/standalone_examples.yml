@@ -139,14 +139,14 @@ jobs:
         if [[ "$SIMULATOR" == "etiss" ]]
         then
             ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss ${{ matrix.config.etiss_version }}
-            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss_riscv_examples
+            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
             # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_version }}
         fi
 
         if [[ "$SIMULATOR" == "etiss_perf" ]]
         then
             ./scripts/download_helper.sh $INSTALL_DIR/etiss_perf etiss_perf ${{ matrix.config.etiss_perf_version }}
-            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss_riscv_examples
+            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
             # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_perf_version }}
         fi
 
