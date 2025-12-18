@@ -64,14 +64,40 @@ or similar.
 ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss_riscv_examples
 ```
 
-### Spike
+### ETISS Perf
+
+TODO
+
+### QEMU
+
+TODO
+
+### TGC / DBT-RISE-RISCV
+
+TODO
+
+### Spike (using Proxy Kernel)
 
 Make sure to have `device-tree-compiler` (`dtc`) installed on your system.
 
 ```sh
 ./scripts/download_helper.sh $INSTALL_DIR/spike/ spike 0bc176b3
+./scripts/download_helper.sh $INSTALL_DIR/pk_rv32gc_ilp32d/ pk 2025.06.13 rv32gc_ilp32d
 
 # from source:
-# ./scripts/setup_spike.sh $INSTALL_DIR/spike ?
-# ./scripts/setup_spike_pk.sh $INSTALL_DIR/spike rv32gc ilp32d
+# ./scripts/setup_spike.sh $INSTALL_DIR/spike 0bc176b3
+# ./scripts/setup_spike_pk.sh $INSTALL_DIR/spike ??? rv32gc ilp32d
+```
+
+### Spike BM (using HTIF)
+
+Make sure to have `device-tree-compiler` (`dtc`) installed on your system.
+
+```sh
+./scripts/download_helper.sh $INSTALL_DIR/spike/ spike 0bc176b3
+./scripts/download_helper.sh $INSTALL_DIR/htif_rv32gc_ilp32d/ htif 2025.06.13 rv32gc_ilp32d
+
+# from source:
+# ./scripts/setup_spike.sh $INSTALL_DIR/spike 0bc176b3
+# ./scripts/setup_htif.sh $INSTALL_DIR/htif_rv32gc_ilp32d ??? rv32gc ilp32d
 ```

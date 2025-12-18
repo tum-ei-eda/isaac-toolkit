@@ -45,6 +45,14 @@ elif [[ "$tool_lower" == "spike" ]]
 then
     # TODO: label?
     archive=spike-x86_64-linux-gnu-$dist_lower-$release.$ext
+elif [[ "$tool_lower" == "pk" ]]
+then
+    # TODO: label?
+    archive=pk-$lib.$ext
+elif [[ "$tool_lower" == "htif" ]]
+then
+    # TODO: label?
+    archive=htif-$lib.$ext
 elif [[ "$tool_lower" == "etiss" ]]
 then
     # TODO: label?

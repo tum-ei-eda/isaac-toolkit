@@ -84,7 +84,8 @@ jobs:
       RISCV_PREFIX: ${{ github.workspace }}/examples/standalone/install/gnu
       OPTIMIZE: ${{ matrix.optimize }}
       SPIKE: ${{ github.workspace }}/examples/standalone/install/spike/bin/spike
-      PK: ${{ github.workspace }}/examples/standalone/install/gnu/bin/pk_${{ matrix.config.arch }}
+      PK: ${{ github.workspace }}/examples/standalone/install/gnu/bin/pk_${{ matrix.config.arch }}_${{ matrix.config.abi }}
+      HTIF: ${{ github.workspace }}/examples/standalone/install/gnu/bin/htif_${{ matrix.config.arch }}_${{ matrix.config.abi }}
       ETISS: ${{ github.workspace }}/examples/standalone/install/etiss/install/bin/run_helper.sh
       ETISS_INI: ${{ github.workspace }}/examples/standalone/install/etiss/install/custom.ini
       ETISS_JIT: ${{ matrix.config.etiss_jit }}
@@ -123,7 +124,7 @@ jobs:
     - name: Setup dependencies
       working-directory: examples/standalone
       run: |
-        ./scripts/download_helper.sh $RISCV_PREFIX gnu ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }}
+        ./scripts/download_helper.sh $RISCV_PREFIX gnu ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
 
         if [[ "$TOOLCHAIN" == "llvm" ]]
         then
@@ -138,19 +139,35 @@ jobs:
         if [[ "$SIMULATOR" == "etiss" ]]
         then
             ./scripts/download_etiss.sh $INSTALL_DIR/etiss etiss ${{ matrix.config.etiss_version }}
-            # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss
+            # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_version }}
         fi
 
         if [[ "$SIMULATOR" == "etiss_perf" ]]
         then
-            ./scripts/download_etiss.sh $INSTALL_DIR/etiss_perf etiss_perf ${{ matrix.config.etiss_version }}
-            # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss
+            ./scripts/download_etiss.sh $INSTALL_DIR/etiss_perf etiss_perf ${{ matrix.config.etiss_perf_version }}
+            # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_perf_version }}
+        fi
+
+        if [[ "$SIMULATOR" == "tgc" ]]
+        then
+            # ./scripts/download_etiss.sh $INSTALL_DIR/tgc tgc ${{ matrix.config.tgc_version }}
+            ./scripts/setup_tgc.sh $INSTALL_DIR/tgc ${{ matrix.config.tgc_version }}
         fi
 
         if [[ "$SIMULATOR" == "spike" ]]
         then
-            ./scripts/download_spike.sh $INSTALL_DIR/etiss spike ${{ matrix.config.spike_version }}
-            # ./scripts/setup_spike.sh $INSTALL_DIR/etiss
+            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.config.spike_version }}
+            ./scripts/download_spike.sh $INSTALL_DIR/pk pk ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+            # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.config.spike_version }}
+            # ./scripts/setup_pk.sh $INSTALL_DIR/pk ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+        fi
+
+        if [[ "$SIMULATOR" == "spike_bm" ]]
+        then
+            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.config.spike_version }}
+            ./scripts/download_spike.sh $INSTALL_DIR/htif htif ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+            # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.config.spike_version }}
+            # ./scripts/setup_htif.sh $INSTALL_DIR/htif ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
         fi
     - name: Run Coremark example
       working-directory: examples/standalone/coremark
