@@ -87,12 +87,12 @@ def generate_memgraph_cdfg_via_compile_commands(
     config = sess.config
     memgraph_config = config.memgraph
     if memgraph_config is not None:
-        memgraph_host = memgraph_config.host
+        memgraph_host = memgraph_config.hostname
         memgraph_port = memgraph_config.port
         if memgraph_host is not None:
-            extra_args += f"-mllvm -cdfg-memgraph-host={memgraph_host}"
+            extra_args += f" -mllvm -cdfg-memgraph-host={memgraph_host}"
         if memgraph_port is not None:
-            extra_args += f"-mllvm -cdfg-memgraph-host={memgraph_port}"
+            extra_args += f" -mllvm -cdfg-memgraph-host={memgraph_port}"
 
     for file in files:
         # print("file", file)
