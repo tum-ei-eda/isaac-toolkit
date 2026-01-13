@@ -92,7 +92,7 @@ def generate_memgraph_cdfg_via_compile_commands(
         if memgraph_host is not None:
             extra_args += f" -mllvm -cdfg-memgraph-host={memgraph_host}"
         if memgraph_port is not None:
-            extra_args += f" -mllvm -cdfg-memgraph-host={memgraph_port}"
+            extra_args += f" -mllvm -cdfg-memgraph-port={memgraph_port}"
 
     for file in files:
         # print("file", file)
