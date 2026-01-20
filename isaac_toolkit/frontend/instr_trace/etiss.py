@@ -26,7 +26,7 @@ from typing import Optional
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import InstrTraceArtifact
+from isaac_toolkit.session.artifact import InstrTraceArtifact, TraceArtifact
 from isaac_toolkit.logging import get_logger, set_log_level
 from .utils import parse_instr_trace, DEFAULT_CHUNK_SIZE
 
@@ -110,6 +110,11 @@ def load_instr_trace(
         "cpu_arch": "unknown",
         "by": "isaac_toolkit.frontend.instr_trace.etiss",
     }
+    if operands:
+        operands_trace_df = df[["instr", "operands"]]
+        df.drop(columns=["operands"], inplace=True)
+        operands_artifact = TraceArtifact("operands_trace", operands_trace_df, attrs=attrs)
+        sess.add_artifact(operands_artifact, override=force)
     artifact = InstrTraceArtifact(name, df, attrs=attrs)
     sess.add_artifact(artifact, override=force)
 

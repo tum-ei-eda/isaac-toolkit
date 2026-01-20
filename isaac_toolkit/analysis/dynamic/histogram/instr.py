@@ -52,7 +52,6 @@ def create_instr_hist(sess: Session, force: bool = False):
     trace_artifact = trace_artifacts[0]
 
     instrs_df = collect_instructions(trace_artifact.df)
-    # print("operands_df", operands_df)
 
     attrs = {
         "trace": trace_artifact.name,

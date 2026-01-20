@@ -29,7 +29,7 @@ from typing import Optional
 from tqdm import tqdm
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import InstrTraceArtifact
+from isaac_toolkit.session.artifact import InstrTraceArtifact, TraceArtifact
 from isaac_toolkit.logging import get_logger, set_log_level
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
@@ -198,6 +198,11 @@ def load_instr_trace(
         "cpu_arch": "unknown",
         "by": "isaac_toolkit.frontend.instr_trace.spike",
     }
+    if operands:
+        operands_trace_df = df[["instr", "operands"]]
+        df.drop(columns=["operands"], inplace=True)
+        operands_artifact = TraceArtifact("operands_trace", operands_trace_df, attrs=attrs)
+        sess.add_artifact(operands_artifact, override=force)
     artifact = InstrTraceArtifact(name, df, attrs=attrs)
     sess.add_artifact(artifact, override=force)
 

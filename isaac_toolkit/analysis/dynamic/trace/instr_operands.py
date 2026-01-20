@@ -34,15 +34,31 @@ from isaac_toolkit.logging import get_logger, set_log_level
 logger = get_logger()
 
 
-def collect_operands(trace_df):
+def collect_operands(instr_trace_df, operands_trace_df):
+    if operands_trace_df is not None:
+        assert "operands" in operands_trace_df.columns
+        if "instr" in operands_trace_df.columns:
+            temp_df = operands_trace_df[["instr", "operands"]]
+        else:
+            assert instr_trace_df is not None
+            assert len(instr_trace_df) == len(operands_trace_df)
+            assert "instr" in instr_trace_df.columns
+            temp_df = instr_trace_df[["instr"]]
+            temp_df = temp_df.merge(operands_trace_df[["operands"]])
+    else:
+        assert instr_trace_df is not None
+        assert "operands" in instr_trace_df
+        assert "instr" in instr_trace_df
+        temp_df = instr_trace_df[["instr", "operands"]]
+
     instrs_operands = defaultdict(list)
-    for row in trace_df.itertuples(index=False):
+    for row in temp_df.itertuples(index=False):
         # pc = row.pc
         instr = row.instr
         instr = instr.strip()  # TODO: fix in frontend
         operands = row.operands
         instr_operands = instrs_operands[instr].append(operands)
-    del trace_df
+    del temp_df
     operands_data = []
     operand_names = set()
     for instr, instr_operands in instrs_operands.items():
@@ -72,27 +88,42 @@ def analyze_instr_operands(
 ):
     logger.info("Analyzing instruction operands...")
     artifacts = sess.artifacts
-    trace_artifacts = filter_artifacts(
+
+    instr_trace_artifacts = filter_artifacts(
         artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
     )
-    assert len(trace_artifacts) == 1
-    trace_artifact = trace_artifacts[0]
+    instr_trace_df = None
+    if len(instr_trace_artifacts):
+        assert len(instr_trace_artifacts) == 1
+        instr_trace_artifact = instr_trace_artifacts[0]
+        instr_trace_df = instr_trace_artifact.df.copy()
+
+    operands_trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TRACE and x.name == "operands_trace"
+    )
+    operands_trace_df = None
+    if operands_trace_artifacts:
+        assert len(operands_trace_artifacts) == 1
+        operands_trace_artifact = operands_trace_artifacts[0]
+        operands_trace_df = operands_trace_artifact.df.copy()
     # filter_instrs = "addi"
     # filter_operands = "imm"
-
-    operands_df = collect_operands(trace_artifact.df)
     attrs = {
-        "trace": trace_artifact.name,
+        "instr_trace": instr_trace_artifact.name if instr_trace_df is not None else None,
+        "operands_trace": operands_trace_artifact.name if operands_trace_df is not None else None,
         "kind": "table",
         "by": __name__,
     }
     attrs2 = {
-        "trace": trace_artifact.name,
+        "instr_trace": instr_trace_artifact.name if instr_trace_df is not None else None,
+        "operands_trace": operands_trace_artifact.name if operands_trace_df is not None else None,
         "kind": "histogram",
         "by": __name__,
     }
+    del instr_trace_artifact, instr_trace_artifacts
+    del operands_trace_artifact, operands_trace_artifacts
 
-    del trace_artifact
+    operands_df = collect_operands(instr_trace_df, operands_trace_df)
 
     operand_names = sorted([x for x in operands_df.columns if x != "instr"])
 
@@ -129,8 +160,8 @@ def analyze_instr_operands(
 
     instrs = sorted(operands_df["instr"].unique())
 
-    operands_artifact = TableArtifact("instr_operands", operands_df, attrs=attrs)
-    sess.add_artifact(operands_artifact, override=force)
+    # operands_artifact = TableArtifact("instr_operands", operands_df, attrs=attrs)
+    # sess.add_artifact(operands_artifact, override=force)
 
     plot = True
     if plot:
