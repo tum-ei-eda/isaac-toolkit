@@ -286,6 +286,11 @@ class TableArtifact(PythonArtifact):
             engine = artifacts_settings.instr_trace.engine
             compression_method = artifacts_settings.instr_trace.compression_method
             compression_level = artifacts_settings.instr_trace.compression_level
+        elif self.flags & ArtifactFlag.TRACE:
+            fmt = artifacts_settings.trace.fmt
+            engine = artifacts_settings.trace.engine
+            compression_method = artifacts_settings.trace.compression_method
+            compression_level = artifacts_settings.trace.compression_level
         else:
             fmt = artifacts_settings.table.fmt
             engine = artifacts_settings.table.engine
