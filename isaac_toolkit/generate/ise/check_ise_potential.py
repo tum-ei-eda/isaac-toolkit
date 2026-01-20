@@ -96,7 +96,8 @@ def get_ise_potential_df(opcodes_hist_df, unsupported_opcodes, min_supported):
     ]
     # print("supported_opcodes_hist_df")
     # print(supported_opcodes_hist_df)
-    supported_rel_count = supported_opcodes_hist_df["rel_count"].sum()
+    total_rel_count = opcodes_hist_df["rel_count"].sum()
+    supported_rel_count = supported_opcodes_hist_df["rel_count"].sum() / total_rel_count
     # print("supported_rel_count", supported_rel_count)
     unsupported_rel_count = 1 - supported_rel_count
     has_potential = supported_rel_count >= min_supported
