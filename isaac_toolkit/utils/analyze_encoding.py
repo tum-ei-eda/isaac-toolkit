@@ -99,8 +99,9 @@ def collect_weights(index_data: dict, enc_size: int = 32, major_count: int = 4):
     footprint_per_instr = {}
 
     for i, candidate_data in enumerate(index_data["candidates"]):
-        instr_name = f"CUSTOM{i}"
+        # instr_name = f"CUSTOM{i}"
         properties = candidate_data["properties"]
+        instr_name = properties["InstrName"]
 
         # used_space = int(2**enc_bits_used)
         # (enc_space, used_space, major_space, minor_space, func2_space, func7_space, major_space_total,
