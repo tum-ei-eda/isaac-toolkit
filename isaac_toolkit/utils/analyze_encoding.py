@@ -178,7 +178,6 @@ def get_enc_weights_df(total_weight, weight_per_instr, bits_per_instr, footprint
 
 def get_enc_score_df(enc_weights_df):
     score_df = enc_weights_df.copy().dropna()
-    print("enc_weights_df", enc_weights_df)
     score_df["enc_score"] = score_df.loc[:, ["footprint", "weight"]].apply(
         lambda x: -1 if x["footprint"] > 1.0 else (1.0 - x["weight"]), axis=1
     )

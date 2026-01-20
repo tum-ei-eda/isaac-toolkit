@@ -92,7 +92,7 @@ def handle(args):
         prelim=args.prelim,
         final=args.final,
         util_weight=args.util_weight,
-        env_weight=args.enc_weight,
+        enc_weight=args.enc_weight,
     )
 
 
