@@ -170,15 +170,15 @@ def maxmiso_algo(G):
     #     plt.savefig(f"maxmiso{i}.png")
     #     plt.close()
     labeldict = {node: G.nodes[node]["label"] for node in G.nodes}
-    print("labeldict", labeldict)
+    # print("labeldict", labeldict)
     # nx.draw(G, labels=labeldict, with_labels=True)
     # plt.savefig(f"full.png")
     # plt.close()
 
-    print("invalid", invalid)
-    print("fanout", fanout)
-    print("processed", processed)
-    print("fanout_org", fanout_org)
+    # print("invalid", invalid)
+    # print("fanout", fanout)
+    # print("processed", processed)
+    # print("fanout_org", fanout_org)
     return max_misos__
 
 
@@ -193,7 +193,7 @@ def handle(args):
     # print("graphs", graphs)
     # cdfg = filter_artifacts(graphs, lambda x: x.name == args.graph_name)
     dfgs = filter_artifacts(graphs, lambda x: x.attrs.get("kind") == "dfg")
-    print("cdfg", dfgs)
+    # print("cdfg", dfgs)
     assert len(dfgs) > 0, "No DFGs found!"
     for dfg in dfgs:
         module_name = dfg.attrs["module_name"]
