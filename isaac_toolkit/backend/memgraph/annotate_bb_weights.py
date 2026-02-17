@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import sys
 import argparse
 from pathlib import Path
@@ -100,12 +101,17 @@ def anonotate_helper(
 def annotate_bb_weights(sess: Session, label: str = "default", force: bool = False):
     logger.info("Annotating BB weights...")
     memgraph_config = sess.config.memgraph
-    hostname = memgraph_config.hostname
-    port = memgraph_config.port
-    user = memgraph_config.user
-    password = memgraph_config.password
+    memgraph_host = os.environ.get("MEMGRAPH_HOST")
+    memgraph_port = os.environ.get("MEMGRAPH_PORT")
+    user = ""
+    password = ""
+    if memgraph_config is not None:
+        memgraph_host = memgraph_host or memgraph_config.hostname
+        memgraph_port = memgraph_port or memgraph_config.port
+        user = memgraph_config.user
+        password = memgraph_config.password
 
-    driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
+    driver = GraphDatabase.driver(f"bolt://{memgraph_host}:{memgraph_port}", auth=(user, password))
     try:
 
         artifacts = sess.artifacts

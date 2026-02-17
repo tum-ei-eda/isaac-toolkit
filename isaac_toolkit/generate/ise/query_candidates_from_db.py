@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import sys
 import yaml
 import argparse
@@ -210,14 +211,17 @@ def query_candidates_from_db(
         bbs_query = get_bbs_query(label, stage, func_name)
 
         memgraph_config = sess.config.memgraph
-        hostname = memgraph_config.hostname
-        port = memgraph_config.port
-        user = memgraph_config.user
-        password = memgraph_config.password
+        memgraph_host = os.environ.get("MEMGRAPH_HOST")
+        memgraph_port = os.environ.get("MEMGRAPH_PORT")
+        user = ""
+        password = ""
+        if memgraph_config is not None:
+            memgraph_host = memgraph_host or memgraph_config.hostname
+            memgraph_port = memgraph_port or memgraph_config.port
+            user = memgraph_config.user
+            password = memgraph_config.password
 
-        driver = GraphDatabase.driver(
-            f"bolt://{hostname}:{port}", auth=(user, password)
-        )
+        driver = GraphDatabase.driver(f"bolt://{memgraph_host}:{memgraph_port}", auth=(user, password))
         session = driver.session()
         try:
             func_query = get_func_query(label, stage, func_name)

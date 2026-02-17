@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import sys
 import argparse
 import subprocess
@@ -86,13 +87,16 @@ def generate_memgraph_cdfg_via_compile_commands(
     )
     config = sess.config
     memgraph_config = config.memgraph
+    memgraph_host = os.environ.get("MEMGRAPH_HOST")
+    memgraph_port = os.environ.get("MEMGRAPH_PORT")
     if memgraph_config is not None:
-        memgraph_host = memgraph_config.hostname
-        memgraph_port = memgraph_config.port
-        if memgraph_host is not None:
-            extra_args += f" -mllvm -cdfg-memgraph-host={memgraph_host}"
-        if memgraph_port is not None:
-            extra_args += f" -mllvm -cdfg-memgraph-port={memgraph_port}"
+        memgraph_host = memgraph_host or memgraph_config.hostname
+        memgraph_port = memgraph_port or memgraph_config.port
+
+    if memgraph_host is not None:
+        extra_args += f" -mllvm -cdfg-memgraph-host={memgraph_host}"
+    if memgraph_port is not None:
+        extra_args += f" -mllvm -cdfg-memgraph-port={memgraph_port}"
 
     for file in files:
         # print("file", file)
