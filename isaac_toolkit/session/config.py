@@ -396,7 +396,7 @@ class ExperimentSettings(YAMLSettings):
 @dataclass
 class DockerSettings(YAMLSettings):
     etiss_image: Optional[str] = None
-    etiss_perf: Optional[str] = None
+    etiss_perf_image: Optional[str] = None
     seal5_image: Optional[str] = None
     hls_image: Optional[str] = None
     enable: Optional[bool] = None
