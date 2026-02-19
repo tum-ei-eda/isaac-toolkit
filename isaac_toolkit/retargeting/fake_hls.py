@@ -26,6 +26,7 @@ import argparse
 from typing import Optional, Union
 from pathlib import Path
 from collections import defaultdict
+import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
@@ -50,6 +51,9 @@ def run_fake_hls(
     if not isinstance(workdir, Path):
         workdir = Path(workdir)
     assert workdir.is_dir()
+    # TODO: handle suffix
+    out_dir = workdir / "local" / "fake_hls"
+    out_dir.mkdir(exist_ok=True, parents=True)
     print("FAKE HLS")
     assert core is not None
     assert set_name is not None
@@ -124,18 +128,80 @@ def run_fake_hls(
     # TODO: sample schedule-combinations
     input("!")
     # Output format
+    selected_solutions_yaml_data = []
+    hls_schedules_csv_data = []
+    sg = 1
+    for instr_name, sched in selected_schedules.items():
+        sol_idx = 0
+        new = {"sharing_group": sg, "solution_idx": sol_idx}
+        selected_solutions_yaml_data.append(new)
+        config = f"SG_{sg}_SOL_IDX_{sol_idx}"
+        ii = sched["ii"]
+        lat = sched["lat"]
+        lats = {instr_name: lat}
+        allocs = {}
+        area_est = 123.0  # DUMMY
+        area_est2 = area_est
+        new2 = {"config": config, "idx": sol_idx, "II": ii, "Fallback": False, "Instruction latencies": lats, "Allocation": allocs, "Overall latency": max_lat, "Area estimate w/o lifetimes": area_est, "Area estimate w/ lifetimes": area_est2 ,"Total lifetime": 0.0, "Total decoupled ops": 0}
+        hls_schedules_csv_data.append(new2)
+        sg += 1
+    print("selected_solutions_yaml_data", selected_solutions_yaml_data)
+    print("hls_schedules_csv_data", hls_schedules_csv_data)
+    hls_schedules_csv_path = out_dir / "hls_schedules.csv"
+    hls_outputs_path = out_dir / "outputs"
+    hls_outputs_path.mkdir(exist_ok=True)
+    selected_solutions_yaml_path = hls_outputs_path / "selected_solutions.yaml"
+    hls_schedules_df = pd.DataFrame(hls_schedules_csv_data)
+    with open(selected_solutions_yaml_path, "w") as f:
+        yaml.dump(selected_solutions_yaml_data, f)
+    hls_schedules_df.to_csv(hls_schedules_csv_path)
+    ### 
+total_area_estimate = 0
+total_area_estimate_with_lifetimes = 0
+iis = []
+all_lats = []
+num_groups = 0
+num_instrs = 0
+group2instrs = {}
+for row in yaml_data:
+    num_groups += 1
+    sharing_group = row["sharing_group"]
+    idx = row["solution_idx"]
+    name = f"SG_{sharing_group}_SOL_IDX_{idx}"
+    schedules = schedules_df[schedules_df["config"] == name]
+    assert len(schedules) == 1
+    print("schedules", schedules)
+    schedule = schedules.iloc[0]
+    ii = schedule["II"]
+    iis.append(ii)
+    lats = ast.literal_eval(schedule["Instruction latencies"])
+    group2instrs[idx] = list(lats.keys())
+    num_instrs += len(lats)
+    all_lats += list(lats.values())
+    area_estimate = schedule["Area estimate w/o lifetimes"]
+    total_area_estimate += area_estimate
+    area_estimate_with_lifetimes = schedule["Area estimate w/ lifetimes"]
+    total_area_estimate_with_lifetimes += area_estimate_with_lifetimes
+    # Fallback
+    # Instruction latencies
+    # Allocation
+    # Overall latency
+    # Total lifetime
+    # Total decoupled ops
+max_instrs = max(map(len, group2instrs.values()))
+min_instrs = min(map(len, group2instrs.values()))
+avg_instrs = num_instrs/num_groups
+min_ii = min(iis)
+max_ii = max(iis)
+avg_ii = sum(iis)/len(iis)
+min_lat = min(all_lats)
+max_lat = max(all_lats)
+avg_lat = sum(all_lats)/len(all_lats)
+data = {"num_groups": num_groups, "num_instrs": num_instrs, "max_instrs": max_instrs, "min_instrs": min_instrs, "avg_instrs": avg_instrs, "min_ii": min_ii, "max_ii": max_ii, "avg_ii": avg_ii, "min_lat": min_lat, "max_lat": max_lat, "avg_lat": avg_lat, "total_area_estimate": total_area_estimate, "total_area_estimate_with_lifetimes": total_area_estimate_with_lifetimes}
+df = pd.DataFrame([data])
+print(df)
+
     """
-    outputs/selected_solutions.yaml
-    - sharing_group: 1
-      solution_idx: 1
-    - sharing_group: 2
-      solution_idx: 1
-    hls_schedules.csv:
-    ,config,idx,II,Fallback,Instruction latencies,Allocation,Overall latency,Area estimate w/o lifetimes,Area estimate w/ lifetimes,Total lifetime,Total decoupled ops
-    0,SG_1_SOL_IDX_1,1,1,False,{'CUSTOM0': 4},{'mul': 1},,28071.929688,28071.929688,0.0,0.0
-    1,SG_1_SOL_IDX_0,0,4,True,{},{},4.0,,,,
-    2,SG_2_SOL_IDX_1,1,1,False,{'CUSTOM3': 3},{},,2014.431885,2014.431885,0.0,0.0
-    3,SG_2_SOL_IDX_0,0,1,True,{},{},3.0,,,,
     hls_selected_schedule_metrics.csv:
     ,num_groups,num_instrs,max_instrs,min_instrs,avg_instrs,min_ii,max_ii,avg_ii,min_lat,max_lat,avg_lat,total_area_estimate,total_area_estimate_with_lifetimes
     0,2,2,1,1,1.0,1,1,1.0,3,4,3.5,30086.361573000002,30086.361573000002
