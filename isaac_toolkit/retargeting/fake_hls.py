@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 import os
+import ast
 import sys
 import shutil
 import subprocess
@@ -33,13 +34,14 @@ from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
 
-DEFAULT_DOCKER_IMAGE = "isaac-quickstart-etiss:latest"
+STRATEGIES = ["best", "worst", "random"]
 
 
 def run_fake_hls(
     sess: Session,
     set_name: str = "XIsaac",
     core: Optional[str] = None,
+    strategy: str = "best",
     index: Optional[Union[str, Path]] = None,
     workdir: Optional[Union[str, Path]] = None,
     label: Optional[str] = None,
@@ -96,7 +98,6 @@ def run_fake_hls(
 
         print("instr_schedules", instr_schedules)
     # strategies = ["fast", "slow"]
-    strategy = "best"  # TODO: implement others
     # strategy = "worst"  # TODO: implement others
     selected_schedules = defaultdict(dict)
     def apply_strategy(scheds, strategy):
@@ -126,11 +127,13 @@ def run_fake_hls(
     # TODO: use external cost/latency model
     # TODO: use constraints
     # TODO: sample schedule-combinations
-    input("!")
     # Output format
     selected_solutions_yaml_data = []
     hls_schedules_csv_data = []
+    isax_xisaac_yaml_data = []
     sg = 1
+    first_stage = 2
+    max_stage = first_stage
     for instr_name, sched in selected_schedules.items():
         sol_idx = 0
         new = {"sharing_group": sg, "solution_idx": sol_idx}
@@ -144,98 +147,71 @@ def run_fake_hls(
         area_est2 = area_est
         new2 = {"config": config, "idx": sol_idx, "II": ii, "Fallback": False, "Instruction latencies": lats, "Allocation": allocs, "Overall latency": max_lat, "Area estimate w/o lifetimes": area_est, "Area estimate w/ lifetimes": area_est2 ,"Total lifetime": 0.0, "Total decoupled ops": 0}
         hls_schedules_csv_data.append(new2)
+        stage = first_stage + lat
+        max_stage = max(max_stage, stage)
+        dummy_sched = [{"interface": "foo", "stage": first_stage}, {"interface": "bar", "stage": stage}]
+        new3 = {"instruction": instr_name, "schedule": dummy_sched}
+        isax_xisaac_yaml_data.append(new3)
         sg += 1
+    isax_xisaac_yaml_data.append({"last_stage": max_stage+1})
     print("selected_solutions_yaml_data", selected_solutions_yaml_data)
     print("hls_schedules_csv_data", hls_schedules_csv_data)
+    print("isax_xisaac_yaml_data", isax_xisaac_yaml_data)
     hls_schedules_csv_path = out_dir / "hls_schedules.csv"
-    hls_outputs_path = out_dir / "outputs"
+    hls_outputs_path = out_dir / "output"
     hls_outputs_path.mkdir(exist_ok=True)
     selected_solutions_yaml_path = hls_outputs_path / "selected_solutions.yaml"
+    isax_xisaac_yaml_path = hls_outputs_path / "ISAX_XIsaac.yaml"
     hls_schedules_df = pd.DataFrame(hls_schedules_csv_data)
     with open(selected_solutions_yaml_path, "w") as f:
         yaml.dump(selected_solutions_yaml_data, f)
+    with open(isax_xisaac_yaml_path, "w") as f:
+        yaml.dump(isax_xisaac_yaml_data, f)
     hls_schedules_df.to_csv(hls_schedules_csv_path)
-    ### 
-total_area_estimate = 0
-total_area_estimate_with_lifetimes = 0
-iis = []
-all_lats = []
-num_groups = 0
-num_instrs = 0
-group2instrs = {}
-for row in yaml_data:
-    num_groups += 1
-    sharing_group = row["sharing_group"]
-    idx = row["solution_idx"]
-    name = f"SG_{sharing_group}_SOL_IDX_{idx}"
-    schedules = schedules_df[schedules_df["config"] == name]
-    assert len(schedules) == 1
-    print("schedules", schedules)
-    schedule = schedules.iloc[0]
-    ii = schedule["II"]
-    iis.append(ii)
-    lats = ast.literal_eval(schedule["Instruction latencies"])
-    group2instrs[idx] = list(lats.keys())
-    num_instrs += len(lats)
-    all_lats += list(lats.values())
-    area_estimate = schedule["Area estimate w/o lifetimes"]
-    total_area_estimate += area_estimate
-    area_estimate_with_lifetimes = schedule["Area estimate w/ lifetimes"]
-    total_area_estimate_with_lifetimes += area_estimate_with_lifetimes
-    # Fallback
-    # Instruction latencies
-    # Allocation
-    # Overall latency
-    # Total lifetime
-    # Total decoupled ops
-max_instrs = max(map(len, group2instrs.values()))
-min_instrs = min(map(len, group2instrs.values()))
-avg_instrs = num_instrs/num_groups
-min_ii = min(iis)
-max_ii = max(iis)
-avg_ii = sum(iis)/len(iis)
-min_lat = min(all_lats)
-max_lat = max(all_lats)
-avg_lat = sum(all_lats)/len(all_lats)
-data = {"num_groups": num_groups, "num_instrs": num_instrs, "max_instrs": max_instrs, "min_instrs": min_instrs, "avg_instrs": avg_instrs, "min_ii": min_ii, "max_ii": max_ii, "avg_ii": avg_ii, "min_lat": min_lat, "max_lat": max_lat, "avg_lat": avg_lat, "total_area_estimate": total_area_estimate, "total_area_estimate_with_lifetimes": total_area_estimate_with_lifetimes}
-df = pd.DataFrame([data])
-print(df)
 
-    """
-    hls_selected_schedule_metrics.csv:
-    ,num_groups,num_instrs,max_instrs,min_instrs,avg_instrs,min_ii,max_ii,avg_ii,min_lat,max_lat,avg_lat,total_area_estimate,total_area_estimate_with_lifetimes
-    0,2,2,1,1,1.0,1,1,1.0,3,4,3.5,30086.361573000002,30086.361573000002
-    output/ISAX_XIsaac.yaml
-    - instruction: CUSTOM0
-      schedule:
-        - interface: RdRS1
-          stage: 2
-        - interface: RdRS2
-          stage: 2
-        - interface: RdIValid
-          stage: 2
-        - interface: RdIValid
-          stage: 3
-        - interface: RdStall
-          stage: 2
-        - interface: RdStall
-          stage: 3
-        - interface: WrRD
-          stage: 3
-    - instruction: CUSTOM3
-      schedule:
-        - interface: RdRS1
-          stage: 2
-        - interface: RdRS2
-          stage: 2
-        - interface: RdIValid
-          stage: 2
-        - interface: RdStall
-          stage: 2
-        - interface: WrRD
-          stage: 2
-    - last stage: 4
-    """
+    total_area_estimate = 0
+    total_area_estimate_with_lifetimes = 0
+    iis = []
+    all_lats = []
+    num_groups = 0
+    num_instrs = 0
+    group2instrs = {}
+    for row in selected_solutions_yaml_data:
+        num_groups += 1
+        sharing_group = row["sharing_group"]
+        idx = row["solution_idx"]
+        name = f"SG_{sharing_group}_SOL_IDX_{idx}"
+        schedules = hls_schedules_df[hls_schedules_df["config"] == name]
+        assert len(schedules) == 1
+        # print("schedules", schedules)
+        schedule = schedules.iloc[0]
+        ii = schedule["II"]
+        iis.append(ii)
+        lats = schedule["Instruction latencies"]
+        if isinstance(lats, str):
+            lats = ast.literal_eval(lats)
+        assert isinstance(lats, dict)
+        group2instrs[idx] = list(lats.keys())
+        num_instrs += len(lats)
+        all_lats += list(lats.values())
+        area_estimate = schedule["Area estimate w/o lifetimes"]
+        total_area_estimate += area_estimate
+        area_estimate_with_lifetimes = schedule["Area estimate w/ lifetimes"]
+        total_area_estimate_with_lifetimes += area_estimate_with_lifetimes
+    max_instrs = max(map(len, group2instrs.values()))
+    min_instrs = min(map(len, group2instrs.values()))
+    avg_instrs = num_instrs/num_groups
+    min_ii = min(iis)
+    max_ii = max(iis)
+    avg_ii = sum(iis)/len(iis)
+    min_lat = min(all_lats)
+    max_lat = max(all_lats)
+    avg_lat = sum(all_lats)/len(all_lats)
+    hls_selected_schedule_metrics_data = [{"num_groups": num_groups, "num_instrs": num_instrs, "max_instrs": max_instrs, "min_instrs": min_instrs, "avg_instrs": avg_instrs, "min_ii": min_ii, "max_ii": max_ii, "avg_ii": avg_ii, "min_lat": min_lat, "max_lat": max_lat, "avg_lat": avg_lat, "total_area_estimate": total_area_estimate, "total_area_estimate_with_lifetimes": total_area_estimate_with_lifetimes}]
+    hls_selected_schedule_metrics_df = pd.DataFrame([hls_selected_schedule_metrics_data])
+    print("hls_selected_schedule_metrics_df", hls_selected_schedule_metrics_df)
+    hls_selected_schedule_metrics_csv_path = out_dir / "hls_selected_schedule_metrics.csv"
+    hls_selected_schedule_metrics_df.to_csv(hls_selected_schedule_metrics_csv_path)
 
 
 def handle(args):
@@ -249,6 +225,7 @@ def handle(args):
         sess,
         set_name=args.set_name,
         core=args.core,
+        strategy=args.strategy,
         index=args.index,
         force=args.force,
         workdir=args.workdir,
@@ -272,6 +249,7 @@ def get_parser():
     parser.add_argument("--set-name", type=str, default=None)
     parser.add_argument("--index", type=str, default=None)
     parser.add_argument("--core", type=str, choices=["cv32e40p"], default=None)
+    parser.add_argument("--strategy", type=str, choices=STRATEGIES, default="best")
     parser.add_argument("--verbose", action="store_true")
 
     return parser
