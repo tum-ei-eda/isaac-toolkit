@@ -100,6 +100,7 @@ def run_fake_hls(
     # strategies = ["fast", "slow"]
     # strategy = "worst"  # TODO: implement others
     selected_schedules = defaultdict(dict)
+
     def apply_strategy(scheds, strategy):
         assert len(scheds) > 0
         if strategy == "best":
@@ -114,10 +115,12 @@ def run_fake_hls(
             return selected
         elif strategy == "random":
             import random
+
             selected = random.choice(scheds)
             return selected
         else:
             raise NotImplementedError(f"Unsupported strategy: {strategy}")
+
     for instr_name, scheds in instr_schedules.items():
         selected = apply_strategy(scheds, strategy)
         selected_schedules[instr_name] = selected
@@ -141,11 +144,24 @@ def run_fake_hls(
         config = f"SG_{sg}_SOL_IDX_{sol_idx}"
         ii = sched["ii"]
         lat = sched["lat"]
-        lats = {instr_name: lat}
+        full_lat = lat + first_stage
+        lats = {instr_name: full_lat}
         allocs = {}
         area_est = 123.0  # DUMMY
         area_est2 = area_est
-        new2 = {"config": config, "idx": sol_idx, "II": ii, "Fallback": False, "Instruction latencies": lats, "Allocation": allocs, "Overall latency": max_lat, "Area estimate w/o lifetimes": area_est, "Area estimate w/ lifetimes": area_est2 ,"Total lifetime": 0.0, "Total decoupled ops": 0}
+        new2 = {
+            "config": config,
+            "idx": sol_idx,
+            "II": ii,
+            "Fallback": False,
+            "Instruction latencies": lats,
+            "Allocation": allocs,
+            "Overall latency": max_lat,
+            "Area estimate w/o lifetimes": area_est,
+            "Area estimate w/ lifetimes": area_est2,
+            "Total lifetime": 0.0,
+            "Total decoupled ops": 0,
+        }
         hls_schedules_csv_data.append(new2)
         stage = first_stage + lat
         max_stage = max(max_stage, stage)
@@ -153,7 +169,7 @@ def run_fake_hls(
         new3 = {"instruction": instr_name, "schedule": dummy_sched}
         isax_xisaac_yaml_data.append(new3)
         sg += 1
-    isax_xisaac_yaml_data.append({"last_stage": max_stage+1})
+    isax_xisaac_yaml_data.append({"last_stage": max_stage + 1})
     print("selected_solutions_yaml_data", selected_solutions_yaml_data)
     print("hls_schedules_csv_data", hls_schedules_csv_data)
     print("isax_xisaac_yaml_data", isax_xisaac_yaml_data)
@@ -200,14 +216,30 @@ def run_fake_hls(
         total_area_estimate_with_lifetimes += area_estimate_with_lifetimes
     max_instrs = max(map(len, group2instrs.values()))
     min_instrs = min(map(len, group2instrs.values()))
-    avg_instrs = num_instrs/num_groups
+    avg_instrs = num_instrs / num_groups
     min_ii = min(iis)
     max_ii = max(iis)
-    avg_ii = sum(iis)/len(iis)
+    avg_ii = sum(iis) / len(iis)
     min_lat = min(all_lats)
     max_lat = max(all_lats)
-    avg_lat = sum(all_lats)/len(all_lats)
-    hls_selected_schedule_metrics_data = [{"num_groups": num_groups, "num_instrs": num_instrs, "max_instrs": max_instrs, "min_instrs": min_instrs, "avg_instrs": avg_instrs, "min_ii": min_ii, "max_ii": max_ii, "avg_ii": avg_ii, "min_lat": min_lat, "max_lat": max_lat, "avg_lat": avg_lat, "total_area_estimate": total_area_estimate, "total_area_estimate_with_lifetimes": total_area_estimate_with_lifetimes}]
+    avg_lat = sum(all_lats) / len(all_lats)
+    hls_selected_schedule_metrics_data = [
+        {
+            "num_groups": num_groups,
+            "num_instrs": num_instrs,
+            "max_instrs": max_instrs,
+            "min_instrs": min_instrs,
+            "avg_instrs": avg_instrs,
+            "min_ii": min_ii,
+            "max_ii": max_ii,
+            "avg_ii": avg_ii,
+            "min_lat": min_lat,
+            "max_lat": max_lat,
+            "avg_lat": avg_lat,
+            "total_area_estimate": total_area_estimate,
+            "total_area_estimate_with_lifetimes": total_area_estimate_with_lifetimes,
+        }
+    ]
     hls_selected_schedule_metrics_df = pd.DataFrame([hls_selected_schedule_metrics_data])
     print("hls_selected_schedule_metrics_df", hls_selected_schedule_metrics_df)
     hls_selected_schedule_metrics_csv_path = out_dir / "hls_selected_schedule_metrics.csv"
