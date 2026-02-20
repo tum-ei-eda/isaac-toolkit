@@ -58,7 +58,7 @@ def retarget_etiss_perf(
     base_dir = workdir / subdir
     # etiss_dir = base_dir / "etiss"
     # output_dir = etiss_dir / label
-    output_dir = (base_dir / "etiss") if label == "" else (base_dir / f"etiss_{label}")
+    output_dir = (base_dir / "etiss_perf") if label == "" else (base_dir / f"etiss_perf_{label}")
     if output_dir.is_dir():
         assert force, f"Directory already exists: {output_dir}. Use --force or different --label."
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
@@ -89,13 +89,15 @@ def retarget_etiss_perf(
         command += f" -e CLEANUP={int(cleanup)}"
         command += f" {docker_image}"
         command += f" {output_dir}"
+        command += f" {index_file}"
+        command += f" {hls_dir}"
         command += f" {top_file}"
         # print("$$$", command)
 
         # input("!")
         try:
             print("command", command)
-            input(">")
+            # input(">")
             subprocess.run(command, check=True, shell=True, **kwargs)
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Command failed with return code {e.returncode}")
@@ -109,7 +111,7 @@ def retarget_etiss_perf(
     else:
 
         temp_dir = base_dir / "temp"
-        etiss_home = temp_dir / "etiss"
+        etiss_perf_home = temp_dir / "etiss_perf"
         env = os.environ.copy()
         env["ETISS_PERF_HOME"] = etiss_perf_home
         env["CLEANUP"] = str(int(cleanup))
@@ -125,7 +127,7 @@ def retarget_etiss_perf(
         try:
             print("env", env)
             print("command", " ".join(map(str, [etiss_perf_script, *etiss_perf_script_args])))
-            input(">")
+            # input(">")
             subprocess.run([etiss_perf_script, *etiss_perf_script_args], check=True, **kwargs, env=env)
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Command failed with return code {e.returncode}")

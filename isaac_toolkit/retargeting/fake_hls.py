@@ -163,7 +163,7 @@ def run_fake_hls(
             "Total decoupled ops": 0,
         }
         hls_schedules_csv_data.append(new2)
-        stage = first_stage + lat
+        stage = first_stage + lat - 1
         max_stage = max(max_stage, stage)
         dummy_sched = [{"interface": "foo", "stage": first_stage}, {"interface": "bar", "stage": stage}]
         new3 = {"instruction": instr_name, "schedule": dummy_sched}
