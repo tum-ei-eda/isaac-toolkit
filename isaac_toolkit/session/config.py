@@ -74,7 +74,7 @@ DEFAULT_CONFIG = {
             "mlonmcu": None,
             # "llvm": None,
             "cdfg": None,
-            # "sim": None,
+            "sim": None,
             "choose": None,
             "query": None,
             "coredsl": None,
@@ -325,12 +325,12 @@ class MlonmcuSettings(YAMLSettings):
     target: Optional[str] = None
 
 
-# @dataclass
-# class SimSettings(YAMLSettings):
-#     iss: Optional[str] = None
-#     iss_perf: Optional[str] = None
-#     rtl: Optional[str] = None
-#     fpga: Optional[str] = None
+@dataclass
+class SimSettings(YAMLSettings):
+    iss: Optional[str] = None
+    iss_perf: Optional[str] = None
+    # rtl: Optional[str] = None
+    # fpga: Optional[str] = None
 
 
 @dataclass
@@ -421,7 +421,7 @@ class DemoSettings(YAMLSettings):
     # llvm: Optional[LLVMSettings] = None
     etiss: Optional[ETISSSettings] = None
     cdfg: Optional[CDFGSettings] = None
-    # sim: Optional[SimSettings] = None
+    sim: Optional[SimSettings] = None
     choose: Optional[ChooseSettings] = None
     query: Optional[QuerySettings] = None
     coredsl: Optional[CoredslSettings] = None

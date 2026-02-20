@@ -40,7 +40,15 @@ def retarget_iss_auto(
 ):
     logger.info("Retargeting ISS with ISAAC instructions...")
     # input(">>>")
-    sim = "etiss"  # TODO: read from config
+    sim = "etiss"
+    if flow_config:
+        demo_config = flow_config.demo
+        if demo_config:
+            sim_config = demo_config.sim
+            if sim_config:
+                sim_ = sim_config.iss
+                if sim_:
+                    sim = sim_
     assert sim == "etiss"
     sim_retarget_iss = {
         "etiss": retarget_etiss_iss,

@@ -21,7 +21,7 @@ import sys
 import shutil
 import subprocess
 
-# import yaml
+import yaml
 import argparse
 from typing import Optional, Union
 from pathlib import Path
@@ -31,10 +31,10 @@ from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
 
-DEFAULT_DOCKER_IMAGE = "isaac-quickstart-etiss:latest"
+DEFAULT_DOCKER_IMAGE = "isaac-quickstart-etiss-perf:latest"
 
 
-def retarget_etiss_iss(
+def retarget_etiss_perf(
     sess: Session,
     workdir: Optional[Union[str, Path]] = None,
     mount_dir: Optional[Union[str, Path]] = None,
@@ -67,6 +67,15 @@ def retarget_etiss_iss(
     # gen_dir = workdir / "gen" / label
     gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     top_file = gen_dir / f"{etiss_core}.core_desc"
+    index_file = (workdir / "combined_index.yml") if label == "" else (workdir / f"{label}_index.yml")
+    with open(index_file, "r") as f:
+        index_data = yaml.safe_load(f)
+    global_data = index_data["global"]
+    global_artifacts = global_data["artifacts"]
+    hls_dir = global_artifacts.get("HLS_DIR")
+    assert hls_dir is not None
+    hls_dir = Path(hls_dir)
+    assert hls_dir.is_dir()
     kwargs = {}
     # print("verbose", verbose)
     if not verbose:
@@ -102,22 +111,22 @@ def retarget_etiss_iss(
         temp_dir = base_dir / "temp"
         etiss_home = temp_dir / "etiss"
         env = os.environ.copy()
-        env["ETISS_HOME"] = etiss_home
+        env["ETISS_PERF_HOME"] = etiss_perf_home
         env["CLEANUP"] = str(int(cleanup))
         # ccache already exported implicitly?
         # TODO: explicit ccache?
         # env["CCACHE"]
         # env["CCACHE_DIR"]
-        etiss_script = os.environ.get("ETISS_SCRIPT_LOCAL", None)
-        assert etiss_script is not None, "ETISS_SCRIPT_LOCAL undefined"
-        assert Path(etiss_script).is_file(), f"Not found: {etiss_script}"
+        etiss_perf_script = os.environ.get("ETISS_PERF_SCRIPT_LOCAL", None)
+        assert etiss_perf_script is not None, "ETISS_PERF_SCRIPT_LOCAL undefined"
+        assert Path(etiss_perf_script).is_file(), f"Not found: {etiss_perf_script}"
         # TODO: ship with isaac?
-        etiss_script_args = [output_dir, top_file]
+        etiss_perf_script_args = [output_dir, index_file, hls_dir, top_file]
         try:
             print("env", env)
-            print("command", " ".join(map(str, [etiss_script, *etiss_script_args])))
+            print("command", " ".join(map(str, [etiss_perf_script, *etiss_perf_script_args])))
             input(">")
-            subprocess.run([etiss_script, *etiss_script_args], check=True, **kwargs, env=env)
+            subprocess.run([etiss_perf_script, *etiss_perf_script_args], check=True, **kwargs, env=env)
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Command failed with return code {e.returncode}")
             if e.stdout:
@@ -137,7 +146,7 @@ def handle(args):
         assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
         sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
-    retarget_etiss_iss(
+    retarget_etiss_perf(
         sess,
         force=args.force,
         workdir=args.workdir,
