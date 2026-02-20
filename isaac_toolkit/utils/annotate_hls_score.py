@@ -1,5 +1,6 @@
 import argparse
 from typing import Dict, Optional
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -19,6 +20,13 @@ def main():
         combined_index_data = yaml.safe_load(f)
     candidates = combined_index_data["candidates"]
     # print("candidates", candidates)
+    global_data = combined_index_data["global"]
+    # print("global_data", global_data)
+    global_artifacts = global_data["artifacts"]
+    hls_dir = Path(args.hls_schedules_csv).parent
+    global_artifacts["HLS_DIR"] = str(hls_dir)
+    global_data["artifacts"] = global_artifacts
+    combined_index_data["global"] = global_data
 
     schedules_df = pd.read_csv(args.hls_schedules_csv)
     schedules_df
