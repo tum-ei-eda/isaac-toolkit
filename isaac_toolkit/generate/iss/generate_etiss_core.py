@@ -46,7 +46,7 @@ logging.getLogger("set_parser").setLevel(logging.WARNING)
 logging.getLogger("visit_importer").setLevel(logging.WARNING)
 
 
-def parse_generated_set(set_file, skip_errors: bool = False, extra_includes=None, add_mnemonic_prefix: bool = False, set_name: Optional[str] = None):
+def parse_generated_set(set_file, skip_errors: bool = False, extra_includes=None, add_mnemonic_prefix: bool = False, set_name: Optional[str] = None, auto_encoding: bool = False):
     try:
         models = parse_cdsl2_set(set_file, extra_includes)
     except Exception as e:
@@ -71,20 +71,35 @@ def parse_generated_set(set_file, skip_errors: bool = False, extra_includes=None
         instr_set = instr_sets[-1]
         if set_name is None:
             set_name = set_names[-1]
-    assert len(instr_set.instructions) == 0
-    assert len(instr_set.unencoded_instructions) > 0
     ret = {}
-    for instr_def in instr_set.unencoded_instructions.values():
-        name = instr_def.name
-        if add_mnemonic_prefix:
-            prefix = set_name.lower()
-            name_lower = name.lower()
-            mnemonic = f"{prefix}.{name_lower}"
-            instr_def.mnemonic = mnemonic
-        assert (
-            name not in ret
-        ), f"Duplicate instrustion name: {name}"
-        ret[name] = instr_def
+    if auto_encoding:
+        assert len(instr_set.instructions) == 0
+        assert len(instr_set.unencoded_instructions) > 0
+        for instr_def in instr_set.unencoded_instructions.values():
+            name = instr_def.name
+            if add_mnemonic_prefix:
+                prefix = set_name.lower()
+                name_lower = name.lower()
+                mnemonic = f"{prefix}.{name_lower}"
+                instr_def.mnemonic = mnemonic
+            assert (
+                name not in ret
+            ), f"Duplicate instrustion name: {name}"
+            ret[name] = instr_def
+    else:
+        assert len(instr_set.instructions) > 0
+        assert len(instr_set.unencoded_instructions) == 0
+        for instr_def in instr_set.instructions.values():
+            name = instr_def.name
+            if add_mnemonic_prefix:
+                prefix = set_name.lower()
+                name_lower = name.lower()
+                mnemonic = f"{prefix}.{name_lower}"
+                instr_def.mnemonic = mnemonic
+            assert (
+                name not in ret
+            ), f"Duplicate instrustion name: {name}"
+            ret[name] = instr_def
     # contributing_types.append(set_name_)
     # break  # TODO
     return ret, set_name, None
@@ -258,6 +273,10 @@ def generate_etiss_core(
         assert len(index_files) > 0
         assert len(set_names) == len(index_files)
     generated_sets = []
+    sub2files = defaultdict(dict)
+    sub2new_files = defaultdict(dict)
+    set_instr2sub_name = {}
+
     for k, combined_index_file in enumerate(index_files):
         set_name = set_names[k]
         assert combined_index_file.is_file()
@@ -268,7 +287,14 @@ def generate_etiss_core(
             # sub_properties = sub_data["properties"]
             sub_name = f"C{i}"
             sub_file = Path(sub_artifacts["cdsl"])
-            generated_sets.append((set_name, sub_name, sub_file))
+            sub2files[sub_name]["cdsl"] = sub_file
+            sub_encoded_file = Path(sub_artifacts["cdsl_encoded"]) if "cdsl_encoded" in sub_artifacts else None
+            sub_properties = sub_data["properties"]
+            instr_name = sub_properties["InstrName"]
+            if sub_encoded_file is not None:
+                sub2files[sub_name]["cdsl_encoded"] = sub_encoded_file
+            set_instr2sub_name[(set_name, instr_name)] = sub_name
+            generated_sets.append((set_name, sub_name, sub_file, sub_encoded_file))
     # Not uses set() here as we want to preserve the order!
     all_cdsl_sets = []
     instr_classes = {32}
@@ -330,32 +356,44 @@ def generate_etiss_core(
     errs_file = gen_dir / "errs.txt"
     errs = {}
     unencoded_instructions_per_set = defaultdict(dict)
+    instructions_per_set = defaultdict(dict)
     with ProcessPoolExecutor(n_parallel) as pool:
+
+
         futures = []
-        for set_name, set_name_, set_file in generated_sets:
-            future = pool.submit(parse_generated_set, set_file, set_name=set_name, skip_errors=skip_errors, extra_includes=extra_includes, add_mnemonic_prefix=add_mnemonic_prefix)
+        for set_name, set_name_, set_file, set_encoded_file in generated_sets:
+            if auto_encoding:
+                set_file_ = set_file
+            else:
+                assert set_encoded_file is not None, "cdsl_encoded artifact not found with auto_encoding disabled"
+                set_file_ = set_encoded_file
+            future = pool.submit(parse_generated_set, set_file_, set_name=set_name, skip_errors=skip_errors, extra_includes=extra_includes, add_mnemonic_prefix=add_mnemonic_prefix, auto_encoding=auto_encoding)
             futures.append(future)
         for future in futures:
             # TODO: except failing?
             result = future.result()
-            unencoded_instructions, set_name, err_msg = result
-            if unencoded_instructions is None:
+            parsed_instructions, set_name, err_msg = result
+            if parsed_instructions is None:
                 assert err_msg is not None
                 errs[(set_name, set_name_)] = err_msg
             # assert set_name not in unencoded_instructions_per_set, f"Duplicate set name: {set_name}"
-            unencoded_instructions_per_set[set_name].update(unencoded_instructions)
+            if auto_encoding:
+                unencoded_instructions_per_set[set_name].update(parsed_instructions)
+            else:
+                instructions_per_set[set_name].update(parsed_instructions)
 
-    instructions_per_set = defaultdict(dict)
-    for set_name, unencoded_instructions in unencoded_instructions_per_set.items():
-        unencoded_instructions_ = list(unencoded_instructions.values())
-        encoded_instructions_ = encode_instructions(unencoded_instructions_)
-        # print("encoded_instructions_", encoded_instructions_, len(encoded_instructions_))
-        encoded_instructions = {
-            (instr_def.code, instr_def.mask): instr_def
-            for instr_def in encoded_instructions_
-        }
-        # print("encoded_instructions", encoded_instructions, len(encoded_instructions))
-        instructions_per_set[set_name] = encoded_instructions
+    if auto_encoding:
+        for set_name, unencoded_instructions in unencoded_instructions_per_set.items():
+            unencoded_instructions_ = list(unencoded_instructions.values())
+            encoded_instructions_ = encode_instructions(unencoded_instructions_)
+            # print("encoded_instructions_", encoded_instructions_, len(encoded_instructions_))
+            encoded_instructions = {
+                (instr_def.code, instr_def.mask): instr_def
+                for instr_def in encoded_instructions_
+            }
+            # print("encoded_instructions", encoded_instructions, len(encoded_instructions))
+            instructions_per_set[set_name] = encoded_instructions
+    for set_name in instructions_per_set.keys():
         contributing_types.append(set_name)
     # instructions = {}
     # instructions.update(encoded_instructions)
@@ -414,32 +452,51 @@ def generate_etiss_core(
             f.write(set_includes_code)
             f.write("\n\n")
             f.write(set_cdsl_code)
-        with open(set_splitted_out_model_file, "wb") as f:
-            sets_splitted = {}
-            for instr_def in generated_set.instructions.values():
-                instr_name = instr_def.name
-                temp_set_name = f"{set_name}{instr_name}single"
-                temp_set = m2isar.metamodel.arch.InstructionSet(
-                    name=temp_set_name,
-                    extension=extension,
-                    constants={},
-                    memories={},
-                    functions={},
-                    instructions={(instr_def.mask, instr_def.code): instr_def},
-                    unencoded_instructions={},
-                )
-                sets_splitted[temp_set_name] = temp_set
-            group_set = m2isar.metamodel.arch.InstructionSet(
-                name=set_name,
-                extension=list(sets_splitted.keys()),
+        sets_splitted = {}
+        for instr_def in generated_set.instructions.values():
+            instr_name = instr_def.name
+            temp_set_name = f"{set_name}{instr_name}single"
+            temp_set = m2isar.metamodel.arch.InstructionSet(
+                name=temp_set_name,
+                extension=extension,
                 constants={},
                 memories={},
                 functions={},
-                instructions={},
+                instructions={(instr_def.mask, instr_def.code): instr_def},
                 unencoded_instructions={},
             )
-            sets_splitted[set_name] = group_set
-            model_obj_splitted = M2Model(M2_METAMODEL_VERSION, {}, sets_splitted, {})
+            sets_splitted[temp_set_name] = temp_set
+            if auto_encoding:
+                model_obj_single = M2Model(M2_METAMODEL_VERSION, {}, {temp_set_name: temp_set}, {})
+                sub_name = set_instr2sub_name[(set_name, instr_name)]
+                sub_files = sub2files[sub_name]
+                base_cdsl_file = str(sub_files["cdsl"])
+                base_cdsl_file_encoded = base_cdsl_file.replace(".core_desc", ".encoded.core_desc")
+                set_single_out_model_file = base_cdsl_file_encoded.replace(".core_desc", ".m2isarmodel")
+                set_single_out_cdsl_file = base_cdsl_file_encoded
+                with open(set_single_out_model_file, "wb") as f:
+                    pickle.dump(model_obj_single, f)
+                extension2 = [f"RV{xlen}I"]  # TODO: add include?
+                set_includes2 = get_cdsl_includes(extension2, base_dir=base_dir, tum_dir=tum_dir)
+                set_includes_code2 = get_includes_code(set_includes2)
+                set_single_cdsl_code = gen_cdsl_code(model_obj_single, with_includes=False)
+                with open(set_single_out_cdsl_file, "w") as f:
+                    f.write(set_includes_code2)
+                    f.write("\n\n")
+                    f.write(set_single_cdsl_code)
+                sub2new_files[sub_name]["cdsl_encoded"] = base_cdsl_file_encoded
+        group_set = m2isar.metamodel.arch.InstructionSet(
+            name=set_name,
+            extension=list(sets_splitted.keys()),
+            constants={},
+            memories={},
+            functions={},
+            instructions={},
+            unencoded_instructions={},
+        )
+        sets_splitted[set_name] = group_set
+        model_obj_splitted = M2Model(M2_METAMODEL_VERSION, {}, sets_splitted, {})
+        with open(set_splitted_out_model_file, "wb") as f:
             pickle.dump(model_obj_splitted, f)
         set_splitted_cdsl_code = gen_cdsl_code(model_obj_splitted, with_includes=False)
         with open(set_splitted_out_cdsl_file, "w") as f:
@@ -462,7 +519,19 @@ def generate_etiss_core(
             with open(errs_file, "w") as f:
                 errs_text = "\n".join([f"{name}: {err}" for name, err in errs.items()])
                 f.write(errs_text)
-        # input("!!")
+    if auto_encoding:
+        assert len(index_files) == 1
+        combined_index_file = index_files[0]
+        inplace = True
+        assert inplace
+        new_index_data = index_data
+        for i in range(len(index_data["candidates"])):
+            sub_name = f"C{i}"
+            new_artifacts = sub2new_files.get(sub_name)
+            if new_artifacts:
+                new_index_data["candidates"][i]["artifacts"].update(new_artifacts)
+        with open(combined_index_file, "w") as f:
+            yaml.dump(new_index_data, f)
 
 
 def handle(args):
@@ -519,7 +588,8 @@ def get_parser():
     parser.add_argument("--ignore_etiss", action="store_true")
     parser.add_argument("--semihosting", action="store_true")
     parser.add_argument("--base-extensions", type=str, default="i,m,a,f,d,c,zifencei")
-    parser.add_argument("--auto-encoding", action="store_true")
+    parser.add_argument("--auto-encoding", action="store_true", default=True)
+    parser.add_argument("--no-auto-encoding", dest="auto_encoding", action="store_false", default=True)
     parser.add_argument("--split", action="store_true")
     parser.add_argument("--base-dir", type=str, default="rv_base")
     parser.add_argument("--tum-dir", type=str, default=".")
