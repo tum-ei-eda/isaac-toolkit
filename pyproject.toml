@@ -14,7 +14,7 @@ build-backend = "setuptools.build_meta"
 name = "isaac_toolkit"
 dynamic = ["version", "dependencies", "optional-dependencies"]
 requires-python = ">=3.8"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 
 [tool.setuptools.packages.find]
 include = ["isaac_toolkit*"]
