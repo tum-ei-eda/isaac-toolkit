@@ -24,7 +24,7 @@ import subprocess
 
 import yaml
 import argparse
-from typing import Optional, Union
+from typing import Optional, Union, List
 from pathlib import Path
 from collections import defaultdict
 import pandas as pd
@@ -34,14 +34,15 @@ from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
 
-STRATEGIES = ["best", "worst", "random"]
+SUPPORTED_STRATEGIES = ["best", "worst", "random"]
+DEFAULT_STRATEGY = "best"
 
 
 def run_fake_hls(
     sess: Session,
     set_name: str = "XIsaac",
     core: Optional[str] = None,
-    strategy: str = "best",
+    strategies: Optional[List[str]] = None,
     index: Optional[Union[str, Path]] = None,
     workdir: Optional[Union[str, Path]] = None,
     label: Optional[str] = None,
@@ -57,22 +58,34 @@ def run_fake_hls(
     out_dir = workdir / "local" / "fake_hls"
     out_dir.mkdir(exist_ok=True, parents=True)
     print("FAKE HLS")
+    if strategies is None:
+        strategies = [DEFAULT_STRATEGY]
+    assert len(strategies) == 1
+    strategy = strategies[0]
     assert core is not None
     assert set_name is not None
     assert index is not None
     index_file = Path(index)
     assert index_file.is_file()
     instr_schedules = defaultdict(list)
+    sg_schedules = defaultdict(list)
     with open(index_file, "r") as f:
         index_data = yaml.safe_load(f)
     candidates = index_data["candidates"]
     num_candidates = len(candidates)
     print("candidates", candidates, len(candidates))
-    for candidate in candidates:
+    sharing_groups = defaultdict(list)
+    first_stage = 2
+    for i, candidate in enumerate(candidates):
         print("candidate", candidate)
         properties = candidate["properties"]
         metrics = candidate["metrics"]
         name = properties["InstrName"]
+        # TODO: handle actual sharing
+        sg = i + 1
+        sg_ = [name]
+        sharing_groups[sg] = sg_
+
         num_instrs = int(properties["#Instrs"])
         max_path_len = int(properties["ScheduleLength"])
 
@@ -93,38 +106,80 @@ def run_fake_hls(
                 legal = (lat % ii) == 0
                 if not legal:
                     continue
-                sched = {"lat": lat, "ii": ii}
+                full_lat = lat + first_stage
+                sched = {"lat": lat, "full_lat": full_lat, "ii": ii}
                 instr_schedules[name].append(sched)
+                sg_sched = {"lats": {name: lat}, "full_lats": {name: full_lat}, "ii": ii}
+                sg_schedules[sg].append(sg_sched)
 
-        print("instr_schedules", instr_schedules)
+    print("instr_schedules", instr_schedules)
+    print("sg_schedules", sg_schedules)
     # strategies = ["fast", "slow"]
     # strategy = "worst"  # TODO: implement others
-    selected_schedules = defaultdict(dict)
+    # selected_schedules = defaultdict(dict)
+    # selected_schedules_idx = defaultdict(int)
+    selected_sg_schedules = defaultdict(dict)
+    selected_sg_schedules_idx = defaultdict(int)
+    print("sharing_groups", sharing_groups)
 
-    def apply_strategy(scheds, strategy):
-        assert len(scheds) > 0
-        if strategy == "best":
-            sorted_scheds = sorted(scheds, key=lambda x: (x["lat"], x["ii"]))
+    # def apply_strategy(scheds, strategy):
+    #     assert len(scheds) > 0
+    #     if strategy == "best":
+    #         sorted_scheds = sorted(scheds, key=lambda x: (x["lat"], x["ii"]))
+    #         # print("sorted_scheds", sorted_scheds)
+    #         selected = sorted_scheds[0]
+    #         idx = scheds.index(selected)
+    #         return selected, idx
+    #     elif strategy == "worst":
+    #         sorted_scheds = sorted(scheds, key=lambda x: (x["lat"], x["ii"]))
+    #         # print("sorted_scheds", sorted_scheds)
+    #         selected = sorted_scheds[-1]
+    #         idx = scheds.index(selected)
+    #         return selected, idx
+    #     elif strategy == "random":
+    #         import random
+
+    #         selected = random.choice(scheds)
+    #         idx = scheds.index(selected)
+    #         return selected, idx
+    #     else:
+    #         raise NotImplementedError(f"Unsupported strategy: {strategy}")
+
+    def apply_sg_strategy(sg_scheds, strategy):
+        assert len(sg_scheds) > 0
+        if strategy == "best":  # min ii & min avg lat
+            sorted_scheds = sorted(sg_scheds, key=lambda x: (sum(x["lats"].values())/len(x["lats"]), x["ii"]))
             # print("sorted_scheds", sorted_scheds)
             selected = sorted_scheds[0]
-            return selected
-        elif strategy == "worst":
-            sorted_scheds = sorted(scheds, key=lambda x: (x["lat"], x["ii"]))
+            idx = sg_scheds.index(selected)
+            return selected, idx
+        elif strategy == "worst":  # max ii & max avg lat
+            sorted_scheds = sorted(sg_scheds, key=lambda x: (sum(x["lats"].values())/len(x["lats"]), x["ii"]))
             # print("sorted_scheds", sorted_scheds)
             selected = sorted_scheds[-1]
-            return selected
+            idx = sg_scheds.index(selected)
+            return selected, idx
         elif strategy == "random":
             import random
 
-            selected = random.choice(scheds)
-            return selected
+            selected = random.choice(sg_scheds)
+            idx = sg_scheds.index(selected)
+            return selected, idx
         else:
             raise NotImplementedError(f"Unsupported strategy: {strategy}")
 
-    for instr_name, scheds in instr_schedules.items():
-        selected = apply_strategy(scheds, strategy)
-        selected_schedules[instr_name] = selected
-    print("selected_schedules", selected_schedules)
+    # for instr_name, scheds in instr_schedules.items():
+    #     selected, idx = apply_strategy(scheds, strategy)
+    #     selected_schedules[instr_name] = selected
+    #     selected_schedules_idx[instr_name] = idx
+    for sg, sg_scheds in sg_schedules.items():
+        selected, idx = apply_sg_strategy(sg_scheds, strategy)
+        selected_sg_schedules[sg] = selected
+        selected_sg_schedules_idx[sg] = idx
+    # print("selected_schedules", selected_schedules)
+    # print("selected_schedules_idx", selected_schedules_idx)
+    print("selected_sg_schedules", selected_sg_schedules)
+    print("selected_sg_schedules_idx", selected_sg_schedules_idx)
     # TODO: allow sharing
     # TODO: analyze nodes (find longes paths,...)
     # TODO: use external cost/latency model
@@ -133,42 +188,102 @@ def run_fake_hls(
     # Output format
     selected_solutions_yaml_data = []
     hls_schedules_csv_data = []
+    all_hls_schedules_csv_data = []
     isax_xisaac_yaml_data = []
-    sg = 1
-    first_stage = 2
     max_stage = first_stage
-    for instr_name, sched in selected_schedules.items():
-        sol_idx = 0
+    # for instr_name, scheds in hls_schedules.items():
+    #     for sol_idx, sched in enumerate(scheds):
+    #         config = f"SG_{sg}_SOL_IDX_{sol_idx}"
+    #         ii = sched["ii"]
+    #         lat = sched["lat"]
+    #         full_lat = lat + first_stage
+    #         lats = {instr_name: full_lat}
+    #         allocs = {}
+    #         area_est = 123.0  # DUMMY
+    #         area_est2 = area_est
+    #         new2 = {
+    #             "config": config,
+    #             "idx": sol_idx,
+    #             "II": ii,
+    #             "Fallback": False,
+    #             "Instruction latencies": lats,
+    #             "Allocation": allocs,
+    #             "Overall latency": max_lat,
+    #             "Area estimate w/o lifetimes": area_est,
+    #             "Area estimate w/ lifetimes": area_est2,
+    #             "Total lifetime": 0.0,
+    #             "Total decoupled ops": 0,
+    #         }
+    #         hls_schedules_csv_data.append(new2)
+    #         sg += 1
+    for sg, sg_scheds in sg_schedules.items():
+        for sol_idx, sg_sched in enumerate(sg_scheds):
+            config = f"SG_{sg}_SOL_IDX_{sol_idx}"
+            ii = sg_sched["ii"]
+            full_lats = sg_sched["full_lats"]
+            allocs = {}
+            area_est = 123.0  # DUMMY
+            area_est2 = area_est
+            new2 = {
+                "config": config,
+                "idx": sol_idx,
+                "II": ii,
+                "Fallback": False,
+                "Instruction latencies": full_lats,
+                "Allocation": allocs,
+                "Overall latency": max_lat,
+                "Area estimate w/o lifetimes": area_est,
+                "Area estimate w/ lifetimes": area_est2,
+                "Total lifetime": 0.0,
+                "Total decoupled ops": 0,
+            }
+            hls_schedules_csv_data.append(new2)
+    # for instr_name, sched in selected_schedules.items():
+    #     sol_idx = selected_schedules_idx[instr_name]
+    #     new = {"sharing_group": sg, "solution_idx": sol_idx}
+    #     selected_solutions_yaml_data.append(new)
+    #     config = f"SG_{sg}_SOL_IDX_{sol_idx}"
+    #     ii = sched["ii"]
+    #     lat = sched["lat"]
+    #     full_lat = lat + first_stage
+    #     lats = {instr_name: full_lat}
+    #     allocs = {}
+    #     area_est = 123.0  # DUMMY
+    #     area_est2 = area_est
+    #     new2 = {
+    #         "config": config,
+    #         "idx": sol_idx,
+    #         "II": ii,
+    #         "Fallback": False,
+    #         "Instruction latencies": lats,
+    #         "Allocation": allocs,
+    #         "Overall latency": max_lat,
+    #         "Area estimate w/o lifetimes": area_est,
+    #         "Area estimate w/ lifetimes": area_est2,
+    #         "Total lifetime": 0.0,
+    #         "Total decoupled ops": 0,
+    #     }
+    #     hls_schedules_csv_data.append(new2)
+    #     stage = first_stage + lat - 1
+    #     max_stage = max(max_stage, stage)
+    #     dummy_sched = [{"interface": "foo", "stage": first_stage}, {"interface": "bar", "stage": stage}]
+    #     new3 = {"instruction": instr_name, "schedule": dummy_sched}
+    #     isax_xisaac_yaml_data.append(new3)
+    #     sg += 1
+    for sg, sg_sched in selected_sg_schedules.items():
+        sol_idx = selected_sg_schedules_idx[sg]
         new = {"sharing_group": sg, "solution_idx": sol_idx}
         selected_solutions_yaml_data.append(new)
         config = f"SG_{sg}_SOL_IDX_{sol_idx}"
-        ii = sched["ii"]
-        lat = sched["lat"]
-        full_lat = lat + first_stage
-        lats = {instr_name: full_lat}
-        allocs = {}
-        area_est = 123.0  # DUMMY
-        area_est2 = area_est
-        new2 = {
-            "config": config,
-            "idx": sol_idx,
-            "II": ii,
-            "Fallback": False,
-            "Instruction latencies": lats,
-            "Allocation": allocs,
-            "Overall latency": max_lat,
-            "Area estimate w/o lifetimes": area_est,
-            "Area estimate w/ lifetimes": area_est2,
-            "Total lifetime": 0.0,
-            "Total decoupled ops": 0,
-        }
-        hls_schedules_csv_data.append(new2)
-        stage = first_stage + lat - 1
-        max_stage = max(max_stage, stage)
-        dummy_sched = [{"interface": "foo", "stage": first_stage}, {"interface": "bar", "stage": stage}]
-        new3 = {"instruction": instr_name, "schedule": dummy_sched}
-        isax_xisaac_yaml_data.append(new3)
-        sg += 1
+        ii = sg_sched["ii"]
+        lats = sg_sched["lats"]
+        full_lats = sg_sched["full_lats"]
+        for instr_name, lat in lats.items():
+            stage = first_stage + lat - 1  # TODO!
+            max_stage = max(max_stage, stage)
+            dummy_sched = [{"interface": "foo", "stage": first_stage}, {"interface": "bar", "stage": stage}]
+            new3 = {"instruction": instr_name, "schedule": dummy_sched}
+            isax_xisaac_yaml_data.append(new3)
     isax_xisaac_yaml_data.append({"last_stage": max_stage + 1})
     print("selected_solutions_yaml_data", selected_solutions_yaml_data)
     print("hls_schedules_csv_data", hls_schedules_csv_data)
@@ -253,11 +368,22 @@ def handle(args):
         assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
         sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
+    strategy = args.strategy
+    strategies = args.strategies
+    assert strategy is not None or strategies is not None
+    if strategy is not None:
+        assert strategies is None
+        strategies = [strategy]
+    elif strategies is not None:
+        assert strategy is None
+        assert isinstance(strategies, str)
+        strategies = strategies.split(",")
+        assert all(x in SUPPORTED_STRATEGIES for x in strategies)
     run_fake_hls(
         sess,
         set_name=args.set_name,
         core=args.core,
-        strategy=args.strategy,
+        strategies=strategies,
         index=args.index,
         force=args.force,
         workdir=args.workdir,
@@ -281,7 +407,8 @@ def get_parser():
     parser.add_argument("--set-name", type=str, default=None)
     parser.add_argument("--index", type=str, default=None)
     parser.add_argument("--core", type=str, choices=["cv32e40p"], default=None)
-    parser.add_argument("--strategy", type=str, choices=STRATEGIES, default="best")
+    parser.add_argument("--strategy", type=str, choices=SUPPORTED_STRATEGIES, default=None)
+    parser.add_argument("--strategies", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
 
     return parser
