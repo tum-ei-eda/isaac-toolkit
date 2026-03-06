@@ -113,6 +113,7 @@ def parse_elf(elf_path):
                     # print("version", version)
                     # assert version == 2
                     if version != 2:
+                        raise NotImplementedError(f"LLVM_BB_ADDR_MAP version {version}")
                         # print("!")
                         # print(reader.read(100))
                         break
@@ -164,8 +165,16 @@ def parse_elf(elf_path):
                         assert sz >= 0
                         start = cur
                         end = cur + sz
-                        pcs = [pc for pc in range(start, end, 2) if pc in valid_pcs]
-                        num_instrs = len(pcs)
+                        if sz > 0:
+                            pcs = [pc for pc in range(start, end, 2) if pc in valid_pcs]
+                            # valid_pcs_sorted = sorted(list(valid_pcs))
+                            # end_pc_idx = valid_pcs_sorted.index(pcs[-1])
+                            # end_pc = valid_pcs_sorted[end_pc_idx]
+                            # end_pc_next = valid_pcs_sorted[end_pc_idx+1]
+                            # end_pc_next_next = valid_pcs_sorted[end_pc_idx+2]
+                            num_instrs = len(pcs)
+                        else:
+                            num_instrs = 0
                         cur += sz
                         if GISEL:
                             tmp[str(bb_id)] = (start, end, sz, num_instrs)
