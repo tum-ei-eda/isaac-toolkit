@@ -660,9 +660,6 @@ def run_fake_hls(
         avg_lat = sum(all_lats) / len(all_lats)
     
         variant_metrics_rows.append({
-            "Variant idx": variant_idx,
-            "Variant name": variant_name,
-            "Variant description": description,
             "num_groups": num_groups,
             "num_instrs": num_instrs,
             "max_instrs": max_instrs,
@@ -676,6 +673,10 @@ def run_fake_hls(
             "avg_lat": avg_lat,
             "total_area_estimate": total_area_estimate,
             "total_area_estimate_with_lifetimes": total_area_estimate_with_lifetimes,
+            "Variant idx": variant_idx,
+            "Variant name": variant_name,
+            "Variant description": description,
+            "Variant details": details_str,
         })
     hls_selected_schedule_metrics_df = pd.DataFrame(variant_metrics_rows)
     # print("hls_selected_schedule_metrics_df")
