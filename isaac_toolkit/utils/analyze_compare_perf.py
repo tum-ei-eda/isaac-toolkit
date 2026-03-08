@@ -9,20 +9,31 @@ def analyze_compare_perf(report, mem_report=None, output=None, print_df=False):
     COLS = ["Model", "Arch", "uArch", "Run Instructions", "Run Instructions (rel.)", "Run Cycles", "Run Cycles (rel.)", "Run CPI"]
     MEM_COLS = ["Model", "Arch", "uArch", "Total ROM", "Total RAM", "ROM code", "ROM code (rel.)"]
     COMMON_COLS = list(set(COLS) & set(MEM_COLS))
+    # print("COMMON_COLS", COMMON_COLS)
 
     report_file = Path(report)
     assert report_file.is_file()
     report_df = pd.read_csv(report_file)[COLS]
-    # print(report_df, report_df.columns)
+    # print(report_df, report_df.columns, len(report_df))
 
     if mem_report:
         mem_report_file = Path(mem_report)
         assert mem_report_file.is_file()
         mem_report_df = pd.read_csv(mem_report_file)[MEM_COLS]
+        # print(mem_report_df, mem_report_df.columns, len(mem_report_df))
         # print(mem_report_df, mem_report_df.columns)
         report_df = report_df.merge(mem_report_df, on=COMMON_COLS)
+        # print(report_df, report_df.columns, len(report_df))
 
     # print(report_df, report_df.columns)
+    uarchs_bench_df = report_df[["uArch", "Run Cycles", "Run Cycles (rel.)", "Run CPI"]]
+    uarchs_bench_df = uarchs_bench_df.iloc[1:]
+    uarchs_bench_df = uarchs_bench_df.sort_values("Run CPI")
+    # print("uarchs_bench_df")
+    # print(uarchs_bench_df)
+    # TODO: attach costs
+    # TODO: write to disk
+    # input("!")
 
     df = report_df
 
