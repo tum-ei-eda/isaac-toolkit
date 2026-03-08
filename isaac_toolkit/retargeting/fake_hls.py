@@ -402,13 +402,59 @@ def run_fake_hls(
     #         }
     #         hls_schedules_csv_data.append(new2)
     #         sg += 1
+    # TODO: fill
+    default_area = 1.0
+    default_delay = 1.0  # TODO
+    default_sharing_weight = 0.2  # TODO
+    instr_cost_dict = {
+        "ADD": {
+            "*": (default_area, default_delay, default_sharing_weight),
+            "i32": (default_area, default_delay, default_sharing_weight),
+            "i64": (default_area, default_delay, default_sharing_weight),
+        },
+        "ADDI": {
+            "*": (default_area, default_delay, default_sharing_weight),
+            "i32": (default_area, default_delay, default_sharing_weight),
+            "i64": (default_area, default_delay, default_sharing_weight),
+        },
+        "SLL": {
+            "*": (default_area, default_delay, default_sharing_weight),
+            "i32": (default_area, default_delay, default_sharing_weight),
+            "i64": (default_area, default_delay, default_sharing_weight),
+        },
+        "SLLI": {
+            "*": (default_area, default_delay, default_sharing_weight),
+            "i32": (default_area, default_delay, default_sharing_weight),
+            "i64": (default_area, default_delay, default_sharing_weight),
+        },
+        "*": {
+            "*": (default_area, default_delay, default_sharing_weight),
+            "i32": (default_area, default_delay, default_sharing_weight),
+            "i64": (default_area, default_delay, default_sharing_weight),
+        },
+    }
+    def get_estimated_area(sg_sched, instr_cost_dict):
+        instrs = list(sg_sched["lats"].keys())
+        total_area = 0
+        for instr in instrs:
+            dtype = "unknown"
+            lookup_key = instr if instr in instr_cost_dict else "*"
+            assert lookup_key in instr_cost_dict
+            dtype_cost_dict = instr_cost_dict[lookup_key]
+            lookup_key2 = dtype if dtype in dtype_area_dict else "*"
+            assert lookup_key2 in dtype_area_dict
+            cost = dtype_area_dict[lookup_key2]
+            area, _, _ = cost
+            total_area += area
+        return total_area
+
     for sg, sg_scheds in sg_schedules.items():
         for sol_idx, sg_sched in enumerate(sg_scheds):
             config = f"SG_{sg}_SOL_IDX_{sol_idx}"
             ii = sg_sched["ii"]
             full_lats = sg_sched["full_lats"]
             allocs = {}
-            area_est = 123.0  # DUMMY
+            area_est = get_estimated_area(sg_sched, instr_cost_dict)  # WIP
             area_est2 = area_est
             new2 = {
                 "config": config,
