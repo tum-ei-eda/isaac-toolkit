@@ -24,6 +24,7 @@ import shutil
 import itertools
 import random
 import subprocess
+from math import ceil
 
 import yaml
 import argparse
@@ -280,8 +281,15 @@ def run_fake_hls(
             iis = list(range(min_ii, max_ii + 1))
             print("iis", iis)
             for ii in iis:
+                # stages should have the same latency? (can be maybe dropped)
                 legal = (lat % ii) == 0
                 if not legal:
+                    continue
+                # Filter candidates with unsupported timing model
+                max_stages = 3
+                required_stages = ceil(lat/ii)
+                legal2 = required_stages <= max_stages
+                if not legal2:
                     continue
                 full_lat = lat + first_stage
                 sched = {"lat": lat, "full_lat": full_lat, "ii": ii}
