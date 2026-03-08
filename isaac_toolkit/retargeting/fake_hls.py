@@ -602,16 +602,17 @@ def run_fake_hls(
         num_groups = 0
         num_instrs = 0
         group_instr_counts = []
+        details = []
     
         for sg, sol_idx in variant.items():
             num_groups += 1
     
-            sched = sg_schedules[sg][sol_idx]
+            sg_sched = sg_schedules[sg][sol_idx]
     
-            ii = sched["ii"]
+            ii = sg_sched["ii"]
             iis.append(ii)
     
-            lats = sched["lats"]
+            lats = sg_sched["lats"]
             full_lats = sg_sched["full_lats"]
             instr_count = len(full_lats)
             group_instr_counts.append(instr_count)
@@ -629,6 +630,13 @@ def run_fake_hls(
                 dummy_sched = [{"interface": "foo", "stage": first_stage}, {"interface": "bar", "stage": stage}]
                 new3 = {"instruction": instr_name, "schedule": dummy_sched}
                 variant_isax_xisaac_yaml_data.append(new3)
+            lats_str = ", ".join(f"{instr}: {lat}" for instr, lat in lats.items())
+            full_lats_str = ", ".join(f"{instr}: {lat}" for instr, lat in full_lats.items())
+            detail = f"SG{sg}(II={ii}, lats={{{lats_str}}}, full_lats={{{full_lats_str}}})"
+            details.append(detail)
+        details_str = ", ".join(details)
+        # print("details_str", details_str)
+        # input("!")
         # variant_isax_xisaac_yaml_data.append({"last_stage": max_stage + 1})
         variant_isax_xisaac_yaml_data.append({"last stage": max_stage + 1})
         variant_selected_solutions_yaml_path = variant_dir / "selected_solutions.yaml"
