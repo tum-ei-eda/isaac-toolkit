@@ -113,10 +113,11 @@ def parse_elf(elf_path):
                     # print("version", version)
                     # assert version == 2
                     if version != 2:
+                        if version == 0:
+                            break
                         raise NotImplementedError(f"LLVM_BB_ADDR_MAP version {version}")
                         # print("!")
                         # print(reader.read(100))
-                        break
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     # print("features", features)
                     assert features == 0
