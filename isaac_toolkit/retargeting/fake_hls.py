@@ -128,6 +128,11 @@ def generate_variants(sg_schedules, strategy_strings):
 
             if limit is not None:
                 product = product[:limit]
+            else:
+                MAX_NUM_ALL = 200
+                num = len(product)
+                if num >= MAX_NUM_ALL:
+                    raise RuntimeError(f"Strategy all would generate {num} variants! Use all(limit={num}) to allow this explicitly.")
 
             for local_idx, combo in enumerate(product):
                 variant = {sg: sol for sg, sol in zip(sg_ids, combo)}
@@ -584,17 +589,13 @@ def run_fake_hls(
     # print("hls_selected_schedule_metrics_df", hls_selected_schedule_metrics_df)
     hls_selected_schedule_metrics_csv_path = out_dir / "hls_selected_schedule_metrics.csv"
     # hls_selected_schedule_metrics_df.to_csv(hls_selected_schedule_metrics_csv_path)
-    variant_metrics_rows = []
 
-    variants_dir = hls_outputs_path / "variants"
-    for variant_idx, (variant, description) in enumerate(variants):
-    
-        variant_name = f"V{variant_idx}"
-        variant_dir = hls_outputs_path / variant_name
+    def process_variant(variant_ifx, variant_name, variant, description, variant_dir):
         variant_dir.mkdir(exist_ok=True)
+
         variant_selected_solutions_yaml_data = []
         variant_isax_xisaac_yaml_data = []
-    
+
         total_area_estimate = 0
         total_area_estimate_with_lifetimes = 0
         iis = []
@@ -603,22 +604,22 @@ def run_fake_hls(
         num_instrs = 0
         group_instr_counts = []
         details = []
-    
+
         for sg, sol_idx in variant.items():
             num_groups += 1
-    
+
             sg_sched = sg_schedules[sg][sol_idx]
-    
+
             ii = sg_sched["ii"]
             iis.append(ii)
-    
+
             lats = sg_sched["lats"]
             full_lats = sg_sched["full_lats"]
             instr_count = len(full_lats)
             group_instr_counts.append(instr_count)
             num_instrs += instr_count
             all_lats += list(full_lats.values())
-    
+
             area_estimate = 123.0
             total_area_estimate += area_estimate
             total_area_estimate_with_lifetimes += area_estimate
@@ -646,20 +647,20 @@ def run_fake_hls(
         variant_isax_xisaac_yaml_path = variant_dir / "ISAX_XIsaac.yaml"
         with open(variant_isax_xisaac_yaml_path, "w") as f:
             yaml.dump(variant_isax_xisaac_yaml_data, f)
-    
+
         max_instrs = max(group_instr_counts)
         min_instrs = min(group_instr_counts)
         avg_instrs = num_instrs / num_groups
-    
+
         min_ii = min(iis)
         max_ii = max(iis)
         avg_ii = sum(iis) / len(iis)
-    
+
         min_lat = min(all_lats)
         max_lat = max(all_lats)
         avg_lat = sum(all_lats) / len(all_lats)
-    
-        variant_metrics_rows.append({
+
+        variant_metrics_row = {
             "num_groups": num_groups,
             "num_instrs": num_instrs,
             "max_instrs": max_instrs,
@@ -677,7 +678,20 @@ def run_fake_hls(
             "Variant name": variant_name,
             "Variant description": description,
             "Variant details": details_str,
-        })
+        }
+        return variant_metrics_row
+
+    variant_metrics_rows = []
+
+    variants_dir = hls_outputs_path / "variants"
+    for variant_idx, (variant, description) in enumerate(variants):
+        variant_name = f"V{variant_idx}"
+        variant_dir = hls_outputs_path / variant_name
+        variant_metrics_row = process_variant(variant_idx, variant_name, variant, description, variant_dir)
+        variant_metrics_rows.append(variant_metrics_row)
+        if variant_idx == 0:
+            # export first variant to base out dir for annotation (assign_hls)
+            _ = process_variant(variant_idx, variant_name, variant, description, hls_outputs_path)
     hls_selected_schedule_metrics_df = pd.DataFrame(variant_metrics_rows)
     # print("hls_selected_schedule_metrics_df")
     # print(hls_selected_schedule_metrics_df)
