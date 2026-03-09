@@ -604,6 +604,7 @@ def run_fake_hls(
         num_instrs = 0
         group_instr_counts = []
         details = []
+        max_stage = 0
 
         for sg, sol_idx in variant.items():
             num_groups += 1
