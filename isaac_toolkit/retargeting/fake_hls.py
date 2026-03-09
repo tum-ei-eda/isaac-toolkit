@@ -441,9 +441,9 @@ def run_fake_hls(
             lookup_key = instr if instr in instr_cost_dict else "*"
             assert lookup_key in instr_cost_dict
             dtype_cost_dict = instr_cost_dict[lookup_key]
-            lookup_key2 = dtype if dtype in dtype_area_dict else "*"
-            assert lookup_key2 in dtype_area_dict
-            cost = dtype_area_dict[lookup_key2]
+            lookup_key2 = dtype if dtype in dtype_cost_dict else "*"
+            assert lookup_key2 in dtype_cost_dict
+            cost = dtype_cost_dict[lookup_key2]
             area, _, _ = cost
             total_area += area
         return total_area
