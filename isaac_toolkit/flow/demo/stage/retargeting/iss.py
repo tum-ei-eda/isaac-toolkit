@@ -35,6 +35,7 @@ def retarget_iss_auto(
     force: bool = False,
     progress: bool = False,
     docker_override: Optional[bool] = None,
+    service_override: Optional[bool] = None,
     verbose: bool = False,  # TODO: add to other stages, too
     cleanup: bool = False,
 ):
@@ -69,19 +70,39 @@ def retarget_iss_auto(
     assert demo_config is not None
     docker_config = demo_config.docker
     assert docker_config is not None
+    service_config = demo_config.service
+    assert service_config is not None
     use_docker = (
         docker_override if docker_override is not None else docker_config.enable
+    )
+    use_service = (
+        service_override if service_override is not None else service_config.enable
     )
     etiss_config = demo_config.etiss
     assert etiss_config is not None
     etiss_core = etiss_config.core_name
     mount_dir = None  # Expose to CLI
     if use_docker:
+        assert not use_service
         docker_image = docker_config.etiss_image
         if mount_dir is None:
             mount_dir = Path.cwd()
     else:
         docker_image = None
+    if use_service:
+        assert not use_docker
+        service_host = service_config.hostname
+        service_port = service_config.port
+        service_tags = service_config.tags
+        if service_tags is not None:
+            service_tag = service_tags.get(sim)
+        else:
+            service_tag = None
+        service_addr = f"{service_host}:{service_port}"
+        assert service_tag is not None
+    else:
+        service_addr = None
+        service_tag = None
     # else:
     #     raise NotImplementedError("Non-docker mode")
     retarget_iss(
@@ -89,6 +110,8 @@ def retarget_iss_auto(
         workdir=workdir,
         mount_dir=mount_dir,
         docker_image=docker_image,
+        service_addr=service_addr,
+        service_tag=service_tag,
         etiss_core=etiss_core,
         label=label,
         force=force,
@@ -104,12 +127,17 @@ def handle(args):
     sess = Session.from_dir(session_dir)
     set_log_level(console_level=args.log, file_level=args.log)
     docker_override = None
+    service_override = False
     if args.docker:
-        assert not args.local
+        assert not (args.local or args.service)
         docker_override = True
     if args.local:
-        assert not args.docker
+        assert not (args.docker or args.servive)
         docker_override = False
+    if args.service:
+        assert not (args.local or args.docker)
+        docker_override = False
+        service_override = True
     # TODO: expsoe cleanup via config?
     retarget_iss_auto(
         sess,
@@ -136,6 +164,7 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--docker", action="store_true")
     parser.add_argument("--local", action="store_true")
+    parser.add_argument("--service", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--cleanup", action="store_true")
     return parser

@@ -32,6 +32,8 @@ from isaac_toolkit.logging import get_logger, set_log_level
 logger = get_logger()
 
 DEFAULT_DOCKER_IMAGE = "isaac-quickstart-etiss:latest"
+DEFAULT_SERVICE_ADDR = "localhost:8080"
+DEFAULT_SERVICE_TAG = "etiss"
 
 
 def retarget_etiss_iss(
@@ -39,6 +41,8 @@ def retarget_etiss_iss(
     workdir: Optional[Union[str, Path]] = None,
     mount_dir: Optional[Union[str, Path]] = None,
     docker_image: Optional[str] = None,
+    service_addr: Optional[str] = None,
+    service_tag: Optional[str] = None,
     etiss_core: Optional[str] = None,
     label: Optional[str] = None,
     force: bool = False,
@@ -53,8 +57,10 @@ def retarget_etiss_iss(
         etiss_core = "XIsaacCore"
     if label is None:
         label = "default"
+    use_service = service_addr is not None
     use_docker = docker_image is not None
-    subdir = "docker" if use_docker else "local"
+    assert not (use_service and use_docker)
+    subdir = "service" if use_service else ("docker" if use_docker else "local")
     base_dir = workdir / subdir
     # etiss_dir = base_dir / "etiss"
     # output_dir = etiss_dir / label
@@ -75,7 +81,11 @@ def retarget_etiss_iss(
         kwargs.setdefault("stdout", subprocess.PIPE)
         kwargs.setdefault("stderr", subprocess.PIPE)
         # kwargs.setdefault("text", True)
-    if use_docker:
+    if use_service:
+        if service_tag is None:
+            service_tag = DEFAULT_SERVICE_TAG
+        raise NotImplementedError("ISS Service")
+    elif use_docker:
         command = "docker run -it --rm"
         if mount_dir is not None:
             command += f" -v {mount_dir}:{mount_dir}"
@@ -143,6 +153,7 @@ def handle(args):
         force=args.force,
         workdir=args.workdir,
         docker_image=args.docker,
+        service_addr=args.service,
         verbose=args.verbose,
     )
     if sess is not None:
@@ -161,6 +172,9 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument(
         "--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?"
+    )
+    parser.add_argument(
+        "--service", type=str, default=None, const=DEFAULT_SERVICE_ADDR, nargs="?"
     )
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")

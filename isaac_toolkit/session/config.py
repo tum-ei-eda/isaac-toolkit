@@ -394,6 +394,14 @@ class ExperimentSettings(YAMLSettings):
 
 
 @dataclass
+class ServiceSettings(YAMLSettings):
+    hostname: Optional[str] = None
+    port: Optional[int] = None
+    tags: Optional[dict] = None
+    enable: Optional[bool] = None
+
+
+@dataclass
 class DockerSettings(YAMLSettings):
     etiss_image: Optional[str] = None
     etiss_perf_image: Optional[str] = None
