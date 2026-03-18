@@ -81,6 +81,9 @@ DEFAULT_CONFIG = {
             "hls": None,
             "asip_syn": None,
             "fpga_syn": None,
+            "experiment": None,
+            "docker": None,
+            "service": None,
         },
     },
 }
@@ -403,6 +406,7 @@ class ServiceSettings(YAMLSettings):
 
 @dataclass
 class DockerSettings(YAMLSettings):
+    mlonmcu_image: Optional[str] = None
     etiss_image: Optional[str] = None
     etiss_perf_image: Optional[str] = None
     seal5_image: Optional[str] = None
@@ -438,6 +442,7 @@ class DemoSettings(YAMLSettings):
     fpga_syn: Optional[FPGASynSettings] = None
     experiment: Optional[ExperimentSettings] = None
     docker: Optional[DockerSettings] = None
+    service: Optional[ServiceSettings] = None
     # retargeting: Optional[RetargetingSettings] = None
 
 
