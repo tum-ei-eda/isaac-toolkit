@@ -1,48 +1,99 @@
 import re
 import os
-import sys
-import time
-import shutil
-import tarfile
-import tempfile
-from io import BytesIO
-from pathlib import Path
-from collections import deque
-from abc import ABC, abstractmethod
-from typing import Iterator, Optional, List
-
 import requests
+import tarfile
+from typing import Iterator
+from collections import deque
+import time
+import sys
+from pathlib import Path
+from io import BytesIO
+
+from pathlib import Path
+import tempfile
+import tarfile
+import sys
+import shutil
+
+if sys.version_info >= (3, 14):
+    from compression.zstd import ZstdFile
+else:
+    from zstandard import ZstdDecompressor
+
+
+def extract_zstd(archive: Path, out_path: Path):
+    """extract Zstandard .zst file
+    works on Windows, Linux, MacOS, etc.
+    Parameters
+    ----------
+    archive: pathlib.Path or str
+      .zst file to extract
+    out_path: pathlib.Path or str
+      directory to extract files and directories to
+    """
+
+    archive = Path(archive).expanduser()
+    out_path = Path(out_path).expanduser().resolve()
+    # need .resolve() in case intermediate relative dir doesn't exist
+
+    # we don't use the simpler "decompress" to allow arbitrarily large archives
+    if sys.version_info >= (3, 14):
+        with ZstdFile(archive, "rb") as f_in:
+            with out_path.open("wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+    else:
+        _legacy_decompress_zstd_stream(archive, out_path)
+
+
+def _legacy_decompress_zstd_stream(archive: Path, out_path: Path) -> None:
+
+    with tempfile.TemporaryFile(suffix=".tar") as ofh:
+        with archive.open("rb") as ifh:
+            ZstdDecompressor().copy_stream(ifh, ofh)
+        ofh.seek(0)
+        with tarfile.open(fileobj=ofh) as z:
+            z.extractall(out_path)
+
+RV_BASE_CONTAINER_ROOT = "/tools/etiss_arch_riscv/rv_base"
+HOST = os.environ.get("HOST", "localhost")
+PORT = os.environ.get("PORT", "8080")
+# USE_RICH = True
+VERBOSE = True
+# TODO MGCLIENT CDFGPASS
+
+# if USE_RICH:
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
 from rich.layout import Layout
-from rich.progress import Progress, BarColumn, TextColumn
-
-from isaac_toolkit.utils.compression import extract_zstd
-
-RV_BASE_CONTAINER_ROOT = "/tools/etiss_arch_riscv/rv_base"
-# TODO MGCLIENT CDFGPASS
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 
 
-class RetargetClient(ABC):
+assert len(sys.argv) >= 3
+tag = sys.argv[1]
+out_dir = sys.argv[2]
+out_path = Path(out_dir)
+out_path.mkdir(exist_ok=True)
+# TODO: argparse
 
+
+class RetargetClient:
     def __init__(self, api_url: str, token: str = None, console: Console = None):
         """
         api_url: base URL, e.g., "http://localhost:8080"
         token: optional API key / token if known
-        console: rich.Console instance for live progress
         """
         self.api_url = api_url.rstrip("/")
         self.token = token
         self.console = console
 
-    def _rewrite_cdsl(self, cdsl_path: str) -> bytes:
+    def _rewrite_dsl(self, dsl_path: str) -> bytes:
         """
         Rewrites rv_base imports so they point to the container path.
         """
 
-        cdsl_filename = Path(cdsl_path).name
-        text = Path(cdsl_path).read_text()
+        dsl_filename = Path(dsl_path).name
+        text = Path(dsl_path).read_text()
 
         import_re = re.compile(r'import\s+"([^"]+)"')
 
@@ -57,18 +108,23 @@ class RetargetClient(ABC):
 
         rewritten = import_re.sub(replace, text)
 
-        return cdsl_filename, rewritten.encode("utf-8")
+        return dsl_filename, rewritten.encode("utf-8")
 
-    def _submit_job(self, files: dict = None, data: dict = None):
+    def submit_job(self, tag: str, dsl_path: str, config_path: str):
+        dsl_filename, rewritten_dsl = self._rewrite_dsl(dsl_path)
+        files = {
+            # "dsl": open(dsl_path, "rb"),
+            "dsl": (dsl_filename, BytesIO(rewritten_dsl)),
+            "config": open(config_path, "rb")
+        }
+        data = {
+            "tag": tag,
+        }
         resp = requests.post(f"{self.api_url}/jobs", files=files, data=data)
         resp.raise_for_status()
         data = resp.json()
         self.token = data["token"]
         return data["job_id"], data["token"]
-
-    @abstractmethod
-    def submit_job(self, tag: str, *args, *kwargs):
-        raise NotImplementedError
 
     def get_status(self, job_id: str):
         resp = requests.get(f"{self.api_url}/jobs/{job_id}", params={"token": self.token})
@@ -187,209 +243,84 @@ class RetargetClient(ABC):
         return status["status"]
 
     def download_logs(self, job_id: str, dest_path: str):
-
+    
         resp = requests.get(
             f"{self.api_url}/jobs/{job_id}/logs",
             params={"token": self.token},
             stream=True
         )
-
+    
         resp.raise_for_status()
-
+    
         with open(dest_path, "wb") as f:
             for chunk in resp.iter_content(1024 * 1024):
                 f.write(chunk)
 
 
-class Seal5RetargetClient(RetargetClient):
+# ---------------------------
+# Example usage
+# ---------------------------
+if __name__ == "__main__":
+    console = Console(force_terminal=True, force_interactive=True)
+    client = RetargetClient(f"http://{HOST}:{PORT}", console=console)
 
-    def submit_job(self, tag: str, cdsl_path: str = None, config_path: str = None, **kwargs):
-        assert cdsl_path is not None
-        assert config_path is not None
-        cdsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
-        files = {
-            "cdsl": (dsl_filename, BytesIO(rewritten_cdsl)),
-            "config": open(config_path, "rb")
-        }
-        data = {
-            "tag": tag,
-        }
-        return self._submit_job(files=files, data=data)
-
-
-class EtissRetargetClient(RetargetClient):
-
-    def submit_job(self, tag: str, cdsl_path: str = None, **kwargs):
-        assert cdsl_path is not None
-        dsl_filename, rewritten_cdsl = self._rewrite_cdsl(dsl_path)
-        files = {
-            "cdsl": (dsl_filename, BytesIO(rewritten_cdsl)),
-        }
-        data = {
-            "tag": tag,
-        }
-        return self._submit_job(files=files, data=data)
-
-
-class EtissPerfRetargetClient(RetargetClient):
-
-    def submit_job(self, tag: str, cdsl_path: str = None, cpdsl_path: str = None, **kwargs):
-        assert cdsl_path is not None
-        assert cpdsl_path is not None
-        cdsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
-        files = {
-            "cdsl": (dsl_filename, BytesIO(rewritten_cdsl)),
-            "cpdsl": (cpdsl_filename, cpdsl_path)),
-        }
-        data = {
-            "tag": tag,
-        }
-        return self._submit_job(files=files, data=data)
-
-
-def run_retargeting_service(
-    files: List[str],
-    out_dir: str = None,
-    verbose: bool = False,
-    host: str = "localhost",
-    port: int = 8080,
-    tag: str = None
-):
-
-    assert out_dir is not None
-    assert tag is not None
-    out_path = Path(out_dir)
-    out_path.mkdir(exist_ok=True)
-    console = Console(force_terminal=True, force_interactive=True) if verbose else None
-
-    client_lookup = {
-        "llvm": Seal5RetargetClient,
-        "iss": EtissRetargetClient,
-        "perf": EtissPerfRetargetClient,
-    }
-    client_cls = client_lookup.get(tag)
-    assert client_cls is not None, f"Unable to find client class for tag: {tag}"
-
-    client = RetargetClient(f"http://{host}:{port}", console=console)
-
-    # Separate input files
-    cdsl_files: List[Path] = []
-    cpdsl_files: List[Path] = []
-    cfg_files: List[Path] = []
-    for f in files:
-        file_path = Path(f)
-        if not file_path.is_file():
-            raise ValueError(f"Not a file: {f}")
-        if file_path.suffix in [".core_desc", ".cdsl"]:
-            cdsl_files.append(file_path)
-        elif file_path.suffix in [".core_perf_dsl"]:
-            cpdsl_files.append(file_path)
-        elif file_path.suffix in [".yaml", ".yml"]:
-            cfg_files.append(file_path)
-    if len(cdsl_files) != 1:
-        raise ValueError(f"Expected exactly one .core_desc/.cdsl file, got {len(cdsl_files)}")
+    # Submit a job
+    # job_id, token = client.submit_job("test_files/test.dsl", "test_files/config.yaml")
+    # job_id, token = client.submit_job(tag, "test_files/XIsaac.splitted.core_desc", "test_files/config.yaml")
+    cdsl_files = []
+    cfg_files = []
+    for arg in sys.argv[3:]:
+       file_path = Path(arg)
+       assert file_path.is_file(), f"Not a file: {arg}"
+       suffix = file_path.suffix
+       if suffix in [".core_desc", ".cdsl"]:
+           cdsl_files.append(file_path)
+       elif suffix in [".yaml", ".yml"]:
+           cfg_files.append(file_path)
+    assert len(cdsl_files) == 1
     cdsl_file = cdsl_files[0]
-    cpdsl_file = None
-    if len(cpdsl_files) > 0:
-        if len(cpdsl_files) > 1:
-            raise ValueError(f"Expected exactly one .core_perf_dsl file, got {len(cpdsl_files)}")
-        cpdsl_file = cpdsl_files[0]
-
-    # Merge configs if multiple
     if len(cfg_files) > 1:
-        merged_contents = "\n".join([f.read_text() for f in cfg_files]).replace("---\n", "\n")
+        contents = []
+        for file in cfg_files:
+            with open(file, "r") as f:
+                content = f.read()
+                contents.append(content)
+        merged_contents = "\n".join(contents)
+        merged_contents = merged_contents.replace("---\n", "\n")
+
+        # TODO: merge for real
         merged_cfg_file = out_path / "merged_config.yml"
-        merged_cfg_file.write_text(merged_contents)
+        with open(merged_cfg_file, "w") as f:
+            f.write(merged_contents)
         cfg_file = merged_cfg_file
     else:
+        assert len(cfg_files) == 1
         cfg_file = cfg_files[0]
-
-    job_id, token = client.submit_job(tag, cdsl_path=str(cdsl_file), cfg_path=str(cfg_file), cpdsl_path=str(cpdsl_file))
-
-    if console:
-        console.print(f"Submitted job {job_id} with token {token}")
+    job_id, token = client.submit_job(tag, str(cdsl_file), str(cfg_file))
+    console.print(f"Submitted job {job_id} with token {token}")
     time.sleep(1)
 
-    # Wait for completion
-    status = client.wait_for_completion(job_id) if console else None
-
-    # Download logs
+    # Wait for completion while showing progress
+    status = client.wait_for_completion(job_id, verbose=VERBOSE)
+    # if status == "failed":
     log_file = out_path / f"{job_id}_logs.txt"
-    if console:
-        console.print(f"Downloading logs to {log_file}")
+    console.print(f"Downloading logs to {log_file}")
     client.download_logs(job_id, str(log_file))
-
     if status == "failed":
-        if console:
-            console.print("Artifact not available (job failed)")
+        console.print("Artifact not available (job failed)")
     else:
         # Download artifact
         artifact_file = out_path / f"{job_id}_artifact.tar.zst"
-        if console:
-            console.print(f"Downloading artifact to {artifact_file}")
+        console.print(f"Downloading artifact to {artifact_file}")
         client.download_artifact(job_id, str(artifact_file))
-        if console:
-            console.print("Download finished")
-            console.print(f"Extracting artifact to {out_path}")
+        console.print("Download finished")
+        console.print(f"Extracting artifact to {out_path}")
         extract_zstd(artifact_file, out_path)
-
-        # Move files
+        console.print("Extraction finished")
+        console.print("Moving files")
         shutil.copytree(out_path / "output", out_path, dirs_exist_ok=True)
         shutil.rmtree(out_path / "output")
-        if console:
-            console.print("Done")
-            console.print(f"Removing archive {artifact_file}")
+        console.print("Done")
+        console.print(f"Removing archive {artifact_file}")
         os.remove(artifact_file)
-        if console:
-            console.print("Done")
-
-
-def handle(args):
-    # assert args.session is not None
-    sess = None
-    if args.session is not None:
-        session_dir = Path(args.session)
-        assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
-        sess = Session.from_dir(session_dir)
-    set_log_level(console_level=args.log, file_level=args.log)
-    run_retargeting_service(
-        args.files,
-        out_dir=args.out_dir,
-        force=args.force,
-        verbose=args.verbose,
-        host=args.host,
-        port=args.port,
-        tag=args.tag,
-    )
-    if sess is not None:
-        sess.save()
-
-
-def get_parser():
-    parser = argparse.ArgumentParser(description="Submit jobs to Retarget server and fetch results")
-    parser.add_argument("files", nargs="+", help="Input files (.core_desc/.cdsl and config YAML)")
-    parser.add_argument("--tag", required=True, help="Job tag")
-    parser.add_argument("--output", "-o", dest="out_dir", help="Output directory")
-    parser.add_argument("--session", "--sess", "-s", type=str, required=False)
-    parser.add_argument("--force", "-f", action="store_true")
-    parser.add_argument("--host", default=os.environ.get("HOST", "localhost"), help="Server host override")
-    parser.add_argument("--port", default=os.environ.get("PORT", "8080"), help="Server port override")
-    parser.add_argument(
-        "--log",
-        default="info",
-        choices=["critical", "error", "warning", "info", "debug"],
-    )  # TODO: move to defaults
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose console output")
-    args = parser.parse_args()
-
-    return parser
-
-
-def main(argv):
-    parser = get_parser()
-    args = parser.parse_args(argv)
-    handle(args)
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
+        console.print("Done")
