@@ -29,7 +29,6 @@ from pathlib import Path
 
 from isaac_toolkit.session import Session
 
-
 DEFAULT_DOCKER_IMAGE = "isax-tools-integration-env:latest"
 SUPPORTED_CORES = []
 
@@ -122,7 +121,8 @@ def run_nailgun_hls(
     if share_resources:
         assert mlir_file is not None
         assert Path(mlir_file).is_file()
-        # TODO: sed -e "s/lil.enc_immediates/lil.sharing_group = 1, lil.enc_immediates/g" $WORK/docker/hls/default/output/mlir/ISAX_ISAAC_EN.mlir > $WORK/docker/hls/ISAX_ISAAC_EN_shared.mlir
+        # TODO: sed -e "s/lil.enc_immediates/lil.sharing_group = 1, lil.enc_immediates/g"
+        # $WORK/docker/hls/default/output/mlir/ISAX_ISAAC_EN.mlir > $WORK/docker/hls/ISAX_ISAAC_EN_shared.mlir
         nailgun_env["MLIR_ENTRY_POINT_PATH"] = mlir_file
 
     elif len(isaxes) == 0:

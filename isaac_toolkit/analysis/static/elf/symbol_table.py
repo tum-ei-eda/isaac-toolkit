@@ -28,7 +28,6 @@ from elftools.elf.sections import SymbolTableSection
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 
-
 logger = logging.getLogger("symbol_table")
 
 

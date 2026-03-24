@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 """Utilities to generate Reports."""
+
 import base64
 from pathlib import Path
 

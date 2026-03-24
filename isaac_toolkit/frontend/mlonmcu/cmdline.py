@@ -25,11 +25,16 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import FileArtifact
 from isaac_toolkit.logging import get_logger, set_log_level
 
+from isaac_toolkit.frontend.mlonmcu.session_initializer import load_mlonmcu_session_initializer
+
 logger = get_logger()
 
 
 def invoke_mlonmcu_cmdline(sess: Session, *args, docker_image: Optional[str] = None, force: bool = False):
     logger.info("Loading MLonMCU Session Initializer YAML...")
+    del args
+    del docker_image
+    input_file = None  # TODO
     assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
     attrs = {

@@ -30,7 +30,6 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from tqdm import tqdm
 import pandas as pd
 
-
 DEFAULT_CHUNK_SIZE = 2**22
 
 

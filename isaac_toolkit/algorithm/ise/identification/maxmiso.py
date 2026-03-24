@@ -169,7 +169,7 @@ def maxmiso_algo(G):
     #     nx.draw(mig, labels=labeldict, with_labels=True)
     #     plt.savefig(f"maxmiso{i}.png")
     #     plt.close()
-    labeldict = {node: G.nodes[node]["label"] for node in G.nodes}
+    # labeldict = {node: G.nodes[node]["label"] for node in G.nodes}
     # print("labeldict", labeldict)
     # nx.draw(G, labels=labeldict, with_labels=True)
     # plt.savefig(f"full.png")

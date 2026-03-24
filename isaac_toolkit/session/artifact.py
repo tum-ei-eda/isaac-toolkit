@@ -28,7 +28,6 @@ import networkx as nx
 from isaac_toolkit.logging import get_logger
 from .config import ArtifactsSettings
 
-
 logger = get_logger()
 
 

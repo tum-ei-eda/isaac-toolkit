@@ -27,7 +27,6 @@ from pathlib import Path
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 
-
 logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
 

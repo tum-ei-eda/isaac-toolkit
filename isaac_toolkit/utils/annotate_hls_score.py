@@ -17,10 +17,8 @@
 # limitations under the License.
 #
 import argparse
-from typing import Dict, Optional
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import yaml
 

@@ -44,7 +44,14 @@ SUPPORTED_VARIANT_STRATEGIES = [
     "all",
 ]
 DEFAULT_STRATEGIES = ["all"]
-# DEFAULT_STRATEGIES = ["min_ii(topk=1)", "min_lat(topk=1)", "min_area(topk=1)", "balanced", "random(n=10)", "all(limit=100)"]
+# DEFAULT_STRATEGIES = [
+#     "min_ii(topk=1)",
+#     "min_lat(topk=1)",
+#     "min_area(topk=1)",
+#     "balanced",
+#     "random(n=10)",
+#     "all(limit=100)",
+# ]
 
 
 def parse_strategy_string(strategy_str: str):
@@ -217,6 +224,7 @@ def run_fake_hls(
     verbose: bool = False,
     cleanup: bool = False,
 ):
+    del sess, label
     assert workdir is not None
     if not isinstance(workdir, Path):
         workdir = Path(workdir)
@@ -229,7 +237,7 @@ def run_fake_hls(
         # strategies = [DEFAULT_STRATEGY]
         strategies = DEFAULT_STRATEGIES
     # assert len(strategies) == 1
-    strategy = strategies[0]
+    # strategy = strategies[0]
     assert core is not None
     assert set_name is not None
     assert index is not None
@@ -240,14 +248,14 @@ def run_fake_hls(
     with open(index_file, "r") as f:
         index_data = yaml.safe_load(f)
     candidates = index_data["candidates"]
-    num_candidates = len(candidates)
+    # num_candidates = len(candidates)
     print("candidates", candidates, len(candidates))
     sharing_groups = defaultdict(list)
     first_stage = 2
     for i, candidate in enumerate(candidates):
         print("candidate", candidate)
         properties = candidate["properties"]
-        metrics = candidate["metrics"]
+        # metrics = candidate["metrics"]
         name = properties["InstrName"]
         # TODO: handle actual sharing
         sg = i + 1
@@ -255,7 +263,7 @@ def run_fake_hls(
         sharing_groups[sg] = sg_
 
         num_instrs = int(properties["#Instrs"])
-        max_path_len = int(properties["ScheduleLength"])
+        # max_path_len = int(properties["ScheduleLength"])
 
         assert num_instrs >= 2
         min_lat = 1
@@ -310,8 +318,8 @@ def run_fake_hls(
     # TODO: sample schedule-combinations
     # Output format
     hls_schedules_csv_data = []
-    all_hls_schedules_csv_data = []
-    max_stage = first_stage
+    # all_hls_schedules_csv_data = []
+    # max_stage = first_stage
     # for instr_name, scheds in hls_schedules.items():
     #     for sol_idx, sched in enumerate(scheds):
     #         config = f"SG_{sg}_SOL_IDX_{sol_idx}"
@@ -600,7 +608,7 @@ def run_fake_hls(
 
     variant_metrics_rows = []
 
-    variants_dir = hls_outputs_path / "variants"
+    # variants_dir = hls_outputs_path / "variants"
     for variant_idx, (variant, description) in enumerate(variants):
         variant_name = f"V{variant_idx}"
         variant_dir = hls_outputs_path / variant_name

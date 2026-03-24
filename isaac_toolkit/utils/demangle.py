@@ -22,9 +22,8 @@ from typing import Optional
 
 def demangle_fallback(func_name: str) -> str:
     try:
-        return subprocess.check_output(["c++filt", name], text=True).strip()
+        return subprocess.check_output(["c++filt", func_name], text=True).strip()
     except Exception as ex:
-        return name  # TODO: err
         raise RuntimeError(f"Could not unmangle func name: {func_name}") from ex
 
 

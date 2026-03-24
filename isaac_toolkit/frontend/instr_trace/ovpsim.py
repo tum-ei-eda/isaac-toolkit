@@ -30,7 +30,6 @@ from tqdm import tqdm
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import InstrTraceArtifact, TableArtifact
 
-
 # TODO: logger
 logger = logging.getLogger(__name__)
 

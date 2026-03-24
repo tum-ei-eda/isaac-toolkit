@@ -20,6 +20,7 @@ import sys
 import yaml
 import pickle
 import argparse
+import logging
 import multiprocessing
 from typing import Optional, Union, List
 from pathlib import Path
@@ -39,7 +40,6 @@ from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
 
-import logging
 
 logging.getLogger("behav_builder").setLevel(logging.WARNING)
 logging.getLogger("arch_builder").setLevel(logging.WARNING)

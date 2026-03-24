@@ -18,13 +18,8 @@
 #
 import sys
 import argparse
-from pathlib import Path
-from collections import defaultdict
-from typing import Dict, Optional
 
-import matplotlib.pyplot as plt
 import pandas as pd
-import yaml
 
 
 def agg_util_scores(util_score_csv, output=None):

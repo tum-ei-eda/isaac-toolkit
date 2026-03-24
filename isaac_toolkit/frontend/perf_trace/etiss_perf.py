@@ -29,7 +29,6 @@ import numpy as np
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TraceArtifact
 
-
 # TODO: logger
 
 

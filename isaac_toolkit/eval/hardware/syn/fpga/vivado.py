@@ -28,7 +28,6 @@ from pathlib import Path
 
 from isaac_toolkit.session import Session
 
-
 DEFAULT_CORE = "CVA5"
 SUPPORTED_CORES = ["CVA5", "VEX"]
 

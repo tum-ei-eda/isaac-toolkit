@@ -36,7 +36,6 @@ from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 from isaac_toolkit.utils.demangle import unmangle_helper
 
-
 logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
 

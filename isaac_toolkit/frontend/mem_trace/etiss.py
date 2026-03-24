@@ -29,7 +29,6 @@ from tqdm import tqdm
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TableArtifact
 
-
 # TODO: logger
 
 ETISS_CPU_TIME_DEFAULT = 0.000000031250

@@ -35,6 +35,8 @@ from rich.panel import Panel
 from rich.layout import Layout
 from rich.progress import Progress, BarColumn, TextColumn
 
+from isaac_toolkit.session import Session
+from isaac_toolkit.logging import set_log_level
 from isaac_toolkit.utils.compression import extract_zstd
 
 RV_BASE_CONTAINER_ROOT = "/tools/etiss_arch_riscv/rv_base"
@@ -221,7 +223,7 @@ class Seal5RetargetClient(RetargetClient):
         assert cdsl_path is not None
         assert config_path is not None
         cdsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
-        files = {"cdsl": (dsl_filename, BytesIO(rewritten_cdsl)), "config": open(config_path, "rb")}
+        files = {"cdsl": (cdsl_filename, BytesIO(rewritten_cdsl)), "config": open(config_path, "rb")}
         data = {
             "tag": tag,
         }
@@ -232,7 +234,7 @@ class EtissRetargetClient(RetargetClient):
 
     def submit_job(self, tag: str, cdsl_path: str = None, **kwargs):
         assert cdsl_path is not None
-        dsl_filename, rewritten_cdsl = self._rewrite_cdsl(dsl_path)
+        dsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
         files = {
             "cdsl": (dsl_filename, BytesIO(rewritten_cdsl)),
         }
@@ -392,8 +394,6 @@ def get_parser():
         choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--verbose", action="store_true", help="Enable verbose console output")
-    args = parser.parse_args()
-
     return parser
 
 

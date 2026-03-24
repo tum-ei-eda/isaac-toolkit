@@ -141,6 +141,7 @@ def handle(args):
         workdir=args.workdir,
         force=args.force,
         docker_override=docker_override,
+        service_override=service_override,
         verbose=args.verbose,
         cleanup=args.cleanup,
     )
