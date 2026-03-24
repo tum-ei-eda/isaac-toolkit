@@ -33,11 +33,9 @@ from .utils import parse_instr_trace, DEFAULT_CHUNK_SIZE
 logger = get_logger()
 
 
-# TODO: logger
 def process_etiss_trace_df(df, operands: bool = False):
     df["pc"] = df["pc"].apply(lambda x: int(x, 0))
     df["pc"] = pd.to_numeric(df["pc"])
-    # TODO: normalize instr names
     df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
     df["instr"] = df["instr"].apply(lambda x: x.strip())
     df["instr"] = df["instr"].astype("category")
@@ -102,7 +100,7 @@ def load_instr_trace(
         sep=":",
         names=["pc", "rest"],
         operands=operands,
-        header=None
+        header=None,
     )
 
     attrs = {

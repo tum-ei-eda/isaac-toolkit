@@ -58,9 +58,7 @@ def load_instr_trace(
                 df["pc"] = df["pc"].apply(lambda x: int(x, 0))
                 df["pc"] = pd.to_numeric(df["pc"])
                 # TODO: normalize instr names
-                df[["instr", "rest"]] = df["assembly"].str.split(
-                    " # ", n=1, expand=True
-                )
+                df[["instr", "rest"]] = df["assembly"].str.split(" # ", n=1, expand=True)
                 df["instr"] = df["instr"].apply(lambda x: x.strip())
                 df["instr"] = df["instr"].astype("category")
                 df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
@@ -77,17 +75,16 @@ def load_instr_trace(
                 df["size"] = df["bytecode"].apply(detect_size)
                 df["size"] = df["size"].astype("category")
                 df["bytecode"] = df["bytecode"].apply(
-                    lambda x: (
-                        int(x, 16)
-                        if "0x" in x
-                        else (int(x, 2) if "0b" in x else int(x, 2))
-                    )
+                    lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
                 )
                 df["bytecode"] = pd.to_numeric(df["bytecode"])
 
                 def convert(x):
                     ret = {}
                     for y in x:
+                        if "]" in y:  # WORKAROUND
+                            y = y.split("]", 1)[0]
+                            y = y.strip()
                         if len(y.strip()) == 0:
                             continue
                         assert "=" in y
@@ -97,15 +94,14 @@ def load_instr_trace(
                     return ret
 
                 if operands:
-                    df["operands"] = df["operands"].apply(
-                        lambda x: convert(x[1:-1].split(" | "))
-                    )
+                    df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
                 else:
                     df.drop(columns=["operands"], inplace=True)
                 df.drop(columns=["rest"], inplace=True)
                 df.drop(columns=["assembly"], inplace=True)
                 dfs.append(df)
     df = pd.concat(dfs, axis=0)
+    df.reset_index(inplace=True, drop=True)
     df["instr"] = df["instr"].astype("category")
     df["size"] = df["size"].astype("category")
     df["pc"] = pd.to_numeric(df["pc"], downcast="unsigned")
