@@ -58,6 +58,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#development">Development</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#style">Style</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#versioning">Versioning</a></li>
 </ul>
 </li>
 </ul>
@@ -239,6 +240,16 @@ python3<span class="w"> </span>-m<span class="w"> </span>isaac_toolkit.session.s
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>coverage<span class="w"> </span>run<span class="w"> </span>--source<span class="w"> </span>isaac_toolkit<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests
 coverage<span class="w"> </span>report<span class="w"> </span>-m
 coverage<span class="w"> </span>html
+</pre></div>
+</div>
+</section>
+<section id="versioning">
+<h3>Versioning<a class="headerlink" href="#versioning" title="Link to this heading"></a></h3>
+<p>Versions can be incremented as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Pick one of the commands below</span>
+<span class="n">bumpver</span> <span class="n">update</span> <span class="o">--</span><span class="n">major</span>
+<span class="n">bumpver</span> <span class="n">update</span> <span class="o">--</span><span class="n">minor</span>
+<span class="n">bumpver</span> <span class="n">update</span> <span class="o">--</span><span class="n">patch</span>
 </pre></div>
 </div>
 </section>
