@@ -6,6 +6,7 @@ if sys.version_info >= (3, 14):
 else:
     from zstandard import ZstdDecompressor
 
+
 def extract_zstd(archive: Path, out_path: Path):
     """Extract a .zst archive (Zstandard-compressed tar)."""
     archive = Path(archive).expanduser()
@@ -27,6 +28,7 @@ def _legacy_decompress_zstd_stream(archive: Path, out_path: Path) -> None:
         ofh.seek(0)
         with tarfile.open(fileobj=ofh) as z:
             z.extractall(out_path)
+
 
 def extract_zstd(archive: Path, out_path: Path):
     """Extract a .zst archive (Zstandard-compressed tar)."""

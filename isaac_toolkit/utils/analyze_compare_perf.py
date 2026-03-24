@@ -6,7 +6,16 @@ import pandas as pd
 
 
 def analyze_compare_perf(report, mem_report=None, output=None, print_df=False):
-    COLS = ["Model", "Arch", "uArch", "Run Instructions", "Run Instructions (rel.)", "Run Cycles", "Run Cycles (rel.)", "Run CPI"]
+    COLS = [
+        "Model",
+        "Arch",
+        "uArch",
+        "Run Instructions",
+        "Run Instructions (rel.)",
+        "Run Cycles",
+        "Run Cycles (rel.)",
+        "Run CPI",
+    ]
     MEM_COLS = ["Model", "Arch", "uArch", "Total ROM", "Total RAM", "ROM code", "ROM code (rel.)"]
     COMMON_COLS = list(set(COLS) & set(MEM_COLS))
 

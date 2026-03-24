@@ -41,17 +41,13 @@ logger = get_logger()
 
 
 # TODO: move to own frontend and share code
-def load_mlonmcu_exported_run(
-    sess: Session, run_dir: Path, force: bool = False, progress: bool = False
-):
+def load_mlonmcu_exported_run(sess: Session, run_dir: Path, force: bool = False, progress: bool = False):
     logger.info("Loading MLonMCU exported run...")
     assert run_dir.is_dir(), f"MLonMCU run dir does not exist: {run_dir}"
     elf_file = run_dir / "generic_mlonmcu"
     assert elf_file.is_file(), f"ELF file not found: {elf_file}"
     load_elf(sess, elf_file, force=force)
-    linker_map_file = (
-        run_dir / "mlif" / "generic" / "linker.map"
-    )  # TODO: move to real artifacts?
+    linker_map_file = run_dir / "mlif" / "generic" / "linker.map"  # TODO: move to real artifacts?
     if linker_map_file.is_file():
         load_linker_map(sess, linker_map_file, force=force)
     else:
@@ -75,13 +71,9 @@ def load_mlonmcu_exported_run(
     instr_trace_file = run_dir / f"{target}_instrs.log"
     if instr_trace_file.is_file():
         operands = True  # TODO: store operands in extra artifact!
-        load_instr_trace(
-            sess, instr_trace_file, force=force, progress=progress, operands=operands
-        )
+        load_instr_trace(sess, instr_trace_file, force=force, progress=progress, operands=operands)
     else:
-        logger.warning(
-            "Skipping loading non-existing instr_trace: %s", instr_trace_file
-        )
+        logger.warning("Skipping loading non-existing instr_trace: %s", instr_trace_file)
     dump_file = run_dir / "generic_mlonmcu.dump"
     if dump_file.is_file():
         load_disass(sess, dump_file, force=force)
@@ -91,14 +83,10 @@ def load_mlonmcu_exported_run(
     if compile_commands_file.is_file():
         load_compile_commands_json(sess, compile_commands_file, force=force)
     else:
-        logger.warning(
-            "Skipping loading non-existing compile_commands: %s", compile_commands_file
-        )
+        logger.warning("Skipping loading non-existing compile_commands: %s", compile_commands_file)
 
 
-def load_mlonmcu_artifacts(
-    sess: Session, run_dir: Path, force: bool = False, progress: bool = False
-):
+def load_mlonmcu_artifacts(sess: Session, run_dir: Path, force: bool = False, progress: bool = False):
     load_mlonmcu_exported_run(sess, run_dir, force=force, progress=progress)
 
 
@@ -113,9 +101,7 @@ def run_mlonmcu_from_initializer(
 ):
     logger.info("Running MLonMCU with Initializer...")
     artifacts = sess.artifacts
-    initializer_artifacts = filter_artifacts(
-        artifacts, lambda x: x.attrs.get("kind") == "mlonmcu_session_initializer"
-    )
+    initializer_artifacts = filter_artifacts(artifacts, lambda x: x.attrs.get("kind") == "mlonmcu_session_initializer")
     print("initializer_artifacts", initializer_artifacts)
     assert len(initializer_artifacts) == 1
     initializer_artifact = initializer_artifacts[0]

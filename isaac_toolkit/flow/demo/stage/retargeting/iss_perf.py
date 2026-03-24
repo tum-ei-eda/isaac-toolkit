@@ -69,9 +69,7 @@ def retarget_iss_perf_auto(
     assert demo_config is not None
     docker_config = demo_config.docker
     assert docker_config is not None
-    use_docker = (
-        docker_override if docker_override is not None else docker_config.enable
-    )
+    use_docker = docker_override if docker_override is not None else docker_config.enable
     etiss_config = demo_config.etiss
     assert etiss_config is not None
     etiss_core = etiss_config.core_name

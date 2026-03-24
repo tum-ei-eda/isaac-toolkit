@@ -66,9 +66,7 @@ def retarget_etiss_iss(
     # output_dir = etiss_dir / label
     output_dir = (base_dir / "etiss") if label == "" else (base_dir / f"etiss_{label}")
     if output_dir.is_dir():
-        assert (
-            force
-        ), f"Directory already exists: {output_dir}. Use --force or different --label."
+        assert force, f"Directory already exists: {output_dir}. Use --force or different --label."
         logger.info("Cleaning up old output dir: %s (--force)", output_dir)
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
@@ -126,9 +124,7 @@ def retarget_etiss_iss(
         # TODO: ship with isaac?
         etiss_script_args = [output_dir, top_file]
         try:
-            subprocess.run(
-                [etiss_script, *etiss_script_args], check=True, **kwargs, env=env
-            )
+            subprocess.run([etiss_script, *etiss_script_args], check=True, **kwargs, env=env)
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Command failed with return code {e.returncode}")
             if e.stdout:
@@ -170,12 +166,8 @@ def get_parser():
     # parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--session", "--sess", "-s", type=str, required=False)
     parser.add_argument("--force", "-f", action="store_true")
-    parser.add_argument(
-        "--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?"
-    )
-    parser.add_argument(
-        "--service", type=str, default=None, const=DEFAULT_SERVICE_ADDR, nargs="?"
-    )
+    parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
+    parser.add_argument("--service", type=str, default=None, const=DEFAULT_SERVICE_ADDR, nargs="?")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
     # label: Optional[str] = None,

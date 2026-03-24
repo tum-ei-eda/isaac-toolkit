@@ -116,10 +116,7 @@ def generate_variants(sg_schedules, strategy_strings):
             limit = kwargs.get("limit", None)
             shuffle = kwargs.get("shuffle", False)
 
-            per_sg_indices = [
-                list(range(len(sg_schedules[sg])))
-                for sg in sg_ids
-            ]
+            per_sg_indices = [list(range(len(sg_schedules[sg]))) for sg in sg_ids]
 
             product = list(itertools.product(*per_sg_indices))
 
@@ -132,16 +129,16 @@ def generate_variants(sg_schedules, strategy_strings):
                 MAX_NUM_ALL = 200
                 num = len(product)
                 if num >= MAX_NUM_ALL:
-                    raise RuntimeError(f"Strategy all would generate {num} variants! Use all(limit={num}) to allow this explicitly.")
+                    raise RuntimeError(
+                        f"Strategy all would generate {num} variants! Use all(limit={num}) to allow this explicitly."
+                    )
 
             for local_idx, combo in enumerate(product):
                 variant = {sg: sol for sg, sol in zip(sg_ids, combo)}
                 key = variant_key(variant)
                 if key not in seen:
                     seen.add(key)
-                    all_variants.append(
-                        (variant, f"all:{local_idx}")
-                    )
+                    all_variants.append((variant, f"all:{local_idx}"))
 
         # ---------------------------------
         # RANDOM
@@ -158,9 +155,7 @@ def generate_variants(sg_schedules, strategy_strings):
                 key = variant_key(variant)
                 if key not in seen:
                     seen.add(key)
-                    all_variants.append(
-                        (variant, f"random(n={n}):{i}")
-                    )
+                    all_variants.append((variant, f"random(n={n}):{i}"))
 
         # ---------------------------------
         # MIN-II / MIN-LAT / MIN-AREA
@@ -175,16 +170,13 @@ def generate_variants(sg_schedules, strategy_strings):
                 scheds = sg_schedules[sg]
 
                 if strategy_name == "min_ii":
-                    ranked = sorted(enumerate(scheds),
-                                    key=lambda x: x[1]["ii"])
+                    ranked = sorted(enumerate(scheds), key=lambda x: x[1]["ii"])
 
                 elif strategy_name == "min_lat":
-                    ranked = sorted(enumerate(scheds),
-                                    key=lambda x: sum(x[1]["lats"].values()))
+                    ranked = sorted(enumerate(scheds), key=lambda x: sum(x[1]["lats"].values()))
 
                 elif strategy_name == "min_area":
-                    ranked = sorted(enumerate(scheds),
-                                    key=lambda x: 123.0)  # TODO real area
+                    ranked = sorted(enumerate(scheds), key=lambda x: 123.0)  # TODO real area
 
                 elif strategy_name == "balanced":
                     alpha = kwargs.get("alpha", 1.0)
@@ -196,7 +188,7 @@ def generate_variants(sg_schedules, strategy_strings):
                         ii = sched["ii"]
                         lat = sum(sched["lats"].values())
                         area = 123.0  # TODO: replace
-                        return alpha*ii + beta*lat + gamma*area
+                        return alpha * ii + beta * lat + gamma * area
 
                     ranked = sorted(enumerate(scheds), key=score)
 
@@ -209,9 +201,7 @@ def generate_variants(sg_schedules, strategy_strings):
                 key = variant_key(variant)
                 if key not in seen:
                     seen.add(key)
-                    all_variants.append(
-                        (variant, f"{strategy_name}:{local_idx}")
-                    )
+                    all_variants.append((variant, f"{strategy_name}:{local_idx}"))
 
         else:
             raise NotImplementedError(f"Unknown strategy {strategy_name}")
@@ -292,7 +282,7 @@ def run_fake_hls(
                     continue
                 # Filter candidates with unsupported timing model
                 max_stages = 3
-                required_stages = ceil(lat/ii)
+                required_stages = ceil(lat / ii)
                 legal2 = required_stages <= max_stages
                 if not legal2:
                     continue
@@ -438,6 +428,7 @@ def run_fake_hls(
             "i64": (default_area, default_delay, default_sharing_weight),
         },
     }
+
     def get_estimated_area(sg_sched, instr_cost_dict):
         instrs = list(sg_sched["lats"].keys())
         total_area = 0

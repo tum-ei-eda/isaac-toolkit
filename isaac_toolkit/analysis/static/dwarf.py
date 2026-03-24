@@ -125,16 +125,8 @@ def parse_dwarf(elf_path):
             file_entries = lp_header["file_entry"]
 
             # File and directory indices are 1-indexed.
-            file_entry = (
-                file_entries[file_index]
-                if line_program.header.version >= 5
-                else file_entries[file_index - 1]
-            )
-            dir_index = (
-                file_entry["dir_index"]
-                if line_program.header.version >= 5
-                else file_entry["dir_index"] - 1
-            )
+            file_entry = file_entries[file_index] if line_program.header.version >= 5 else file_entries[file_index - 1]
+            dir_index = file_entry["dir_index"] if line_program.header.version >= 5 else file_entry["dir_index"] - 1
             # dir_index = file_entry["dir_index"]
             assert dir_index >= 0
 
@@ -169,9 +161,7 @@ def parse_dwarf(elf_path):
                     else:
                         func_name = "???"
                     if "DW_AT_linkage_name" in DIE.attributes:
-                        linkage_name = DIE.attributes[
-                            "DW_AT_linkage_name"
-                        ].value.decode()
+                        linkage_name = DIE.attributes["DW_AT_linkage_name"].value.decode()
                         from cpp_demangle import demangle
 
                         unmangled_linkage_name = demangle(linkage_name)
@@ -223,9 +213,7 @@ def analyze_dwarf(sess: Session, force: bool = False):
     elf_artifact = elf_artifacts[0]
 
     func2pc, file2funcs, file_pc2line = parse_dwarf(elf_artifact.path)
-    file2funcs_data = [
-        (file_name, vals[0], vals[1], vals[2]) for file_name, vals in file2funcs.items()
-    ]
+    file2funcs_data = [(file_name, vals[0], vals[1], vals[2]) for file_name, vals in file2funcs.items()]
     # print("func2pc", func2pc)
     # print("file2funcs", file2funcs)
     # print("file_func2line", file_pc2line)

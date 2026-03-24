@@ -72,12 +72,8 @@ def retarget_iss_auto(
     assert docker_config is not None
     service_config = demo_config.service
     assert service_config is not None
-    use_docker = (
-        docker_override if docker_override is not None else docker_config.enable
-    )
-    use_service = (
-        service_override if service_override is not None else service_config.enable
-    )
+    use_docker = docker_override if docker_override is not None else docker_config.enable
+    use_service = service_override if service_override is not None else service_config.enable
     etiss_config = demo_config.etiss
     assert etiss_config is not None
     etiss_core = etiss_config.core_name

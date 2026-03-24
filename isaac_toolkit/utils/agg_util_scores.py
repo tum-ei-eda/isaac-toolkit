@@ -31,7 +31,6 @@ def agg_util_scores(util_score_csv, output=None):
         df.to_csv(output, index=False)
 
 
-
 def handle(args):
     agg_util_scores(args.util_score_csv, output=args.output)
 

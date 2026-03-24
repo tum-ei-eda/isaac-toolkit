@@ -49,7 +49,9 @@ def analyze_compare_perf(compare_perf_csv, uarchs_csv, output=None, print_df=Fal
     assert print_df or output is not None
 
     if print_df:
-        with pd.option_context("display.max_columns", None, "display.width", 1000, "display.max_colwidth", 400, "display.min_rows", 100):
+        with pd.option_context(
+            "display.max_columns", None, "display.width", 1000, "display.max_colwidth", 400, "display.min_rows", 100
+        ):
             print(df)
 
     if output is not None:

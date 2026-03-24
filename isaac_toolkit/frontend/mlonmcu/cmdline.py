@@ -27,9 +27,7 @@ from isaac_toolkit.logging import get_logger, set_log_level
 logger = get_logger()
 
 
-def invoke_mlonmcu_cmdline(
-    sess: Session, *args, docker_image: Optional[str] = None, force: bool = False
-):
+def invoke_mlonmcu_cmdline(sess: Session, *args, docker_image: Optional[str] = None, force: bool = False):
     logger.info("Loading MLonMCU Session Initializer YAML...")
     assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
@@ -73,4 +71,3 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-

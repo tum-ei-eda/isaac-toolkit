@@ -21,6 +21,7 @@ from typing import Dict, List, Set, Tuple, Optional, Union
 import bisect
 
 import sys
+import logging
 import argparse
 import posixpath
 from pathlib import Path
@@ -29,11 +30,12 @@ from cpp_demangle import demangle
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
+from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
-from isaac_toolkit.logging import get_logger, set_log_level
 
-logger = get_logger()
+
+logging.basicConfig(level=logging.DEBUG)  # TODO
+logger = logging.getLogger(__name__)
 
 
 def unmangle_helper(func_name: Optional[str]):
@@ -44,28 +46,20 @@ def unmangle_helper(func_name: Optional[str]):
     return demangle(func_name)
 
 
-PC_FUNC_NAME_CACHE = {}
-
-
-# TODO: reset?
-
-
 def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
     # TODO: refactor to use existing tables
     """
     Given a program counter, find the function it belongs to
     """
-    found = PC_FUNC_NAME_CACHE.get(pc)
-    if found is not None:
-        return found
-    for func, ranges in mapping.items():
-        for range_ in ranges:
-            if pc >= range_[0] and pc <= range_[1]:
-                PC_FUNC_NAME_CACHE[pc] = func
-                return func
-    ret = hex(pc)
-    PC_FUNC_NAME_CACHE[pc] = ret
-    return ret
+    # print("mapping", mapping)
+    # print(
+    #     "mapping[_ZN6tflite12_GLOBAL__N_14InitEP13TfLiteContextPKcj]",
+    #     mapping["_ZN6tflite12_GLOBAL__N_14InitEP13TfLiteContextPKcj"],
+    # )
+    for func, range in mapping.items():
+        if pc >= range[0] and pc <= range[1]:
+            return func
+    return hex(pc)
 
 
 def collect_bbs(trace_df, mapping):
@@ -75,7 +69,7 @@ def collect_bbs(trace_df, mapping):
     bb_freq = defaultdict(int)
     prev_pc = None
     prev_size = None
-    # prev_instr = None
+    prev_instr = None
     bbs = []
     bb_instrs = []
     bb_size = 0
@@ -140,7 +134,7 @@ def collect_bbs(trace_df, mapping):
                 bb_freq[bb] += 1
             first_pc = None
         prev_pc = pc
-        # prev_instr = instr
+        prev_instr = instr
         prev_size = sz
     if first_pc is not None:
         func = None
@@ -163,35 +157,64 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
     # [Given] bb_stack: [[bb1, bb2, bb3], [bb4, bb5, bb6]]
     # [B returns]: [[bb1, bb2, [bb3, # cost from B]]]
     # where bb1 - bb3 belong to func A and bb4 - bb6 belong to func B
+    STOP = False
     for i, bb in enumerate(bbs):
         total_cost += bb.num_instrs
-        # print("bb", bb)
-        # print("prev_bb", prev_bb)
+        print("bb", bb)
+        print("prev_bb", prev_bb)
+        # if bb.last_pc == 0x858 or (prev_bb is not None and prev_bb.last_pc == 0x858):
+        #     STOP = True
+        #     # input("stopped")
+        # if STOP:
+        #     input("stopped")
         if prev_bb is None or (prev_bb.end_instr in riscv_branch_instrs and prev_bb.func != bb.func):
+            if STOP:
+                print("append", bb.func)
+            # if bb.func == "main" or bb.func in ["mlonmcu_init", "_Z10model_initv"]:
+            if True:
+                print("append main?!", bb.func)
+                print("call_stack", call_stack)
+                # input("222")
             # first bb in the trace
             call_stack.append(bb.func)
             bb_stack.append([bb])
         elif prev_bb.func == bb.func:
+            # if STOP:
+            #     print("same", bb.func)
             # jalr doesn't necessarily mean return
             # 0x2ac8, jalr, memset -> 0x2ae8, memset
             bb_stack[-1].append(bb)
         # elif prev_bb.end_instr in return_instrs:
         # elif prev_bb.end_instr in riscv_return_instrs:
         elif prev_bb.end_instr in riscv_return_instrs or prev_bb.num_instrs == 1:
+            # if STOP:
+            if True:
+                print("return", call_stack)
             # Check whether jalr refer to return
             # sometimes jalr simply means indirect jump
             # TODO: Redundant? Is it already handled in the above condition?
             if bb.func not in call_stack:
+                print("NOT IN CS")
                 call_stack.append(bb.func)
+                print("call_stack_new", call_stack)
                 bb_stack.append([bb])
+                # if bb.func == "main":
+                #     input("55")
                 continue
 
             # ret case for the rest code snippet
             diff = len(call_stack) - call_stack.index(bb.func) - 1
+            if STOP:
+                print("diff", diff)
 
             for j in range(diff):
                 cost = 0
                 callee_first_bb = bb_stack[-1][0][0] if isinstance(bb_stack[-1][0], list) else bb_stack[-1][0]
+                if callee_first_bb.first_pc == 56:
+                    print("return", call_stack)
+                    print("diff", diff)
+                    print("STOP2")
+                    # input("?")
                 for bb_stack_elem in bb_stack[-1]:
                     if not isinstance(bb_stack_elem, list):
                         # cost += 1 + (bb_stack_elem.last_pc - bb_stack_elem.first_pc) // 4
@@ -225,18 +248,21 @@ def callgrind_format_get_inclusive_cost(bbs: List[BasicBlock]):
                 # 0x6b4  ... <--- return to function A
                 if j == diff - 1:
                     bb_stack[-1].append(bb)
+            # if STOP:
+            #     input("!")
+            STOP = False
 
         prev_bb = bb
 
-    # print("inclusive_cost_dict", inclusive_cost_dict)
-    # inclusive_cost_dict_sum = {pc: sum([sum(x) for x in costs.values()]) for pc, costs in inclusive_cost_dict.items()}
-    # print("inclusive_cost_dict_sum", inclusive_cost_dict_sum)
-    # inclusive_cost_dict_total = sum(inclusive_cost_dict_sum.values())
-    # print("inclusive_cost_dict_total", inclusive_cost_dict_total)
-    # inclusive_cost_dict_max = max(inclusive_cost_dict_sum.values())
-    # print("inclusive_cost_dict_sum_max", inclusive_cost_dict_max)
-    # print("total_cost", total_cost)
-    # TODO: check that all costs are contained
+    print("inclusive_cost_dict", inclusive_cost_dict)
+    inclusive_cost_dict_sum = {pc: sum([sum(x) for x in costs.values()]) for pc, costs in inclusive_cost_dict.items()}
+    print("inclusive_cost_dict_sum", inclusive_cost_dict_sum)
+    inclusive_cost_dict_total = sum(inclusive_cost_dict_sum.values())
+    print("inclusive_cost_dict_total", inclusive_cost_dict_total)
+    inclusive_cost_dict_max = max(inclusive_cost_dict_sum.values())
+    print("inclusive_cost_dict_sum_max", inclusive_cost_dict_max)
+    print("total_cost", total_cost)
+    # input("!!!")
 
     return inclusive_cost_dict
 
@@ -302,14 +328,21 @@ def callgrind_format_converter(
     # Find the source file where the function is defined
     # Some functions come from libc. In this case ??? is returned.
     def find_srcFile(target_func: str) -> str:
+        print("target_func", target_func)
         for srcFile, funcs in srcFile_func_dict.items():
             for func in funcs:
                 if func == target_func:
+                    print("srcFile", srcFile)
+                    # input(">>>")
                     return srcFile
         for srcFile, funcs in srcFile_linkage_name_dict.items():
             for func in funcs:
                 if func == target_func:
+                    print("srcFile2", srcFile)
+                    # input(">>>")
                     return srcFile
+        print("???")
+        # input(">>>")
         return "???"
 
     #
@@ -415,6 +448,10 @@ summary:
                         callgrind_output += f"cfn={callee_func}\n"
                         callgrind_output += f"calls={len(inclusive_cost)} {hex(callee_pc)}\n"
                         callgrind_output += f"{position_info} {sum(inclusive_cost)}\n"
+                        if pc == 0x858:
+                            print("inclusive_cost_dict[pc]", inclusive_cost_dict[pc])
+                            print("callee_pc", callee_pc)
+                            input("?_")
 
             callgrind_output += "\n"
 
@@ -430,7 +467,6 @@ def generate_callgrind_output(
     dump_pos: bool = False,
     unmangle_names: bool = False,
 ):
-    logger.info("Generating callgrind coutput...")
     assert output is not None
     artifacts = sess.artifacts
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -469,8 +505,9 @@ def generate_callgrind_output(
 
     file2pc_loc = helper(pc2locs_df)
 
-    mapping = func2pc_df.groupby("func")["pc_range"].apply(list).to_dict()
+    mapping = dict(list(func2pc_df[["func", "pc_range"]].to_records(index=False)))
     bbs, trace_pcs, func2bbs, bb_freq = collect_bbs(trace_artifact.df, mapping)
+    print("file2funcs_df", file2funcs_df, file2funcs_df.columns)
     file2funcs = dict(list((file2funcs_df[["file", "func_names"]].to_records(index=False))))
     file2linkage_names = dict(list((file2funcs_df[["file", "linkage_names"]].to_records(index=False))))
     file2unmangled_linkage_names = dict(
@@ -495,17 +532,6 @@ def generate_callgrind_output(
         elf_file_path=elf_file_path,
         unmangle_names=unmangle_names,
     )
-
-    if output is None:
-        profile_dir = sess.directory / "profile"
-        profile_dir.mkdir(exist_ok=True)
-        out_name = "callgrind"
-        if dump_pc:
-            out_name += "_pc"
-        if dump_pos:
-            out_name += "_pos"
-        out_name += ".out"
-        output = profile_dir / out_name
     with open(output, "w") as f:
         f.write(content)
 
@@ -515,7 +541,6 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    set_log_level(console_level=args.log, file_level=args.log)
     generate_callgrind_output(
         sess,
         output=args.output,

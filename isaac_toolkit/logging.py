@@ -91,9 +91,7 @@ def set_log_file(path, level=logging.DEBUG, rotate=False):
     logger = logging.getLogger("isaac-toolkit")
     logger.setLevel(logging.DEBUG)
     if rotate:
-        file_handler = logging.handlers.TimedRotatingFileHandler(
-            filename=path, when="midnight", backupCount=30
-        )
+        file_handler = logging.handlers.TimedRotatingFileHandler(filename=path, when="midnight", backupCount=30)
     else:
         file_handler = logging.FileHandler(path, mode="a")
     file_handler.setFormatter(get_formatter())

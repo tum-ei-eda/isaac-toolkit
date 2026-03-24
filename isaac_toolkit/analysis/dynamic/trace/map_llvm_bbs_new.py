@@ -37,9 +37,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False, sort_by: str = "weight"
     # print("elf_artifacts", elf_artifacts)
     assert len(elf_artifacts) == 1
     elf_artifact = elf_artifacts[0]
-    trace_artifacts = filter_artifacts(
-        artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE
-    )
+    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
     trace_artifact = trace_artifacts[0]
     # print("trace_artifact", trace_artifact)
@@ -83,6 +81,7 @@ def map_llvm_bbs_new(sess: Session, force: bool = False, sort_by: str = "weight"
             bb_weight = bb_count * num_instrs
             # print("bb_weight", bb_weight)
             return bb_count, bb_weight
+
         def get_bb_freq_weight2(pc_counts, start, end, num_instrs):
             if num_instrs == 0:
                 return 0, 0.0

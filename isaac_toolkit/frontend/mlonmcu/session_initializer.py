@@ -27,9 +27,7 @@ from isaac_toolkit.logging import get_logger, set_log_level
 logger = get_logger()
 
 
-def load_mlonmcu_session_initializer(
-    sess: Session, input_file: Path, force: bool = False
-):
+def load_mlonmcu_session_initializer(sess: Session, input_file: Path, force: bool = False):
     logger.info("Loading MLonMCU Session Initializer YAML...")
     assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name

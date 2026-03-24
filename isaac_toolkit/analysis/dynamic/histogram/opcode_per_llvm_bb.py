@@ -61,31 +61,21 @@ def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
     # keep only (pc, opcode)
     pc_to_opcode = unique_pc_df[["pc", "opcode"]]
 
-    pc_opcode_df = (
-        pc_counts.merge(pc_to_opcode, on="pc", how="left")
-                 .sort_values("pc")
-                 .reset_index(drop=True)
-    )
+    pc_opcode_df = pc_counts.merge(pc_to_opcode, on="pc", how="left").sort_values("pc").reset_index(drop=True)
 
     dfs = []
     for _, row in llvm_bbs_df.iterrows():
         start = row["start"]
-        end   = row["end"]
+        end = row["end"]
 
         # Efficient filter: this DataFrame is tiny compared to trace_df
-        slice_df = pc_opcode_df.loc[
-            (pc_opcode_df["pc"] >= start) & (pc_opcode_df["pc"] < end)
-        ]
+        slice_df = pc_opcode_df.loc[(pc_opcode_df["pc"] >= start) & (pc_opcode_df["pc"] < end)]
 
         if slice_df.empty:
             continue
 
         # aggregate counts by opcode
-        op_hist = (
-            slice_df.groupby("opcode")["count"]
-                    .sum()
-                    .reset_index()
-        )
+        op_hist = slice_df.groupby("opcode")["count"].sum().reset_index()
 
         op_hist.insert(0, "func_name", row["func_name"])
         op_hist.insert(1, "bb_name", row["bb_name"])

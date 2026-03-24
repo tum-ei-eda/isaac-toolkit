@@ -66,8 +66,8 @@ def parse_instr_trace(
     executor: str = "process_pool",
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     sep: str = ",",
-    names = "infer",
-    header = None,
+    names="infer",
+    header=None,
     operands: bool = False,
 ):
     dfs = []
@@ -87,7 +87,7 @@ def parse_instr_trace(
                     itertools.repeat(sep),
                     itertools.repeat(names),
                     itertools.repeat(operands),
-                    itertools.repeat(header)
+                    itertools.repeat(header),
                 ),
                 disable=not progress,
             )

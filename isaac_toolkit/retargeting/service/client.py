@@ -3,13 +3,11 @@ import os
 import sys
 import time
 import shutil
-import tarfile
-import tempfile
 from io import BytesIO
 from pathlib import Path
 from collections import deque
 from abc import ABC, abstractmethod
-from typing import Iterator, Optional, List
+from typing import Iterator, List
 
 import requests
 from rich.console import Console
@@ -79,11 +77,13 @@ class RetargetClient(ABC):
         resp = requests.get(f"{self.api_url}/jobs/{job_id}/artifact", params={"token": self.token}, stream=True)
         resp.raise_for_status()
         with open(dest_path, "wb") as f:
-            for chunk in resp.iter_content(1024*1024):
+            for chunk in resp.iter_content(1024 * 1024):
                 f.write(chunk)
 
     def get_log_buf(self, job_id: str, n_lines: int = 50):
-        resp = requests.get(f"{self.api_url}/jobs/{job_id}/logs", params={"token": self.token, "n_lines": n_lines, "stream": False})
+        resp = requests.get(
+            f"{self.api_url}/jobs/{job_id}/logs", params={"token": self.token, "n_lines": n_lines, "stream": False}
+        )
         resp.raise_for_status()
         return resp.text
 
@@ -94,7 +94,7 @@ class RetargetClient(ABC):
         with requests.get(
             f"{self.api_url}/jobs/{job_id}/logs",
             params={"token": self.token, "n_lines": n_lines, "stream": True},
-            stream=True
+            stream=True,
         ) as resp:
             resp.raise_for_status()
             for line in resp.iter_lines(decode_unicode=True):
@@ -123,16 +123,13 @@ class RetargetClient(ABC):
         task = progress.add_task(f"Running job {job_id}", total=100, elapsed_seconds=0, eta_seconds=0)
 
         layout = Layout()
-        layout.split_column(
-            Layout(progress, size=3),
-            Layout(name="log")
-        )
+        layout.split_column(Layout(progress, size=3), Layout(name="log"))
+
         def render() -> Layout:
             # console.print("render")
-            layout["log"].update(
-                Panel("\n".join(buffer), title=f"Last {n_lines} Lines")
-            )
+            layout["log"].update(Panel("\n".join(buffer), title=f"Last {n_lines} Lines"))
             return layout
+
         # TODO: add dummy context if disabled
         #  with Live(render, console=console, refresh_per_second=2):
         assert self.console is not None
@@ -150,14 +147,16 @@ class RetargetClient(ABC):
                 #         print("===???===")
                 prog = status.get("progress", 0.0)
                 # console.print("prog", prog)
-                prog_percent = int(prog*100)
+                prog_percent = int(prog * 100)
                 # if prog_percent != last_progress:
                 if prog_percent >= last_progress:
                     # if USE_RICH:
                     if True:
                         elapsed_seconds = status.get("elapsed_seconds", 0.0)
                         eta_seconds = status.get("eta_seconds", 0.0)
-                        progress.update(task, completed=prog_percent, elapsed_seconds=elapsed_seconds, eta_seconds=eta_seconds)
+                        progress.update(
+                            task, completed=prog_percent, elapsed_seconds=elapsed_seconds, eta_seconds=eta_seconds
+                        )
                     else:
                         sys.stdout.write(f"\rJob {job_id} progress: {prog_percent}%")
                         sys.stdout.flush()
@@ -188,11 +187,7 @@ class RetargetClient(ABC):
 
     def download_logs(self, job_id: str, dest_path: str):
 
-        resp = requests.get(
-            f"{self.api_url}/jobs/{job_id}/logs",
-            params={"token": self.token},
-            stream=True
-        )
+        resp = requests.get(f"{self.api_url}/jobs/{job_id}/logs", params={"token": self.token}, stream=True)
 
         resp.raise_for_status()
 
@@ -207,10 +202,7 @@ class Seal5RetargetClient(RetargetClient):
         assert cdsl_path is not None
         assert config_path is not None
         cdsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
-        files = {
-            "cdsl": (dsl_filename, BytesIO(rewritten_cdsl)),
-            "config": open(config_path, "rb")
-        }
+        files = {"cdsl": (dsl_filename, BytesIO(rewritten_cdsl)), "config": open(config_path, "rb")}
         data = {
             "tag": tag,
         }
@@ -237,9 +229,10 @@ class EtissPerfRetargetClient(RetargetClient):
         assert cdsl_path is not None
         assert cpdsl_path is not None
         cdsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
+        cpdsl_filename = Path(cpdsl).name
         files = {
-            "cdsl": (dsl_filename, BytesIO(rewritten_cdsl)),
-            "cpdsl": (cpdsl_filename, cpdsl_path)),
+            "cdsl": (cdsl_filename, BytesIO(rewritten_cdsl)),
+            "cpdsl": (cpdsl_filename, cpdsl_path),
         }
         data = {
             "tag": tag,
@@ -253,7 +246,7 @@ def run_retargeting_service(
     verbose: bool = False,
     host: str = "localhost",
     port: int = 8080,
-    tag: str = None
+    tag: str = None,
 ):
 
     assert out_dir is not None

@@ -91,9 +91,7 @@ def get_unsupported_opcodes(
 def get_ise_potential_df(opcodes_hist_df, unsupported_opcodes, min_supported):
     # print("opcodes_hist_df")
     # print(opcodes_hist_df)
-    supported_opcodes_hist_df = opcodes_hist_df[
-        ~opcodes_hist_df["opcode"].isin(unsupported_opcodes)
-    ]
+    supported_opcodes_hist_df = opcodes_hist_df[~opcodes_hist_df["opcode"].isin(unsupported_opcodes)]
     # print("supported_opcodes_hist_df")
     # print(supported_opcodes_hist_df)
     total_rel_count = opcodes_hist_df["rel_count"].sum()
@@ -126,9 +124,7 @@ def check_ise_potential(
 ):
     logger.info("Checking ISE potential...")
     artifacts = sess.artifacts
-    opcodes_hist_artifacts = filter_artifacts(
-        artifacts, lambda x: x.name == "opcodes_hist"
-    )
+    opcodes_hist_artifacts = filter_artifacts(artifacts, lambda x: x.name == "opcodes_hist")
     assert len(opcodes_hist_artifacts) == 1
     opcodes_hist_artifact = opcodes_hist_artifacts[0]
 
@@ -146,9 +142,7 @@ def check_ise_potential(
         allow_system=allow_system,
     )
 
-    ise_potential_df = get_ise_potential_df(
-        opcodes_hist_df, unsupported_opcodes, min_supported
-    )
+    ise_potential_df = get_ise_potential_df(opcodes_hist_df, unsupported_opcodes, min_supported)
 
     attrs = {
         "kind": "table",
