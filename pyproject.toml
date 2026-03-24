@@ -16,6 +16,7 @@ dynamic = ["version", "dependencies", "optional-dependencies"]
 requires-python = ">=3.10"
 # license = { text = "Apache-2.0" }
 license = "Apache-2.0"
+readme = { file = "README.md", content-type = "text/markdown" }
 
 [tool.setuptools.packages.find]
 include = ["isaac_toolkit*"]
