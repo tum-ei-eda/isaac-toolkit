@@ -5,3 +5,5 @@ coverage
 pylint
 flake8
 licenseheaders
+build
+twine
