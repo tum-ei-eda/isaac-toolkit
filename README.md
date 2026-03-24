@@ -94,6 +94,9 @@ isaac_toolkit
 
 ### Prerequisites
 
+Install (optional) APT Requirements:
+sudo apt install libgraphviz-dev
+
 Setup a Python virtual environment:
 
 ```sh
@@ -104,11 +107,11 @@ virtualenv -p python3 venv/
 Install packages:
 
 ```sh
-pip install -r requirements.txt
+pip install -e .
 
 # Optional:
-pip install -r requirements_full.txt  # for specific backends
-pip install -r requirements_dev.txt  # for linting, testing,...
+pip install -e ".[dev]"
+pip install -e ".[memgraph]"
 ```
 
 ### Demo
