@@ -28,12 +28,11 @@ jobs:
       matrix:
         python-version: ["3.10"]
         toolchain: ["gcc", "llvm"]
-        # simulator: ["etiss", "etiss_perf", "spike", "spike_bm", "qemu_user", "tgc"]
-        # TODO: rename to dbt-risce-riscv
-        simulator: ["etiss", "spike", "spike_bm", "tgc"]
+        # simulator: ["etiss", "etiss_perf", "spike", "spike_bm", "qemu_user", "tgc", "dbt"]
+        simulator: ["etiss", "spike", "spike_bm", "dbt"]
         optimize: ["3"]
         versions:
-          - {etiss_version: "2be75ef6ac248e77276f3f36f550b98f06ac55e5", etiss_examples_version: "bc0fe0298f1c79201a48235989aede8b21c04d41", etiss_perf_version: "TODO", spike_version: "0bc176b3", tgc_version: "f55fc06867a11e5f7ab57772167109be9e6c4446", tgc_bsp_version: "c8ea882b3ef0f5bb476041edd50765801bfea9be", gnu_version: "2025.08.08_min", llvm_version: "19.1.1"}
+          - {etiss_version: "2be75ef6ac248e77276f3f36f550b98f06ac55e5", etiss_examples_version: "bc0fe0298f1c79201a48235989aede8b21c04d41", etiss_perf_version: "TODO", spike_version: "0bc176b3", tgc_version: "f55fc06867a11e5f7ab57772167109be9e6c4446", tgc_bsp_version: "c8ea882b3ef0f5bb476041edd50765801bfea9be", dbt_version: "6557dd6bdcda150fc3bb4680fc998e60dc6e51c9", gnu_version: "2025.08.08_min", llvm_version: "19.1.1"}
         # TODO: update gnu version & llvm version
         config:
           # - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
@@ -164,9 +163,30 @@ jobs:
             conan remote list
             conan profile detect
             conan list
+            sudo apt-get install -y gcc-9 g++-9
             gcc --version
             g++ --version
+            export CC=gcc-9
+            export CXX=g++-9
             ./scripts/setup_tgc.sh $INSTALL_DIR/tgc ${{ matrix.versions.tgc_version }}
+            ./scripts/setup_tgc_bsp.sh $INSTALL_DIR/tgc_bsp ${{ matrix.versions.tgc_bsp_version }}
+        fi
+
+        if [[ "$SIMULATOR" == "dbt" ]]
+        then
+            # ./scripts/download_helper.sh $INSTALL_DIR/tgc tgc ${{ matrix.versions.tgc_version }}
+            pip install conan
+            pip list
+            conan remote add gitea https://git.minres.com/api/packages/Tooling/conan
+            conan remote list
+            conan profile detect
+            conan list
+            sudo apt-get install -y gcc-9 g++-9
+            gcc --version
+            g++ --version
+            export CC=gcc-9
+            export CXX=g++-9
+            ./scripts/setup_dbt.sh $INSTALL_DIR/dbt ${{ matrix.versions.dbt_version }}
             ./scripts/setup_tgc_bsp.sh $INSTALL_DIR/tgc_bsp ${{ matrix.versions.tgc_bsp_version }}
         fi
 

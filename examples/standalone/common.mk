@@ -46,7 +46,12 @@ TGC_SRC_DIR ?= $(INSTALL_DIR)/install/tgc_src
 TGC_BUILD_DIR ?= $(TGC_SRC_DIR)/build
 TGC_INSTALL_DIR ?= $(INSTALL_DIR)/tgc
 TGC_BACKEND ?= interp
-# TGC_BACKEND ?= asmjit
+
+DBT_BSP_DIR ?= $(INSTALL_DIR)/tgc_bsp
+DBT_SRC_DIR ?= $(INSTALL_DIR)/install/dbt_src
+DBT_BUILD_DIR ?= $(DBT_SRC_DIR)/build
+DBT_INSTALL_DIR ?= $(INSTALL_DIR)/dbt
+DBT_BACKEND ?= interp
 
 # TGC_NEW ?= 0  # TODO
 
@@ -74,6 +79,31 @@ ifeq ($(SIMULATOR),tgc)
     TRC2LCOV_SCRIPT := $(TGC_SRC_DIR)/dbt-rise-plugins/scripts/trc2lcov.py
   else
     $(error Neither TGC_INSTALL_DIR ($(TGC_INSTALL_DIR)) nor TGC_BUILD_DIR ($(TGC_BUILD_DIR)) exists!)
+  endif
+else ifeq ($(SIMULATOR),dbt)
+  ifneq ($(wildcard $(DBT_INSTALL_DIR)),)
+    TGC_SIM     := $(DBT_INSTALL_DIR)/bin/riscv-sim
+    TGC_PCTRACE := $(DBT_INSTALL_DIR)/libexec/pctrace.so
+    TGC_YAML    := $(DBT_INSTALL_DIR)/share/riscv-sim/TGC5C_instr.yaml
+    TRANSFORM_TRACE_SCRIPT := $(DBT_INSTALL_DIR)/bin/transform_trc
+    # GEN_MERMAID_SCRIPT := $(DBT_INSTALL_DIR)/bin/gen_mermaid
+    GEN_FLAMEGRAPH_SCRIPT := $(DBT_INSTALL_DIR)/bin/gen_flamegraph
+    FLAMEGRAPH_PL := $(DBT_INSTALL_DIR)/bin/flamegraph.pl
+    GEN_CACHEGRIND_SCRIPT := $(DBT_INSTALL_DIR)/bin/gen_cachegrind
+    TRC2LCOV_SCRIPT := $(DBT_INSTALL_DIR)/bin/trc2lcov
+
+  else ifneq ($(wildcard $(DBT_BUILD_DIR)),)
+    TGC_SIM     := $(DBT_BUILD_DIR)/riscv-sim
+    TGC_PCTRACE := $(DBT_BUILD_DIR)/dbt-rise-plugins/pctrace/pctrace.so
+    TGC_YAML    := $(DBT_SRC_DIR)/contrib/instr/TGC5C_instr.yaml
+    TRANSFORM_TRACE_SCRIPT := $(DBT_SRC_DIR)/dbt-rise-plugins/scripts/transform_trc.py
+    GEN_MERMAID_SCRIPT := $(DBT_SRC_DIR)/dbt-rise-plugins/scripts/gen_mermaid.py
+    GEN_FLAMEGRAPH_SCRIPT := $(DBT_SRC_DIR)/dbt-rise-plugins/scripts/gen_flamegraph.py
+    FLAMEGRAPH_PL := $(DBT_SRC_DIR)/dbt-rise-plugins/scripts/flamegraph.pl
+    GEN_CACHEGRIND_SCRIPT := $(DBT_SRC_DIR)/dbt-rise-plugins/scripts/gen_cachegrind.py
+    TRC2LCOV_SCRIPT := $(DBT_SRC_DIR)/dbt-rise-plugins/scripts/trc2lcov.py
+  else
+    $(error Neither DBT_INSTALL_DIR ($(DBT_INSTALL_DIR)) nor DBT_BUILD_DIR ($(DBT_BUILD_DIR)) exists!)
   endif
 endif
 
@@ -216,7 +246,7 @@ $(OUT_DIR): $(DEST)
 
 init: $(SESS)
 
-ifeq ($(SIMULATOR),tgc)
+ifneq (,$(filter $(SIMULATOR),tgc dbt))
 # LIBWRAP = $(BUILD_DIR)/libwrap.a
 # $(LIBWRAP): $(LIBWRAP_OBJS)
 include $(TGC_BSP_DIR)/libwrap/libwrap.mk
@@ -300,7 +330,7 @@ else ifeq ($(SIMULATOR),etiss_perf)
 	test -d $(TRACE) && rm -r $(TRACE) || :
 	mkdir $(TRACE)
 	cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
-else ifeq ($(SIMULATOR),tgc)
+else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 	cd $(OUT_DIR) && $(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML) && mv output.trc $(TRACE)  # TODO: move to OUT_DIR
 endif
 
@@ -317,7 +347,7 @@ else ifeq ($(SIMULATOR),etiss)
 else ifeq ($(SIMULATOR),etiss_perf)
 	set -o pipefail && \
 	$(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
-else ifeq ($(SIMULATOR),tgc)
+else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 	set -o pipefail && \
 	$(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) | tee $(OUTP)
 endif
@@ -442,7 +472,7 @@ callgraph: $(CALLGRAPH_PDF)
 # 	@echo "Opening kcachegrind GUI (PC)..."
 # 	OBJDUMP=$(OBJDUMP) kcachegrind $(CALLGRIND_PC)
 
-ifeq ($(SIMULATOR),tgc)
+ifneq (,$(filter $(SIMULATOR),tgc dbt))
 FUNCTION_TRACE_JSON := $(OUT_DIR)/function_trace.json
 
 $(FUNCTION_TRACE_JSON): $(ELF) $(TRACE) | $(OUT_DIR)
