@@ -9,7 +9,7 @@
 project = "ISAAC Toolkit"
 copyright = "2026, TUM Department of Electrical and Computer Engineering - Chair of Electronic Design Automation"
 author = "TUM Department of Electrical and Computer Engineering - Chair of Electronic Design Automation"
-release = "0.5.5"
+release = "0.5.6"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
