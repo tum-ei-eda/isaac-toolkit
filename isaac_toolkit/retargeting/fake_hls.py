@@ -17,13 +17,9 @@
 # limitations under the License.
 #
 import re
-import os
-import ast
 import sys
-import shutil
 import itertools
 import random
-import subprocess
 from math import ceil
 
 import yaml
@@ -298,64 +294,8 @@ def run_fake_hls(
     # strategy = "worst"  # TODO: implement others
     # selected_schedules = defaultdict(dict)
     # selected_schedules_idx = defaultdict(int)
-    ### selected_sg_schedules = defaultdict(dict)
-    ### selected_sg_schedules_idx = defaultdict(int)
     print("sharing_groups", sharing_groups)
 
-    # def apply_strategy(scheds, strategy):
-    #     assert len(scheds) > 0
-    #     if strategy == "best":
-    #         sorted_scheds = sorted(scheds, key=lambda x: (x["lat"], x["ii"]))
-    #         # print("sorted_scheds", sorted_scheds)
-    #         selected = sorted_scheds[0]
-    #         idx = scheds.index(selected)
-    #         return selected, idx
-    #     elif strategy == "worst":
-    #         sorted_scheds = sorted(scheds, key=lambda x: (x["lat"], x["ii"]))
-    #         # print("sorted_scheds", sorted_scheds)
-    #         selected = sorted_scheds[-1]
-    #         idx = scheds.index(selected)
-    #         return selected, idx
-    #     elif strategy == "random":
-    #         import random
-
-    #         selected = random.choice(scheds)
-    #         idx = scheds.index(selected)
-    #         return selected, idx
-    #     else:
-    #         raise NotImplementedError(f"Unsupported strategy: {strategy}")
-
-    ### def apply_sg_strategy(sg_scheds, strategy):
-    ###     assert len(sg_scheds) > 0
-    ###     if strategy == "best":  # min ii & min avg lat
-    ###         sorted_scheds = sorted(sg_scheds, key=lambda x: (sum(x["lats"].values())/len(x["lats"]), x["ii"]))
-    ###         # print("sorted_scheds", sorted_scheds)
-    ###         selected = sorted_scheds[0]
-    ###         idx = sg_scheds.index(selected)
-    ###         return selected, idx
-    ###     elif strategy == "worst":  # max ii & max avg lat
-    ###         sorted_scheds = sorted(sg_scheds, key=lambda x: (sum(x["lats"].values())/len(x["lats"]), x["ii"]))
-    ###         # print("sorted_scheds", sorted_scheds)
-    ###         selected = sorted_scheds[-1]
-    ###         idx = sg_scheds.index(selected)
-    ###         return selected, idx
-    ###     elif strategy == "random":
-    ###         import random
-
-    ###         selected = random.choice(sg_scheds)
-    ###         idx = sg_scheds.index(selected)
-    ###         return selected, idx
-    ###     else:
-    ###         raise NotImplementedError(f"Unsupported strategy: {strategy}")
-
-    # for instr_name, scheds in instr_schedules.items():
-    #     selected, idx = apply_strategy(scheds, strategy)
-    #     selected_schedules[instr_name] = selected
-    #     selected_schedules_idx[instr_name] = idx
-    ### for sg, sg_scheds in sg_schedules.items():
-    ###     selected, idx = apply_sg_strategy(sg_scheds, strategy)
-    ###     selected_sg_schedules[sg] = selected
-    ###     selected_sg_schedules_idx[sg] = idx
     variants = generate_variants(sg_schedules, strategies)
     # print("variants", variants, len(variants))
     # input("!")
@@ -498,21 +438,6 @@ def run_fake_hls(
     #     new3 = {"instruction": instr_name, "schedule": dummy_sched}
     #     isax_xisaac_yaml_data.append(new3)
     #     sg += 1
-    ### for sg, sg_sched in selected_sg_schedules.items():
-    ###     sol_idx = selected_sg_schedules_idx[sg]
-    ###     new = {"sharing_group": sg, "solution_idx": sol_idx}
-    ###     selected_solutions_yaml_data.append(new)
-    ###     config = f"SG_{sg}_SOL_IDX_{sol_idx}"
-    ###     ii = sg_sched["ii"]
-    ###     lats = sg_sched["lats"]
-    ###     full_lats = sg_sched["full_lats"]
-    ###     for instr_name, lat in lats.items():
-    ###         stage = first_stage + lat - 1  # TODO!
-    ###         max_stage = max(max_stage, stage)
-    ###         dummy_sched = [{"interface": "foo", "stage": first_stage}, {"interface": "bar", "stage": stage}]
-    ###         new3 = {"instruction": instr_name, "schedule": dummy_sched}
-    ###         isax_xisaac_yaml_data.append(new3)
-    ### isax_xisaac_yaml_data.append({"last_stage": max_stage + 1})
     # print("hls_schedules_csv_data", hls_schedules_csv_data)
     # print("isax_xisaac_yaml_data", isax_xisaac_yaml_data)
     hls_schedules_csv_path = out_dir / "hls_schedules.csv"

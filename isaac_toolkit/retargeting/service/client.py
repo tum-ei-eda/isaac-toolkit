@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import shutil
+import argparse
 from io import BytesIO
 from pathlib import Path
 from collections import deque
@@ -177,10 +178,10 @@ class RetargetClient(ABC):
                     pass
                 render()
                 if status["status"] in ("finished", "failed"):
-                    console.print(f"\nJob {job_id} completed with status: {status['status']}")
+                    self.console.print(f"\nJob {job_id} completed with status: {status['status']}")
                     error = status.get("error")
                     if error:
-                        console.print(f"ERROR: {error}")
+                        self.console.print(f"ERROR: {error}")
                     break
                 time.sleep(poll_interval)
         return status["status"]
@@ -229,7 +230,7 @@ class EtissPerfRetargetClient(RetargetClient):
         assert cdsl_path is not None
         assert cpdsl_path is not None
         cdsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
-        cpdsl_filename = Path(cpdsl).name
+        cpdsl_filename = Path(cpdsl_path).name
         files = {
             "cdsl": (cdsl_filename, BytesIO(rewritten_cdsl)),
             "cpdsl": (cpdsl_filename, cpdsl_path),
