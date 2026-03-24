@@ -1,9 +1,10 @@
 # Paths and toolchain
 SHELL := /bin/bash
 INSTALL_DIR ?= $(abspath ../install)
-SESS ?= $(abspath ./sess)
-BUILD_DIR ?= $(abspath ./build)
-OUT_DIR ?= $(abspath ./out)
+DEST ?= $(abspath .)
+SESS ?= $(DEST)/sess
+BUILD_DIR ?= $(DEST)/build
+OUT_DIR ?= $(DEST)/out
 RISCV_PREFIX ?= $(INSTALL_DIR)/rv32im_ilp32
 RISCV_NAME ?= riscv32-unknown-elf
 RISCV_ARCH ?= rv32im_zicsr_zifencei
@@ -19,7 +20,8 @@ FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
 # Simulation
 SIMULATOR ?= spike
 SPIKE ?= $(INSTALL_DIR)/spike/spike
-PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
+# PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
+PK ?= $(SYSROOT)/bin/pk
 # ETISS ?= $(INSTALL_DIR)/etiss/bin/run_helper.sh
 ETISS ?= $(INSTALL_DIR)/etiss/bin/bare_etiss_processor
 ETISS_INI ?= $(INSTALL_DIR)/etiss/custom.ini
@@ -39,10 +41,10 @@ ETISS_PERF_INI2 ?= $(PERF_SIM_DIR)/simulator/ini/$(PERF_MODEL).ini
 FIVP_SDK_DIR ?= /path/to/fivp-sdk
 FIVP_SDK_TARGET ?= ri5cy
 
-TGC_BSP_DIR ?= /path/to/tgc/bsp
-TGC_SRC_DIR ?= /path/to/tgc/src/dir
+TGC_BSP_DIR ?= $(INSTALL_DIR)/tgc_bsp
+TGC_SRC_DIR ?= $(INSTALL_DIR)/install/tgc_src
 TGC_BUILD_DIR ?= $(TGC_SRC_DIR)/build
-TGC_INSTALL_DIR ?= $(TGC_SRC_DIR)/install
+TGC_INSTALL_DIR ?= $(INSTALL_DIR)/tgc
 TGC_BACKEND ?= interp
 # TGC_BACKEND ?= asmjit
 
@@ -201,12 +203,15 @@ measure_load: $(OUT_DIR)
 	$(call time_stage,flow_normalize, $(MAKE) flow_normalize)
 
 clean:
-	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_BOTH) $(CALLGRIND_PC) $(TRACE)
+	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_BOTH) $(CALLGRIND_PC) $(TRACE) $(OUTP)
 
-$(SESS):
+$(DEST):
+	mkdir -p $(DEST)
+
+$(SESS): $(DEST)
 	python3 -m isaac_toolkit.session.create --session $(SESS) $(FORCE_ARG)
 
-$(OUT_DIR):
+$(OUT_DIR): $(DEST)
 	mkdir -p $(OUT_DIR)
 
 init: $(SESS)
@@ -350,10 +355,10 @@ endif
 load: load_static load_dynamic
 
 normalize_trace:
-	time python3 -m isaac_toolkit.analysis.dynamic.trace_normalize_trace --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.dynamic.trace_normalize_trace --session $(SESS) $(FORCE_ARG)
 
 flow_normalize:
-	time python3 -m isaac_toolkit.flow.rvf.stage.normalize --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.flow.rvf.stage.normalize --session $(SESS) $(FORCE_ARG)
 
 normalize: normalize_trace
 
@@ -368,11 +373,11 @@ analyze_static:
 	python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $(SESS) $(FORCE_ARG)
 
 analyze_dynamic:
-	time python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
-	time python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $(SESS) $(FORCE_ARG)
-	time python3 -m isaac_toolkit.analysis.dynamic.histogram.pc --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.dynamic.histogram.pc --session $(SESS) $(FORCE_ARG)
 	# python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $(SESS) $(FORCE_ARG)
-	time python3 -m isaac_toolkit.analysis.dynamic.trace.trace_bbs --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.dynamic.trace.trace_bbs --session $(SESS) $(FORCE_ARG)
 
 analyze: analyze_static analyze_dynamic
 
