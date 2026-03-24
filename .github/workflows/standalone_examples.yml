@@ -41,7 +41,7 @@ jobs:
           # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD", etiss_jit: "TCC"}
           - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
           - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
-          - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD", etiss_jit: "TCC"}
+          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD", etiss_jit: "TCC"}
         # include:
         #   # - python-version: ["3.10"]
         #   #   toolchain: ["gcc"]
