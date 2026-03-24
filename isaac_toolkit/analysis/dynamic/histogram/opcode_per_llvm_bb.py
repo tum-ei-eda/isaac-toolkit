@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -25,14 +24,14 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
-from .opcode import collect_opcodes
+from .opcode import decode_opcode
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
+    logger.info("Analyzing opcodes per LLVM BB...")
     artifacts = sess.artifacts
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
@@ -48,25 +47,43 @@ def create_opcode_per_llvm_bb_hist(sess: Session, force: bool = False):
     llvm_bbs_df[["start", "end"]] = llvm_bbs_df["pcs"].apply(pd.Series)
     # print("llvm_bbs_df", llvm_bbs_df)
 
+    # TODO: use pc_hist
+    pc_counts = trace_df["pc"].value_counts().rename("count").reset_index()
+    pc_counts.columns = ["pc", "count"]
+    total_count = pc_counts["count"].sum()
+
+    # extract table of unique (pc, bytecode)
+    unique_pc_df = trace_df.drop_duplicates(subset=["pc"])[["pc", "bytecode"]]
+
+    # apply detect_opcode once per PC
+    unique_pc_df["opcode"] = unique_pc_df["bytecode"].apply(decode_opcode)
+
+    # keep only (pc, opcode)
+    pc_to_opcode = unique_pc_df[["pc", "opcode"]]
+
+    pc_opcode_df = pc_counts.merge(pc_to_opcode, on="pc", how="left").sort_values("pc").reset_index(drop=True)
+
     dfs = []
     for _, row in llvm_bbs_df.iterrows():
-        func_name = row["func_name"]
-        bb_name = row["bb_name"]
         start = row["start"]
         end = row["end"]
-        # print("func_name", func_name)
-        # print("bb_name", bb_name)
-        trace_df_ = trace_df.where(lambda x: x["pc"] >= start).dropna().where(lambda x: x["pc"] < end).dropna()
-        if len(trace_df_) == 0:
+
+        # Efficient filter: this DataFrame is tiny compared to trace_df
+        slice_df = pc_opcode_df.loc[(pc_opcode_df["pc"] >= start) & (pc_opcode_df["pc"] < end)]
+
+        if slice_df.empty:
             continue
-        # print("trace_df_", trace_df_)
-        opcodes_df_ = collect_opcodes(trace_df_)
-        opcodes_df_.insert(0, "func_name", func_name)
-        opcodes_df_.insert(1, "bb_name", bb_name)
-        # print("opcodes_df_", opcodes_df_)
-        # input()
-        dfs.append(opcodes_df_)
+
+        # aggregate counts by opcode
+        op_hist = slice_df.groupby("opcode")["count"].sum().reset_index()
+
+        op_hist.insert(0, "func_name", row["func_name"])
+        op_hist.insert(1, "bb_name", row["bb_name"])
+
+        dfs.append(op_hist)
+
     df = pd.concat(dfs)
+    df["rel_count"] = df["count"] / total_count
 
     attrs = {
         "kind": "histogram",
@@ -82,6 +99,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     create_opcode_per_llvm_bb_hist(sess, force=args.force)
     sess.save()
 

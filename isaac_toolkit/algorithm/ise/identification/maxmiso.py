@@ -22,14 +22,15 @@ from pathlib import Path
 
 import networkx as nx
 
-# from networkx.drawing.nx_agraph import write_dot
-# import matplotlib.pyplot as plt
-
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import GraphArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
+
+logger = get_logger()
 
 
 def maxmiso_algo(G):
+    logger.info("Running MaxMISO algorithm...")
     # print("algo")
     # print("G", G, dir(G))
     G = G.copy()
@@ -169,15 +170,15 @@ def maxmiso_algo(G):
     #     plt.savefig(f"maxmiso{i}.png")
     #     plt.close()
     labeldict = {node: G.nodes[node]["label"] for node in G.nodes}
-    print("labeldict", labeldict)
+    # print("labeldict", labeldict)
     # nx.draw(G, labels=labeldict, with_labels=True)
     # plt.savefig(f"full.png")
     # plt.close()
 
-    print("invalid", invalid)
-    print("fanout", fanout)
-    print("processed", processed)
-    print("fanout_org", fanout_org)
+    # print("invalid", invalid)
+    # print("fanout", fanout)
+    # print("processed", processed)
+    # print("fanout_org", fanout_org)
     return max_misos__
 
 
@@ -187,11 +188,12 @@ def handle(args):
     override = args.force
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     graphs = sess.graphs
     # print("graphs", graphs)
     # cdfg = filter_artifacts(graphs, lambda x: x.name == args.graph_name)
     dfgs = filter_artifacts(graphs, lambda x: x.attrs.get("kind") == "dfg")
-    print("cdfg", dfgs)
+    # print("cdfg", dfgs)
     assert len(dfgs) > 0, "No DFGs found!"
     for dfg in dfgs:
         module_name = dfg.attrs["module_name"]

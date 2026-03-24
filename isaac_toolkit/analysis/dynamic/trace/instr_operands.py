@@ -18,7 +18,6 @@
 #
 import re
 import sys
-import logging
 import argparse
 from typing import Optional
 from math import ceil, log2
@@ -30,34 +29,9 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
-
-
-# def collect_operands(trace_operands_df):
-#     instrs_operands = defaultdict(list)
-#     for row in trace_operands_df.itertuples(index=False):
-#         # pc = row.pc
-#         instr = row.instr
-#         instr = instr.strip()  # TODO: fix in frontend
-#         operands = row.operands
-#         instr_operands = instrs_operands[instr].append(operands)
-#     del trace_operands_df
-#     operands_data = []
-#     operand_names = set()
-#     for instr, instr_operands in instrs_operands.items():
-#         for operands in instr_operands:
-#             operand_names |= set(operands.keys())
-#             operands_data.append({"instr": instr, **operands})
-#     operands_df = pd.DataFrame(operands_data)
-#     del operands_data
-#     operands_df["instr"] = operands_df["instr"].astype("category")
-#     for op in operand_names:
-#         operands_df[op] = operands_df[op].astype("UInt32")
-#         # TODO: for smaller immediates, use smaller types?
-#
-#     return operands_df
+logger = get_logger()
 
 
 def analyze_instr_operands(
@@ -71,6 +45,7 @@ def analyze_instr_operands(
     filter_instrs: Optional[str] = None,
     filter_operands: Optional[str] = None,
 ):
+    logger.info("Analyzing instruction operands...")
     artifacts = sess.artifacts
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
@@ -83,12 +58,7 @@ def analyze_instr_operands(
 
     assert len(trace_artifact.df) == len(operands_artifact.df)
     operands_df = pd.concat([trace_artifact.df[["instr"]], operands_artifact.df], axis=1).copy()
-    # operands_df = collect_operands(trace_operands_df)
-    # attrs = {
-    #     "trace": trace_artifact.name,
-    #     "kind": "table",
-    #     "by": __name__,
-    # }
+
     attrs2 = {
         "trace": trace_artifact.name,
         "kind": "histogram",
@@ -290,6 +260,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     analyze_instr_operands(
         sess,
         force=args.force,

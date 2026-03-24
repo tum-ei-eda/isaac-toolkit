@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -25,9 +24,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("check_ise_potential")
+logger = get_logger()
 
 
 def get_unsupported_opcodes(
@@ -39,6 +38,7 @@ def get_unsupported_opcodes(
     allow_custom: bool = True,
     allow_fp: bool = False,
     allow_system: bool = False,
+    allow_rvv: bool = False,
 ):
     unsupported_opcodes = set()
 
@@ -81,6 +81,8 @@ def get_unsupported_opcodes(
         unsupported_opcodes.add("OP-FP")
         unsupported_opcodes.add("LOAD-FP")
         unsupported_opcodes.add("STORE-FP")
+    if not allow_rvv:
+        unsupported_opcodes.add("OP-V")
     if not allow_system:
         unsupported_opcodes.add("SYSTEM")
     return unsupported_opcodes
@@ -92,7 +94,8 @@ def get_ise_potential_df(opcodes_hist_df, unsupported_opcodes, min_supported):
     supported_opcodes_hist_df = opcodes_hist_df[~opcodes_hist_df["opcode"].isin(unsupported_opcodes)]
     # print("supported_opcodes_hist_df")
     # print(supported_opcodes_hist_df)
-    supported_rel_count = supported_opcodes_hist_df["rel_count"].sum()
+    total_rel_count = opcodes_hist_df["rel_count"].sum()
+    supported_rel_count = supported_opcodes_hist_df["rel_count"].sum() / total_rel_count
     # print("supported_rel_count", supported_rel_count)
     unsupported_rel_count = 1 - supported_rel_count
     has_potential = supported_rel_count >= min_supported
@@ -115,9 +118,11 @@ def check_ise_potential(
     allow_compressed: bool = True,
     allow_custom: bool = True,
     allow_fp: bool = False,
+    allow_rvv: bool = False,
     allow_system: bool = False,
     force: bool = False,
 ):
+    logger.info("Checking ISE potential...")
     artifacts = sess.artifacts
     opcodes_hist_artifacts = filter_artifacts(artifacts, lambda x: x.name == "opcodes_hist")
     assert len(opcodes_hist_artifacts) == 1
@@ -133,6 +138,7 @@ def check_ise_potential(
         allow_compressed=allow_compressed,
         allow_custom=allow_custom,
         allow_fp=allow_fp,
+        allow_rvv=allow_rvv,
         allow_system=allow_system,
     )
 
@@ -152,6 +158,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     check_ise_potential(
         sess,
         allow_mem=args.allow_mem,
@@ -161,6 +168,7 @@ def handle(args):
         allow_compressed=args.allow_compressed,
         allow_custom=args.allow_custom,
         allow_fp=args.allow_fp,
+        allow_rvv=args.allow_rvv,
         allow_system=args.allow_system,
         force=args.force,
     )
@@ -185,6 +193,7 @@ def get_parser():
     parser.add_argument("--allow-compressed", action="store_true")
     parser.add_argument("--allow-custom", action="store_true")
     parser.add_argument("--allow-fp", action="store_true")
+    parser.add_argument("--allow-rvv", action="store_true")
     parser.add_argument("--allow-system", action="store_true")
     return parser
 

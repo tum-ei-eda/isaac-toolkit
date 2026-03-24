@@ -25,10 +25,14 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TableArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
+
+logger = get_logger()
 
 
 def load_compile_commands_json(sess: Session, input_file: Path, force: bool = False):
-    assert input_file.is_file()
+    logger.info("Loading compile commands JSON...")
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
     attrs = {
         "kind": "compile_commands",
@@ -55,6 +59,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     input_file = Path(args.file)
     load_compile_commands_json(sess, input_file, force=args.force)
     sess.save()

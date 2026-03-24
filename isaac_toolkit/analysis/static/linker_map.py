@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -25,9 +24,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("linker_map")
+logger = get_logger()
 
 
 def analyze_linker_map_helper(mapFile):
@@ -64,6 +63,7 @@ def analyze_linker_map_helper(mapFile):
 
 
 def analyze_linker_map(sess: Session, force: bool = False):
+    logger.info("Analyzing linker map...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     linker_map_artifacts = filter_artifacts(
@@ -101,6 +101,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     analyze_linker_map(sess, force=args.force)
     sess.save()
 

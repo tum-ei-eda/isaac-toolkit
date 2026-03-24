@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from typing import Optional
 from pathlib import Path
@@ -26,9 +25,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("compare_sess")
+logger = get_logger()
 
 
 # TODO: share codes
@@ -50,6 +49,7 @@ def compare_with_sess(
     other_sess: Session,
     force: bool = False,
 ):
+    logger.info("Comparing ISEs between sessions...")
     artifacts = sess.artifacts
     artifacts_ = other_sess.artifacts
     pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")
@@ -232,7 +232,11 @@ def compare_with_sess(
             # print("merged_runtime_per_llvm_bb_data", merged_runtime_per_llvm_bb_data)
             # input(">>>")
             attrs = {}
-            artifact = TableArtifact("compare_runtime_per_llvm_bb", merged_runtime_per_llvm_bb_data, attrs=attrs)
+            artifact = TableArtifact(
+                "compare_runtime_per_llvm_bb",
+                merged_runtime_per_llvm_bb_data,
+                attrs=attrs,
+            )
             sess.add_artifact(artifact, override=force)
 
     mem_footprint_artifacts = filter_artifacts(
@@ -284,7 +288,14 @@ def compare_with_sess(
             mem_footprint_df_ = pd.concat([mem_footprint_df_, temp_])
         else:
             # TODO: check if ok?
-            temp_ = pd.DataFrame([{"func": "DIFF", "bytes": (1 - (1 / mem_footprint_rel)) * mem_footprint}])
+            temp_ = pd.DataFrame(
+                [
+                    {
+                        "func": "DIFF",
+                        "bytes": (1 - (1 / mem_footprint_rel)) * mem_footprint,
+                    }
+                ]
+            )
             mem_footprint_df_ = pd.concat([mem_footprint_df_, temp_])
             mem_footprint_df_["rel_bytes"] = mem_footprint_df_["bytes"] / mem_footprint
             temp = pd.DataFrame([{"func": "DIFF", "bytes": 0, "rel_bytes": 0}])
@@ -322,7 +333,11 @@ def compare_with_sess(
         # print("merged_mem_footprint_per_func_data", merged_mem_footprint_per_func_data)
         # input(">>>")
         attrs = {}
-        artifact = TableArtifact("compare_mem_footprint_per_func", merged_mem_footprint_per_func_data, attrs=attrs)
+        artifact = TableArtifact(
+            "compare_mem_footprint_per_func",
+            merged_mem_footprint_per_func_data,
+            attrs=attrs,
+        )
         sess.add_artifact(artifact, override=force)
     if eff_mem_footprint_df is not None and eff_mem_footprint_df_ is not None:
         eff_mem_footprint = eff_mem_footprint_df["bytes"].sum()
@@ -335,14 +350,28 @@ def compare_with_sess(
         # print("eff_mem_footprint_df", eff_mem_footprint_df)
         # print("eff_mem_footprint_df_", eff_mem_footprint_df_)
         if eff_mem_footprint_rel <= 1:
-            temp = pd.DataFrame([{"func": "DIFF", "bytes": (1 - eff_mem_footprint_rel) * eff_mem_footprint_}])
+            temp = pd.DataFrame(
+                [
+                    {
+                        "func": "DIFF",
+                        "bytes": (1 - eff_mem_footprint_rel) * eff_mem_footprint_,
+                    }
+                ]
+            )
             eff_mem_footprint_df = pd.concat([eff_mem_footprint_df, temp])
             eff_mem_footprint_df["eff_rel_bytes"] = eff_mem_footprint_df["bytes"] / eff_mem_footprint_
             temp_ = pd.DataFrame([{"func": "DIFF", "bytes": 0, "eff_rel_bytes": 0}])
             eff_mem_footprint_df_ = pd.concat([eff_mem_footprint_df_, temp_])
         else:
             # TODO: check if ok?
-            temp_ = pd.DataFrame([{"func": "DIFF", "bytes": (1 - (1 / eff_mem_footprint_rel)) * eff_mem_footprint}])
+            temp_ = pd.DataFrame(
+                [
+                    {
+                        "func": "DIFF",
+                        "bytes": (1 - (1 / eff_mem_footprint_rel)) * eff_mem_footprint,
+                    }
+                ]
+            )
             eff_mem_footprint_df_ = pd.concat([eff_mem_footprint_df_, temp_])
             eff_mem_footprint_df_["eff_rel_bytes"] = eff_mem_footprint_df_["bytes"] / eff_mem_footprint
             temp = pd.DataFrame([{"func": "DIFF", "bytes": 0, "eff_rel_bytes": 0}])
@@ -382,7 +411,9 @@ def compare_with_sess(
         # input(">>>")
         attrs = {}
         artifact = TableArtifact(
-            "compare_eff_mem_footprint_per_func", merged_eff_mem_footprint_per_func_data, attrs=attrs
+            "compare_eff_mem_footprint_per_func",
+            merged_eff_mem_footprint_per_func_data,
+            attrs=attrs,
         )
         sess.add_artifact(artifact, override=force)
 
@@ -397,6 +428,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     assert args.with_session is not None
     session_dir_ = Path(args.with_session)
     assert session_dir_.is_dir(), f"Session dir does not exist: {session_dir}"

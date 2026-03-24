@@ -53,7 +53,6 @@ def create_pc_hist(sess: Session, force: bool = False):
     trace_artifact = trace_artifacts[0]
 
     pcs_df = collect_pcs(trace_artifact.df)
-    # print("operands_df", operands_df)
 
     attrs = {
         "trace": trace_artifact.name,

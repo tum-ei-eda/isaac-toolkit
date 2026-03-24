@@ -16,14 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import logging
 from pathlib import Path
 
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot
+from isaac_toolkit.logging import get_logger
 
-
-logger = logging.getLogger("graph_utils")
+logger = get_logger()
 
 
 def graph_to_file(graph, dest, fmt="auto"):
