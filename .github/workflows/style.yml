@@ -51,6 +51,6 @@ jobs:
         env:
           OWNER: "TUM Department of Electrical and Computer Engineering"
           PROJECT: "ISAAC Toolkit"
-          YEARS: "2025"
+          YEARS: "2026"
           URL: "https://github.com/tum-ei-eda/isaac-toolkit.git"
           EXTENSIONS: "py"
