@@ -22,22 +22,22 @@ or similar.
 
 ```sh
 # rv32im_ilp32
-./scripts/download_helper.sh $INSTALL_DIR/rv32im_ilp32/ gnu 2025.06.13 rv32im_zicsr_zifencei_ilp32
+./scripts/download_helper.sh $INSTALL_DIR/rv32im_ilp32/ gnu 2025.08.08_min rv32im_zicsr_zifencei_ilp32
 
 # rv32im_zve32x_ilp32
-./scripts/download_helper.sh $INSTALL_DIR/rv32im_zve32x_ilp32/ gnu 2025.06.13 rv32im_zicsr_zifencei_zve32x_ilp32
+./scripts/download_helper.sh $INSTALL_DIR/rv32im_zve32x_ilp32/ gnu 2025.08.08_min rv32im_zicsr_zifencei_zve32x_ilp32
 
 # rv32gc_ilp32d
-./scripts/download_helper.sh $INSTALL_DIR/rv32gc_ilp32d/ gnu 2025.06.13 rv32gc_ilp32d
+./scripts/download_helper.sh $INSTALL_DIR/rv32gc_ilp32d/ gnu 2025.08.08_min rv32gc_ilp32d
 
 # rv32gcv_ilp32d
-./scripts/download_helper.sh $INSTALL_DIR/rv32gcv_ilp32d/ gnu 2025.06.13 rv32gcv_ilp32d
+./scripts/download_helper.sh $INSTALL_DIR/rv32gcv_ilp32d/ gnu 2025.08.08_min rv32gcv_ilp32d
 
 # rv64gc_lp64d
-./scripts/download_helper.sh $INSTALL_DIR/rv64gc_lp64d/ gnu 2025.06.13 rv64gc_lp64d riscv64-unknown-elf
+./scripts/download_helper.sh $INSTALL_DIR/rv64gc_lp64d/ gnu 2025.08.08_min rv64gc_lp64d riscv64-unknown-elf
 
 # rv64gcv_lp64d
-./scripts/download_helper.sh $INSTALL_DIR/rv64gcv_lp64d/ gnu 2025.06.13 rv64gcv_lp64d riscv64-unknown-elf
+./scripts/download_helper.sh $INSTALL_DIR/rv64gcv_lp64d/ gnu 2025.08.08_min rv64gcv_lp64d riscv64-unknown-elf
 ```
 
 ### LLVM
@@ -47,7 +47,7 @@ or similar.
 ./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 19.1.1
 
 # llvm 20
-./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 20.1.8
+# ./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 20.1.8
 ```
 
 ## Simulators
@@ -76,13 +76,20 @@ TODO
 
 TODO
 
+```sh
+./scripts/setup_tgc.sh install/tgc
+./scripts/setup_tgc_bsp.sh install/tgc_bsp
+```
+
 ### Spike (using Proxy Kernel)
 
 Make sure to have `device-tree-compiler` (`dtc`) installed on your system.
 
 ```sh
 ./scripts/download_helper.sh $INSTALL_DIR/spike/ spike 0bc176b3
-./scripts/download_helper.sh $INSTALL_DIR/pk_rv32gc_ilp32d/ pk 2025.06.13 rv32gc_ilp32d
+./scripts/download_helper.sh $INSTALL_DIR/pk_rv32gc_ilp32d/ pk 2025.08.08_min rv32gc_ilp32d
+./scripts/download_helper.sh $INSTALL_DIR/pk_rv32im_ilp32/ pk 2025.08.08_min rv32im_zicsr_zifencei_ilp32
+./scripts/download_helper.sh $INSTALL_DIR/pk_rv64gc_lp64d/ pk 2025.08.08_min rv64gc_lp64d
 
 # from source:
 # ./scripts/setup_spike.sh $INSTALL_DIR/spike 0bc176b3
@@ -95,7 +102,9 @@ Make sure to have `device-tree-compiler` (`dtc`) installed on your system.
 
 ```sh
 ./scripts/download_helper.sh $INSTALL_DIR/spike/ spike 0bc176b3
-./scripts/download_helper.sh $INSTALL_DIR/htif_rv32gc_ilp32d/ htif 2025.06.13 rv32gc_ilp32d
+./scripts/download_helper.sh $INSTALL_DIR/htif_rv32gc_ilp32d/ htif 2025.08.08_min rv32gc_ilp32d
+./scripts/download_helper.sh $INSTALL_DIR/htif_rv32im_ilp32/ htif 2025.08.08_min rv32im_zicsr_zifencei_ilp32
+./scripts/download_helper.sh $INSTALL_DIR/htif_rv64gc_lp64d/ htif 2025.08.08_min rv64gc_lp64d
 
 # from source:
 # ./scripts/setup_spike.sh $INSTALL_DIR/spike 0bc176b3
