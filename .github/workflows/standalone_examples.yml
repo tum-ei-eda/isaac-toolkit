@@ -33,7 +33,7 @@ jobs:
         simulator: ["etiss", "spike", "spike_bm", "tgc"]
         optimize: ["3"]
         versions:
-          - {etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_examples_version: "bc0fe0298f1c79201a48235989aede8b21c04d41", etiss_perf_version: "TODO", spike_version: "0bc176b3", tgc_version: "f55fc06867a11e5f7ab57772167109be9e6c4446", tgc_bsp_version: "c8ea882b3ef0f5bb476041edd50765801bfea9be", gnu_version: "2025.08.08_min", llvm_version: "19.1.1"}
+          - {etiss_version: "2be75ef6ac248e77276f3f36f550b98f06ac55e5", etiss_examples_version: "bc0fe0298f1c79201a48235989aede8b21c04d41", etiss_perf_version: "TODO", spike_version: "0bc176b3", tgc_version: "f55fc06867a11e5f7ab57772167109be9e6c4446", tgc_bsp_version: "c8ea882b3ef0f5bb476041edd50765801bfea9be", gnu_version: "2025.08.08_min", llvm_version: "19.1.1"}
         # TODO: update gnu version & llvm version
         config:
           # - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
@@ -140,17 +140,13 @@ jobs:
             sudo apt -qq install -y qemu-user
         fi
 
-        echo A
         if [[ "$SIMULATOR" == "etiss" ]]
         then
             # ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss ${{ matrix.versions.etiss_version }}
             ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.versions.etiss_version }}
-            echo B
             ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss ${{ matrix.versions.etiss_examples_version }}
-            echo C
             ls $INSTALL_DIR/etiss/custom.ini
         fi
-        echo Z
 
         if [[ "$SIMULATOR" == "etiss_perf" ]]
         then
