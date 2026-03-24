@@ -4,3 +4,4 @@ black~=24.4.2
 coverage
 pylint
 flake8
+licenseheaders

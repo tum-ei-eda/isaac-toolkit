@@ -38,6 +38,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Install deps
+        run: |
+          sudo apt install libgraphviz-dev
       - name: Build package
         run: |
           python -m pip install -e ".[dev]"
