@@ -26,8 +26,10 @@ jobs:
     # runs-on: self-hosted
     strategy:
       matrix:
-        python-version: ["3.8"]
-        mlonmcu-ref: ["main"]
+        # python-version: ["3.8"]
+        python-version: ["3.10"]
+        # mlonmcu-ref: ["main"]
+        mlonmcu-ref: ["develop"]
         mlonmcu-template: ["default"]
         prog: ["toycar"]
         toolchain: ["gcc"]
