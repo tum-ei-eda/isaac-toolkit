@@ -31,10 +31,11 @@ mkdir -p $TGC_BUILD_DIR
 cd $TGC_SRC_DIR
 which conan || (echo "Conan not found! Please install with `pip install conan`.")
 # conan install . -of build_conan -g CMakeToolchain -g CMakeDeps --build=missing
-cd -
+conan install .
 
 # cmake -B $TGC_BUILD_DIR -S $TGC_SRC_DIR -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DCMAKE_INSTALL_PREFIX:PATH=$TGC_INSTALL_DIR -DCMAKE_TOOLCHAIN_FILE=$TGC_SRC_DIR/build_conan/build/Release/generators/conan_toolchain.cmake
 cmake --preset $CMAKE_BUILD_TYPE -S $TGC_SRC_DIR -B $TGC_BUILD_DIR -DCMAKE_INSTALL_PREFIX=$TGC_INSTALL_DIR
 
 cmake --build $TGC_BUILD_DIR -j$NPROC
 cmake --install $TGC_BUILD_DIR
+cd -
