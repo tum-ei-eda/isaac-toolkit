@@ -35,7 +35,7 @@ jobs:
         submodules: recursive
     - name: Install APT packages
       run: |
-        sudo apt -qq install -y graphviz-dev
+        sudo apt -qq install -y libgraphviz-dev
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -47,7 +47,8 @@ jobs:
     - name: Install dependencies
       run: |
         source $VENV_DIR/bin/activate
-        pip install -r requirements_dev.txt
+        pip install -e ".[dev]"
+        pip install -e ".[memgraph]"
     - name: Run Pytest (via coverage)
       run: |
         source $VENV_DIR/bin/activate

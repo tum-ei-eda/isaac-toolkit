@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import sys
 import argparse
 from pathlib import Path
@@ -25,6 +26,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
+
+logger = get_logger()
 
 
 def anonotate_helper(
@@ -95,13 +99,19 @@ def anonotate_helper(
 
 
 def annotate_bb_weights(sess: Session, label: str = "default", force: bool = False):
+    logger.info("Annotating BB weights...")
     memgraph_config = sess.config.memgraph
-    hostname = memgraph_config.hostname
-    port = memgraph_config.port
-    user = memgraph_config.user
-    password = memgraph_config.password
+    memgraph_host = os.environ.get("MEMGRAPH_HOST")
+    memgraph_port = os.environ.get("MEMGRAPH_PORT")
+    user = ""
+    password = ""
+    if memgraph_config is not None:
+        memgraph_host = memgraph_host or memgraph_config.hostname
+        memgraph_port = memgraph_port or memgraph_config.port
+        user = memgraph_config.user
+        password = memgraph_config.password
 
-    driver = GraphDatabase.driver(f"bolt://{hostname}:{port}", auth=(user, password))
+    driver = GraphDatabase.driver(f"bolt://{memgraph_host}:{memgraph_port}", auth=(user, password))
     try:
 
         artifacts = sess.artifacts
@@ -120,10 +130,12 @@ def annotate_bb_weights(sess: Session, label: str = "default", force: bool = Fal
             func_name = row["func_name"]
             bb_name = row["bb_name"]
             num_instrs = row["num_instrs"]
+            rel_weight = row["rel_weight"]
+            freq = row["freq"]
             if not num_instrs or pd.isna(num_instrs):
                 continue
-            freq = row["freq"]
-            rel_weight = row["rel_weight"]
+            if not rel_weight or pd.isna(rel_weight):
+                continue
             anonotate_helper(
                 driver,
                 func_name,
@@ -143,6 +155,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     annotate_bb_weights(sess, label=args.label, force=args.force)
     sess.save()
 

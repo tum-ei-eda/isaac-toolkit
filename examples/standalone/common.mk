@@ -1,4 +1,5 @@
 # Paths and toolchain
+SHELL := /bin/bash
 INSTALL_DIR ?= $(abspath ../install)
 SESS ?= $(abspath ./sess)
 BUILD_DIR ?= $(abspath ./build)
@@ -12,16 +13,19 @@ SYSROOT ?= $(RISCV_PREFIX)/$(RISCV_NAME)
 CC := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-gcc
 OBJDUMP := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objdump
 
-
-FORCE ?= 0
+FORCE ?= 1
 FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
 
 # Simulation
 SIMULATOR ?= spike
 SPIKE ?= $(INSTALL_DIR)/spike/spike
 PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
-ETISS ?= $(INSTALL_DIR)/etiss/install/bin/run_helper.sh
-ETISS_INI ?= $(INSTALL_DIR)/etiss/install/custom.ini
+# ETISS ?= $(INSTALL_DIR)/etiss/bin/run_helper.sh
+ETISS ?= $(INSTALL_DIR)/etiss/bin/bare_etiss_processor
+ETISS_INI ?= $(INSTALL_DIR)/etiss/custom.ini
+ETISS_CRT0_DIR ?= $(INSTALL_DIR)/etiss_riscv_examples/riscv_crt0
+ETISS_STARTUP ?= $(ETISS_CRT0_DIR)/crt0.S
+ETISS_LDSCRIPT ?= $(INSTALL_DIR)/etiss/etiss.ld
 ETISS_JIT ?= TCC
 
 
@@ -232,9 +236,8 @@ $(ELF): $(PROG_SRCS)
 	mkdir -p $(BUILD_DIR)
 ifeq ($(SIMULATOR),etiss)
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
-		$(PROG_SRCS) $(INSTALL_DIR)/etiss/etiss_riscv_examples/riscv_crt0/crt0.S \
-		$(INSTALL_DIR)/etiss/etiss_riscv_examples/riscv_crt0/trap_handler.c \
-		-T $(INSTALL_DIR)/etiss/install/etiss.ld -nostdlib -lc -lgcc -lsemihost \
+		$(PROG_SRCS) $(ETISS_STARTUP) $(ETISS_CRT0_DIR)/trap_handler.c \
+		-T $(ETISS_LDSCRIPT) -nostdlib -lc -lgcc -lsemihost \
 		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
@@ -280,7 +283,7 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
-	cd $(OUT_DIR) && $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
+	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) --jit.verify=false -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
 else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin TracePrinterPlugin]"            >  $(OUT_DIR)/custom.ini
@@ -305,7 +308,7 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) -s | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss)
 	set -o pipefail && \
-	$(ETISS) $(ELF) -i$(ETISS_INI) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+	$(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) --jit.verify=false --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss_perf)
 	set -o pipefail && \
 	$(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
@@ -359,7 +362,10 @@ flow_analyze:
 
 analyze_static:
 	python3 -m isaac_toolkit.analysis.static.dwarf --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.linker_map --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.static.mem_footprint --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $(SESS) $(FORCE_ARG)
 
 analyze_dynamic:
 	time python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
@@ -376,6 +382,7 @@ flow_visualize:
 # TODO: visualize diass counts?
 visualize_static:
 	python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $(SESS) --legend $(FORCE_ARG)
+	python3 -m isaac_toolkit.visualize.pie.disass_counts --session $(SESS) --legend $(FORCE_ARG)
 
 visualize_dynamic:
 	python3 -m isaac_toolkit.visualize.pie.runtime --session $(SESS) --legend $(FORCE_ARG)
@@ -474,6 +481,4 @@ $(LCOV_HTML): $(ELF) $(TRACE) | $(OUT_DIR)
 $(LCOV_OUT): $(LCOV_HTML)
 
 lcov: $(LCOV_HTML)
-
-
 endif

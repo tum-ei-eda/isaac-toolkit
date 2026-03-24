@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -19,7 +19,6 @@
 import io
 import sys
 import leb128
-import logging
 import argparse
 from pathlib import Path
 from collections import defaultdict
@@ -32,9 +31,9 @@ from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV32, CS_MODE_RISCV64, CS_MOD
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("llvm_bbs")
+logger = get_logger()
 
 
 def parse_elf(elf_path):
@@ -44,16 +43,31 @@ def parse_elf(elf_path):
         elffile = ELFFile(f)
 
         # extract disassembly to count instructions per bb
+        # see https://isleem.medium.com/create-your-own-disassembler-in-python-pefile-capstone-754f863b2e1c
         code = elffile.get_section_by_name(".text")
         ops = code.data()
-        addr = code["sh_addr"]
+        begin = code["sh_addr"]
+        sz = code["sh_size"]
+        end = begin + sz
         xlen = elffile.elfclass
+        assert xlen is not None
+
         mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
         md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
-        valid_pcs = set(x.address for x in md.disasm(ops, addr))
+        # md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
+        # valid_pcs = set(x.address for x in md.disasm(ops, addr))
+        valid_pcs = set()
+        while True:
+            temp = [(x.address, x.size) for x in md.disasm(ops, begin)]
+            valid_pcs_ = set(pc for pc, size in temp)
+            last = temp[-1]
+            last_pc, last_size = last
+            begin = max(last_pc, begin) + last_size
+            valid_pcs.update(valid_pcs_)
+            if begin >= end:
+                break
 
         section = elffile.get_section_by_name(".symtab")
-        assert xlen is not None
         addr_bytes = int(xlen / 8)
 
         if not section:
@@ -99,9 +113,11 @@ def parse_elf(elf_path):
                     # print("version", version)
                     # assert version == 2
                     if version != 2:
+                        if version == 0:
+                            break
+                        raise NotImplementedError(f"LLVM_BB_ADDR_MAP version {version}")
                         # print("!")
                         # print(reader.read(100))
-                        break
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     # print("features", features)
                     assert features == 0
@@ -148,8 +164,16 @@ def parse_elf(elf_path):
                         assert sz >= 0
                         start = cur
                         end = cur + sz
-                        pcs = [pc for pc in range(start, end + 2, 2) if pc in valid_pcs]
-                        num_instrs = len(pcs)
+                        if sz > 0:
+                            pcs = [pc for pc in range(start, end, 2) if pc in valid_pcs]
+                            # valid_pcs_sorted = sorted(list(valid_pcs))
+                            # end_pc_idx = valid_pcs_sorted.index(pcs[-1])
+                            # end_pc = valid_pcs_sorted[end_pc_idx]
+                            # end_pc_next = valid_pcs_sorted[end_pc_idx+1]
+                            # end_pc_next_next = valid_pcs_sorted[end_pc_idx+2]
+                            num_instrs = len(pcs)
+                        else:
+                            num_instrs = 0
                         cur += sz
                         if GISEL:
                             tmp[str(bb_id)] = (start, end, sz, num_instrs)
@@ -169,13 +193,13 @@ def parse_elf(elf_path):
                 PRINT_MISSING = True
                 if bbs is None:
                     if PRINT_MISSING:
-                        print("> no bb addr info found")
+                        logger.debug("> no bb addr info found")
                     continue
                 if GISEL:
                     bbs = dict(sorted(bbs.items(), key=lambda x: int(x[0]))).values()
                 for i, bb in enumerate(bbs):
                     start, end, sz, num_instrs = bb
-                    print(
+                    logger.debug(
                         f"> bb{i}",
                         ":",
                         hex(start),
@@ -183,11 +207,12 @@ def parse_elf(elf_path):
                         hex(end),
                         f"(len={sz}B, num={num_instrs})",
                     )
-                    print()
+                    # print()
     return llvm_bb_addr_map
 
 
 def analyze_llvm_bbs(sess: Session, force: bool = False):
+    logger.info("Analyzing LLVM BBs...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -325,6 +350,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     analyze_llvm_bbs(sess, force=args.force)
     sess.save()
 

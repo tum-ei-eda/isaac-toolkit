@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -113,7 +113,7 @@ def check_compressed(p):
         head = test_f.read(4)
 
     is_gzip = head.startswith(b"\x1f\x8b")
-    is_lz4 = head == b"\x04\x22\x4D\x18"
+    is_lz4 = head == b"\x04\x22\x4d\x18"
 
     if is_gzip:
         return "gzip"

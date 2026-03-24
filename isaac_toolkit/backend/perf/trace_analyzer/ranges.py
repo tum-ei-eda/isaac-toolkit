@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -92,7 +92,7 @@ def generate_ranges_yaml(
         num_instrs = bb_row.num_instrs
         func_bb_idx = bb_row.func_bb_idx
         call = bb_row.bb_call
-        end = start + num_instrs  # TODO: check?
+        end = start + num_instrs - 1
         # name = f"{func}@bb{func_bb_idx}-BB{bb_idx}-I{call}"
         # TODO: add func_bb_idx to artifact!
         name = f"bb{func_bb_idx}@{func}-BB{bb_idx}-I{call}"

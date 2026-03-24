@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import shutil
-import logging
 from typing import Union, Optional, Dict, Any
 from enum import IntFlag, auto
 from pathlib import Path
@@ -26,11 +25,11 @@ import pickle
 import pandas as pd
 import networkx as nx
 
+from isaac_toolkit.logging import get_logger
 from .config import ArtifactsSettings
 
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("artifact")
+logger = get_logger()
 
 
 class ArtifactFlag(IntFlag):
@@ -287,6 +286,11 @@ class TableArtifact(PythonArtifact):
             engine = artifacts_settings.instr_trace.engine
             compression_method = artifacts_settings.instr_trace.compression_method
             compression_level = artifacts_settings.instr_trace.compression_level
+        elif self.flags & ArtifactFlag.TRACE:
+            fmt = artifacts_settings.trace.fmt
+            engine = artifacts_settings.trace.engine
+            compression_method = artifacts_settings.trace.compression_method
+            compression_level = artifacts_settings.trace.compression_level
         else:
             fmt = artifacts_settings.table.fmt
             engine = artifacts_settings.table.engine

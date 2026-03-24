@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -240,6 +240,9 @@ def generate_runtime_report(
     sess, output=None, fmt="md", detailed=False, portable=False, style=False, topk=10, force=False
 ):
     pc2bb_df, instrs_hist_df, opcodes_hist_df = load_runtime_dfs(sess)
+    # TODO: by object & by library
+    # TODO: disass_counts
+    # TODO: mem_footprint
     summary_df = generate_runtime_summary(pc2bb_df)
 
     # Determine output dir

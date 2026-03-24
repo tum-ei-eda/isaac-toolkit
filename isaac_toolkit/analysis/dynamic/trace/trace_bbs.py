@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -26,7 +26,6 @@ import argparse
 import posixpath
 from pathlib import Path
 from collections import defaultdict
-from cpp_demangle import demangle
 
 import pandas as pd
 import numpy as np
@@ -34,18 +33,11 @@ import numpy as np
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
+from isaac_toolkit.utils.demangle import unmangle_helper
 
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
-
-
-def unmangle_helper(func_name: Optional[str]):
-    if func_name is None:
-        return None
-    if not func_name.startswith("_Z"):
-        return func_name
-    return demangle(func_name)
 
 
 PC_FUNC_NAME_CACHE = {}
@@ -302,11 +294,6 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
 #         func = None
 #
 #     return trace_pcs, func2bbs, unique_bbs_df, bb_trace_df
-
-
-import numpy as np
-import pandas as pd
-from collections import defaultdict
 
 
 def collect_bbs_new(trace_df, mapping):
@@ -716,9 +703,9 @@ def collect_trace_bbs(
     force: bool = False,
 ):
     artifacts = sess.artifacts
-    elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
-    assert len(elf_artifacts) == 1
-    elf_artifact = elf_artifacts[0]
+    # elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
+    # assert len(elf_artifacts) == 1
+    # elf_artifact = elf_artifacts[0]
 
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -53,7 +53,6 @@ def create_pc_hist(sess: Session, force: bool = False):
     trace_artifact = trace_artifacts[0]
 
     pcs_df = collect_pcs(trace_artifact.df)
-    # print("operands_df", operands_df)
 
     attrs = {
         "trace": trace_artifact.name,

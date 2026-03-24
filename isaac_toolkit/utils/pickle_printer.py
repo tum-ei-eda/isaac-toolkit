@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -52,6 +52,8 @@ def handle(args):
     if not args.skip_print:
         print("Unpickled Data:")
         with pd.option_context(
+            "display.min_rows",
+            args.max_rows,
             "display.max_rows",
             args.max_rows,
             "display.min_rows",
@@ -69,7 +71,7 @@ def handle(args):
                 else data.iloc[: args.print_topk]
             )
 
-    if isinstance(data, (pd.DataFrame, pd.Series)):
+    if isinstance(data, (pd.DataFrame, pd.Series)) or hasattr(data, "__len__"):
         print("Shape:", data.shape)
     else:
         print(f"len={len(data)}")

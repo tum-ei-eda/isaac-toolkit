@@ -11,19 +11,40 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "isaac_toolkit"
+name = "isaac-toolkit"
 dynamic = ["version", "dependencies", "optional-dependencies"]
-requires-python = ">=3.8"
-license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+# license = { text = "Apache-2.0" }
+license = "Apache-2.0"
+readme = { file = "README.md", content-type = "text/markdown" }
 
 [tool.setuptools.packages.find]
 include = ["isaac_toolkit*"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
-# optional-dependencies = {dev = { file = ["requirements_dev.txt"] }}
+
+[tool.setuptools.dynamic.optional-dependencies]
+dev = { file = ["requirements_dev.txt"] }
+memgraph = { file = ["requirements_memgraph.txt"] }
 
 # [project.scripts]
 # isaac_load = "isaac_toolkit.frontend.load:main"
 
 [tool.setuptools_scm]
+
+[tool.bumpver]
+current_version = "0.5.7"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "bump version {old_version} -> {new_version}"
+tag_message = "{new_version}"
+tag_scope = "default"
+pre_commit_hook = ""
+post_commit_hook = ""
+commit = true
+tag = true
+push = true
+
+[tool.bumpver.file_patterns]
+"isaac_toolkit/version.py" = ["{version}"]
+"docs/conf.py" = ["{version}"]

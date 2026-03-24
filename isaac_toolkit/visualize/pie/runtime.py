@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -26,10 +26,11 @@ import matplotlib.pyplot as plt
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
+logger = get_logger()
 
 logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
-logger = logging.getLogger(__name__)
 
 
 # TODO: share with other pie scripts
@@ -88,6 +89,7 @@ def create_runtime_pie_plots(
     legend: bool = True,
     force: bool = False,
 ):
+    logger.info("Visualizing runtime via pie chars...")
     artifacts = sess.artifacts
     # TODO: allow missing files!
     pc2bb_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "pc2bb")
@@ -278,6 +280,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     create_runtime_pie_plots(
         sess,
         threshold=args.threshold,

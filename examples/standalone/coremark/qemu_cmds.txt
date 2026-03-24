@@ -1,0 +1,11 @@
+
+# Full System mode (broken, needs HTIF?)
+qemu-system-riscv32 -machine spike -bios none -icount shift=1 -cpu rv32,v=true,vlen=128,elen=64,vext_spec=v1.0 -nographic -kernel build/coremark.elf 
+# freezes:
+qemu-system-riscv32 -machine virt -bios none -icount shift=1 -cpu rv32,v=true,vlen=128,elen=64,vext_spec=v1.0 -nographic -kernel build/coremark.elf
+# User mode 
+make SIMULATOR=spike FORCE=1 clean all  
+qemu-riscv32 -one-insn-per-tb -singlestep -D log -d exec,nochain build/coremark.elf
+
+# TODO: integrate in makefile using qemu_riscv{32,64}_{system,user}
+# TODO: hwo about -icout step=1 ???
