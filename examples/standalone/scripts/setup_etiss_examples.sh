@@ -4,7 +4,7 @@ set -e
 
 if [ "$#" -lt 1 ]; then
     echo "Illegal number of parameters!"
-    echo "Usage: $0 DEST [ETISS_REF [BUILD_TYPE]]"
+    echo "Usage: $0 DEST [ETISS_EXAMPLES_REF]"
     exit 1
 fi
 
