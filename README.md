@@ -164,3 +164,13 @@ coverage run --source isaac_toolkit -m pytest tests
 coverage report -m
 coverage html
 ```
+
+### Versioning
+
+Versions can be incremented as follows:
+```
+# Pick one of the commands below
+bumpver update --major
+bumpver update --minor
+bumpver update --patch
+```
