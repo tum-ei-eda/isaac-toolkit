@@ -12,6 +12,7 @@ isaac\_toolkit.frontend.mlonmcu.cmdline
       get_parser
       handle
       invoke_mlonmcu_cmdline
+      load_mlonmcu_session_initializer
       main
       set_log_level
    

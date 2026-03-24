@@ -13,10 +13,3 @@ isaac\_toolkit.utils.agg\_util\_scores
       handle
       main
    
-   .. rubric:: Classes
-
-   .. autosummary::
-   
-      Path
-      defaultdict
-   
