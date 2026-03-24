@@ -159,6 +159,14 @@ jobs:
         then
             # ./scripts/download_helper.sh $INSTALL_DIR/tgc tgc ${{ matrix.versions.tgc_version }}
             pip install conan
+            pip list
+            conan remote add gitea https://git.minres.com/api/packages/Tooling/conan
+            conan remote list
+            conan list
+            conan install .
+            conan list
+            gcc --version
+            g++ --version
             ./scripts/setup_tgc.sh $INSTALL_DIR/tgc ${{ matrix.versions.tgc_version }}
             ./scripts/setup_tgc_bsp.sh $INSTALL_DIR/tgc_bsp ${{ matrix.versions.tgc_bsp_version }}
         fi
