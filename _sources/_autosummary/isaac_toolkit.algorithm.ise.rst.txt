@@ -1,0 +1,15 @@
+isaac\_toolkit.algorithm.ise
+============================
+
+.. automodule:: isaac_toolkit.algorithm.ise
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   combination
+   identification
+   selection

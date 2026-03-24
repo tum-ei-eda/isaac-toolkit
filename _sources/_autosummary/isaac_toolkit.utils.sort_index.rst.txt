@@ -1,0 +1,15 @@
+isaac\_toolkit.utils.sort\_index
+================================
+
+.. automodule:: isaac_toolkit.utils.sort_index
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_parser
+      handle
+      main
+      sort_index
+   

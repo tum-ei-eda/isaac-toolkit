@@ -1,0 +1,15 @@
+isaac\_toolkit.utils.annotate\_util\_score
+==========================================
+
+.. automodule:: isaac_toolkit.utils.annotate_util_score
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      annotate_util_score
+      get_parser
+      handle
+      main
+   

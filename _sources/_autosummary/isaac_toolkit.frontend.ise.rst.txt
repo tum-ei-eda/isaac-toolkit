@@ -1,0 +1,13 @@
+isaac\_toolkit.frontend.ise
+===========================
+
+.. automodule:: isaac_toolkit.frontend.ise
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   instrs

@@ -1,0 +1,26 @@
+isaac\_toolkit.algorithm.ise.identification.maxmiso
+===================================================
+
+.. automodule:: isaac_toolkit.algorithm.ise.identification.maxmiso
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      filter_artifacts
+      get_logger
+      get_parser
+      handle
+      main
+      maxmiso_algo
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      GraphArtifact
+      Path
+      Session
+   

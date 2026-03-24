@@ -1,0 +1,15 @@
+isaac\_toolkit.utils.annotate\_per\_instr\_metrics
+==================================================
+
+.. automodule:: isaac_toolkit.utils.annotate_per_instr_metrics
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      annotate_per_instr_metrics
+      get_parser
+      handle
+      main
+   

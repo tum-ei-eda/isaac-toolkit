@@ -1,0 +1,17 @@
+isaac\_toolkit.analysis.dynamic
+===============================
+
+.. automodule:: isaac_toolkit.analysis.dynamic
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   histogram
+   mem_trace
+   perf
+   profile
+   trace

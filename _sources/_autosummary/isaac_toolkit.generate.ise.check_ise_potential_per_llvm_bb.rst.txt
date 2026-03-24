@@ -1,0 +1,28 @@
+isaac\_toolkit.generate.ise.check\_ise\_potential\_per\_llvm\_bb
+================================================================
+
+.. automodule:: isaac_toolkit.generate.ise.check_ise_potential_per_llvm_bb
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      check_ise_potential_per_llvm_bb
+      filter_artifacts
+      get_ise_potential_df
+      get_logger
+      get_parser
+      get_unsupported_opcodes
+      handle
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+      TableArtifact
+   

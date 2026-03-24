@@ -1,0 +1,15 @@
+isaac\_toolkit.utils.assign\_names
+==================================
+
+.. automodule:: isaac_toolkit.utils.assign_names
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      assign_names
+      get_parser
+      handle
+      main
+   

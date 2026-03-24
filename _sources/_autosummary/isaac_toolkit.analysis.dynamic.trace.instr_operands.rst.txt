@@ -1,0 +1,30 @@
+isaac\_toolkit.analysis.dynamic.trace.instr\_operands
+=====================================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.trace.instr_operands
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      analyze_instr_operands
+      ceil
+      filter_artifacts
+      get_logger
+      get_parser
+      handle
+      log2
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+      defaultdict
+   

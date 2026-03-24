@@ -1,0 +1,6 @@
+isaac\_toolkit.algorithm.ise.identification.submaxmiso
+======================================================
+
+.. automodule:: isaac_toolkit.algorithm.ise.identification.submaxmiso
+
+   

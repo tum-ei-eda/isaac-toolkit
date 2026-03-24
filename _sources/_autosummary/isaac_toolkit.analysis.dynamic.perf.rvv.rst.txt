@@ -1,0 +1,32 @@
+isaac\_toolkit.analysis.dynamic.perf.rvv
+========================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.perf.rvv
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      classify
+      classify_rvv_instrs
+      collect_rvv_metrics
+      decode_rvv_cols
+      decode_vsew
+      decode_vtype
+      filter_artifacts
+      get_parser
+      get_rvv_metrics
+      handle
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+      TraceArtifact
+   

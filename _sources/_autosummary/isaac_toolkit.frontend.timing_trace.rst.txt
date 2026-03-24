@@ -1,0 +1,13 @@
+isaac\_toolkit.frontend.timing\_trace
+=====================================
+
+.. automodule:: isaac_toolkit.frontend.timing_trace
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   etiss_perf

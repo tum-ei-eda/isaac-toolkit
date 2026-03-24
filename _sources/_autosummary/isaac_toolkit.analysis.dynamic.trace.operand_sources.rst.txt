@@ -1,0 +1,25 @@
+isaac\_toolkit.analysis.dynamic.trace.operand\_sources
+======================================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.trace.operand_sources
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      analyze_operands_sources
+      filter_artifacts
+      get_parser
+      handle
+      helper
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+   

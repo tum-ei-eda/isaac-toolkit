@@ -1,0 +1,35 @@
+isaac\_toolkit.frontend.instr\_trace.tgc
+========================================
+
+.. automodule:: isaac_toolkit.frontend.instr_trace.tgc
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      check_compressed
+      chunk_iter
+      chunk_iter_compressed
+      disassemble_word
+      get_parser
+      handle
+      load_instr_trace
+      main
+      parse_and_process
+      process_df
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ELFFile
+      ELFInstructionFetcher
+      InstrTraceArtifact
+      Path
+      ProcessPoolExecutor
+      SH_FLAGS
+      Session
+      ThreadPoolExecutor
+      tqdm
+   

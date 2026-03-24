@@ -1,0 +1,25 @@
+isaac\_toolkit.frontend.ise.instrs
+==================================
+
+.. automodule:: isaac_toolkit.frontend.ise.instrs
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_logger
+      get_parser
+      handle
+      load_table
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+      TableArtifact
+   

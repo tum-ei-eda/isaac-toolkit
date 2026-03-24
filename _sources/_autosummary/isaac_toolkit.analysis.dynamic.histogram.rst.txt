@@ -1,0 +1,16 @@
+isaac\_toolkit.analysis.dynamic.histogram
+=========================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.histogram
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   instr
+   opcode
+   opcode_per_llvm_bb
+   pc

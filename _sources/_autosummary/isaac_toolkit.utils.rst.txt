@@ -1,0 +1,39 @@
+isaac\_toolkit.utils
+====================
+
+.. automodule:: isaac_toolkit.utils
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   agg_counts
+   agg_util_scores
+   analyze_compare
+   analyze_compare_perf
+   analyze_encoding
+   annotate_counts
+   annotate_enc_score
+   annotate_global_artifacts
+   annotate_hls_score
+   annotate_per_instr_metrics
+   annotate_score
+   annotate_seal5_score
+   annotate_util_score
+   assign_names
+   benchmark_compression
+   cli
+   combine_pdfs
+   compression
+   filter_index
+   graph_utils
+   names_helper
+   nx_converter
+   pickle_printer
+   rank_uarchs
+   seal5_score
+   sort_index
+   utils

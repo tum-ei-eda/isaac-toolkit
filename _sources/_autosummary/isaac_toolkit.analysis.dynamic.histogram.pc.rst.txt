@@ -1,0 +1,26 @@
+isaac\_toolkit.analysis.dynamic.histogram.pc
+============================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.histogram.pc
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      collect_pcs
+      create_pc_hist
+      filter_artifacts
+      get_parser
+      handle
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+   

@@ -1,0 +1,15 @@
+isaac\_toolkit.logging
+======================
+
+.. automodule:: isaac_toolkit.logging
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_formatter
+      get_logger
+      set_log_file
+      set_log_level
+   

@@ -1,0 +1,14 @@
+isaac\_toolkit.analysis.dynamic.perf
+====================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.perf
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   metrics
+   rvv

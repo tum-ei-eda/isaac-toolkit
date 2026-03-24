@@ -1,0 +1,24 @@
+isaac\_toolkit.frontend.isa.m2isar
+==================================
+
+.. automodule:: isaac_toolkit.frontend.isa.m2isar
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_logger
+      get_parser
+      handle
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      M2ISARArtifact
+      Path
+      Session
+   

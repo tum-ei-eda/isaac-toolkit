@@ -1,0 +1,39 @@
+isaac\_toolkit.session.session
+==============================
+
+.. automodule:: isaac_toolkit.session.session
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      filter_artifacts
+      get_artifact_ext
+      get_logger
+      get_table_artifact_ext
+      load_artifacts
+      set_log_file
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      ArtifactsSettings
+      DisassArtifact
+      ElfArtifact
+      FileArtifact
+      GraphArtifact
+      InstrTraceArtifact
+      IsaacConfig
+      M2ISARArtifact
+      Path
+      PythonArtifact
+      Session
+      SourceArtifact
+      TableArtifact
+      TableArtifactsSettings
+      TraceArtifact
+   

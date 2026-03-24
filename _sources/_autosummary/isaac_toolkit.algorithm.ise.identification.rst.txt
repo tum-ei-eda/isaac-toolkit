@@ -1,0 +1,15 @@
+isaac\_toolkit.algorithm.ise.identification
+===========================================
+
+.. automodule:: isaac_toolkit.algorithm.ise.identification
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   maxmiso
+   single_cut
+   submaxmiso

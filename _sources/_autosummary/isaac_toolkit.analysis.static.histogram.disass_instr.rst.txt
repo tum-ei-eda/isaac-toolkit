@@ -1,0 +1,27 @@
+isaac\_toolkit.analysis.static.histogram.disass\_instr
+======================================================
+
+.. automodule:: isaac_toolkit.analysis.static.histogram.disass_instr
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      collect_instructions
+      create_disass_instr_hist
+      filter_artifacts
+      get_logger
+      get_parser
+      handle
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+      TableArtifact
+   

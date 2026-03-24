@@ -1,0 +1,13 @@
+isaac\_toolkit.generate.cdfg
+============================
+
+.. automodule:: isaac_toolkit.generate.cdfg
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   memgraph

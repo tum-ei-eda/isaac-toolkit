@@ -1,0 +1,27 @@
+isaac\_toolkit.generate.cdfg.memgraph
+=====================================
+
+.. automodule:: isaac_toolkit.generate.cdfg.memgraph
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      filter_artifacts
+      generate_memgraph_cdfg_via_compile_commands
+      get_command_for_file
+      get_logger
+      get_parser
+      handle
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+   

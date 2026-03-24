@@ -1,0 +1,15 @@
+isaac\_toolkit.utils.agg\_counts
+================================
+
+.. automodule:: isaac_toolkit.utils.agg_counts
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      calc_agg_counts
+      get_parser
+      handle
+      main
+   

@@ -1,0 +1,38 @@
+isaac\_toolkit.generate.ise.query\_candidates\_from\_db
+=======================================================
+
+.. automodule:: isaac_toolkit.generate.ise.query_candidates_from_db
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      assign_names
+      combine_pdfs
+      filter_artifacts
+      get_bbs_query
+      get_func_query
+      get_logger
+      get_parser
+      get_unique_maxmisos
+      get_update_nodes_query
+      handle
+      main
+      maxmiso_algo
+      memgraph_to_nx
+      query_candidates_from_db
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      GraphDatabase
+      Path
+      Query
+      Session
+      TableArtifact
+      defaultdict
+   

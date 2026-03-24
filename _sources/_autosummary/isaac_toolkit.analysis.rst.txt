@@ -1,0 +1,14 @@
+isaac\_toolkit.analysis
+=======================
+
+.. automodule:: isaac_toolkit.analysis
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   dynamic
+   static

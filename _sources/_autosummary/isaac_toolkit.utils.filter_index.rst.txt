@@ -1,0 +1,22 @@
+isaac\_toolkit.utils.filter\_index
+==================================
+
+.. automodule:: isaac_toolkit.utils.filter_index
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      filter_index
+      get_parser
+      handle
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      defaultdict
+   

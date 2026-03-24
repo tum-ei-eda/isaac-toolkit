@@ -1,0 +1,16 @@
+isaac\_toolkit.utils.seal5\_score
+=================================
+
+.. automodule:: isaac_toolkit.utils.seal5_score
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      calc_seal5_score
+      get_parser
+      get_seal5_score_df
+      handle
+      main
+   

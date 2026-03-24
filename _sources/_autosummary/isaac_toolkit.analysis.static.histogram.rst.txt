@@ -1,0 +1,14 @@
+isaac\_toolkit.analysis.static.histogram
+========================================
+
+.. automodule:: isaac_toolkit.analysis.static.histogram
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   disass_instr
+   disass_opcode

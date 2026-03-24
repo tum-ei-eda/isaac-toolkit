@@ -1,0 +1,28 @@
+isaac\_toolkit.analysis.dynamic.trace.track\_used\_functions
+============================================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.trace.track_used_functions
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      filter_artifacts
+      get_effective_footprint_df
+      get_logger
+      get_parser
+      handle
+      main
+      set_log_level
+      track_unused_functions
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+   

@@ -1,0 +1,13 @@
+isaac\_toolkit.algorithm.ise.selection
+======================================
+
+.. automodule:: isaac_toolkit.algorithm.ise.selection
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   mlip

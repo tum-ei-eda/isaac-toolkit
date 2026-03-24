@@ -1,0 +1,35 @@
+isaac\_toolkit.analysis.dynamic.trace.normalize\_trace
+======================================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.trace.normalize_trace
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      build_entries
+      disassemble_word
+      filter_artifacts
+      get_disassembler
+      get_parser
+      handle
+      main
+      normalize_trace
+      parallel_dict_builder
+      worker
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Cs
+      ELFFile
+      ELFInstructionFetcher
+      InstrTraceArtifact
+      Path
+      ProcessPoolExecutor
+      SH_FLAGS
+      Session
+   

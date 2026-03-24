@@ -1,0 +1,23 @@
+isaac\_toolkit.frontend.instr\_trace.utils
+==========================================
+
+.. automodule:: isaac_toolkit.frontend.instr_trace.utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      chunk_iter
+      parse_and_process
+      parse_instr_trace
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      ProcessPoolExecutor
+      ThreadPoolExecutor
+      tqdm
+   

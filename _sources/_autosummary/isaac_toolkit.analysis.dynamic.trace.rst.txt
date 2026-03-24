@@ -1,0 +1,21 @@
+isaac\_toolkit.analysis.dynamic.trace
+=====================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.trace
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   basic_blocks
+   instr_operands
+   map_llvm_bbs
+   map_llvm_bbs_new
+   normalize_trace
+   operand_sources
+   trace_bbs
+   track_used_functions
+   trunc_trace

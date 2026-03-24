@@ -1,0 +1,15 @@
+isaac\_toolkit.utils.annotate\_global\_artifacts
+================================================
+
+.. automodule:: isaac_toolkit.utils.annotate_global_artifacts
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      annotate_global_artifacts
+      get_parser
+      handle
+      main
+   

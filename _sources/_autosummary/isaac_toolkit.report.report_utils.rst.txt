@@ -1,0 +1,23 @@
+isaac\_toolkit.report.report\_utils
+===================================
+
+.. automodule:: isaac_toolkit.report.report_utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      encode_image_base64
+      format_hex
+      monospace_addresses_html
+      monospace_addresses_md
+      save_pdf_report
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      HTML
+      Path
+   

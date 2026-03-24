@@ -1,0 +1,27 @@
+isaac\_toolkit.analysis.dynamic.perf.metrics
+============================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.perf.metrics
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      collect_perf_metrics
+      collect_perf_metrics_seq
+      filter_artifacts
+      get_parser
+      get_perf_metrics
+      handle
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+   

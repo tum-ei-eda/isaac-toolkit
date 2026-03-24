@@ -1,0 +1,22 @@
+isaac\_toolkit.utils.combine\_pdfs
+==================================
+
+.. automodule:: isaac_toolkit.utils.combine_pdfs
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      combine_pdfs
+      dot2pdf_helper
+      get_parser
+      handle
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+   

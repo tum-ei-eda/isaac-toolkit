@@ -1,0 +1,28 @@
+isaac\_toolkit.analysis.dynamic.histogram.opcode\_per\_llvm\_bb
+===============================================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.histogram.opcode_per_llvm_bb
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      create_opcode_per_llvm_bb_hist
+      decode_opcode
+      filter_artifacts
+      get_logger
+      get_parser
+      handle
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+   

@@ -1,0 +1,21 @@
+isaac\_toolkit.utils.pickle\_printer
+====================================
+
+.. automodule:: isaac_toolkit.utils.pickle_printer
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_parser
+      handle
+      main
+      print_memory_footprint
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+   

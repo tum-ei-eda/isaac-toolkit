@@ -1,0 +1,15 @@
+isaac\_toolkit.utils.annotate\_seal5\_score
+===========================================
+
+.. automodule:: isaac_toolkit.utils.annotate_seal5_score
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      annotate_seal5_score
+      get_parser
+      handle
+      main
+   

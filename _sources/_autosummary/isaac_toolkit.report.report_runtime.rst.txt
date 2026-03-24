@@ -1,0 +1,36 @@
+isaac\_toolkit.report.report\_runtime
+=====================================
+
+.. automodule:: isaac_toolkit.report.report_runtime
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      collect_plot_files
+      encode_image_base64
+      filter_artifacts
+      format_hex
+      generate_runtime_report
+      generate_runtime_summary
+      generate_top_bb_table_html
+      generate_top_bb_table_md
+      get_parser
+      handle
+      load_runtime_dfs
+      main
+      monospace_addresses_html
+      monospace_addresses_md
+      render_report_html
+      render_report_text
+      save_pdf_report
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+   

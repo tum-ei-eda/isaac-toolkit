@@ -1,0 +1,21 @@
+isaac\_toolkit.utils.analyze\_compare
+=====================================
+
+.. automodule:: isaac_toolkit.utils.analyze_compare
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      analyze_compare
+      get_parser
+      handle
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+   

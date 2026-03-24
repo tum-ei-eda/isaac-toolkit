@@ -1,0 +1,13 @@
+isaac\_toolkit.frontend.disass
+==============================
+
+.. automodule:: isaac_toolkit.frontend.disass
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   objdump

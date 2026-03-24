@@ -1,0 +1,31 @@
+isaac\_toolkit.report.sess\_mem\_usage
+======================================
+
+.. automodule:: isaac_toolkit.report.sess_mem_usage
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      format_size
+      generate_sess_mem_usage
+      get_artifact_size
+      get_file_size
+      get_parser
+      handle
+      main
+      save_pdf_report
+      size_df_to_html
+      size_df_to_markdown
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      FileArtifact
+      Path
+      PythonArtifact
+      Session
+      TableArtifact
+   

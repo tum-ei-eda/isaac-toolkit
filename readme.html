@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>isaac-toolkit &mdash; ISAAC Toolkit 0.5.7 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d65efdcf"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="prev" title="Welcome to ISAAC Toolkit’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ISAAC Toolkit
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">isaac-toolkit</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#repository-structure">Repository Structure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#python-package">Python Package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#demo">Demo</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#development">Development</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#style">Style</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#testing">Testing</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ISAAC Toolkit</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">isaac-toolkit</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/readme.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="isaac-toolkit">
+<h1>isaac-toolkit<a class="headerlink" href="#isaac-toolkit" title="Link to this heading"></a></h1>
+<p>Automated Customization Toolkit for Instruction Set Architectures (ISAs)</p>
+<section id="repository-structure">
+<h2>Repository Structure<a class="headerlink" href="#repository-structure" title="Link to this heading"></a></h2>
+<section id="python-package">
+<h3>Python Package<a class="headerlink" href="#python-package" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">isaac_toolkit</span>
+<span class="err">├──</span> <span class="n">algorithm</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="o">...</span> <span class="c1"># work in progress</span>
+<span class="err">├──</span> <span class="n">analysis</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">dynamic</span>  <span class="c1"># dynamic analysis tools</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">histogram</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">instr</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">opcode</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">pc</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">profile</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">profile</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">trace</span>
+<span class="err">│</span>   <span class="err">│</span>       <span class="err">├──</span> <span class="n">basic_blocks</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>       <span class="err">├──</span> <span class="n">instr_operands</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>       <span class="err">├──</span> <span class="n">track_used_functions</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>       <span class="err">└──</span> <span class="n">trunc_trace</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="n">static</span>  <span class="c1"># static analysis tools</span>
+<span class="err">│</span>       <span class="err">├──</span> <span class="n">dwarf</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>       <span class="err">├──</span> <span class="n">histogram</span>
+<span class="err">│</span>       <span class="err">│</span>   <span class="err">├──</span> <span class="n">disass_instr</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>       <span class="err">│</span>   <span class="err">└──</span> <span class="n">disass_opcode</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>       <span class="err">├──</span> <span class="n">linker_map</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>       <span class="err">├──</span> <span class="n">llvm_bbs</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>       <span class="err">└──</span> <span class="n">mem_footprint</span><span class="o">.</span><span class="n">py</span>
+<span class="err">├──</span> <span class="n">artifact</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="n">artifact</span><span class="o">.</span><span class="n">py</span>
+<span class="err">├──</span> <span class="n">backend</span>  <span class="c1"># ISAAC backends</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">isa</span>  <span class="c1"># not implemented</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="o">...</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">ise</span>  <span class="c1"># not implemented</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="o">...</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">memgraph</span>  <span class="c1"># annotate CFDG database with bb_weights</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">annotate_bb_weights</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="n">profile</span>  <span class="c1"># not implemented</span>
+<span class="err">│</span>       <span class="err">└──</span> <span class="o">...</span>
+<span class="err">├──</span> <span class="n">frontend</span>  <span class="c1"># ISAAC frontends</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">cfg</span>  <span class="c1"># configuration parsing</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">yaml</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">disass</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">objdump</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">elf</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">riscv</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">instr_trace</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">etiss</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">spike</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">isa</span>  <span class="c1"># work in progress</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="o">...</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">linker_map</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">memgraph</span>  <span class="c1"># work in progress</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">llvm_ir_cdfg</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">llvm_mir_cdfg</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">mem_trace</span>  <span class="c1"># not implemented</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="o">...</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="n">source</span>  <span class="c1"># not implemented</span>
+<span class="err">│</span>       <span class="err">└──</span> <span class="o">...</span>
+<span class="err">├──</span> <span class="n">generate</span>  <span class="c1"># ISAAC generators</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">ise</span>  <span class="c1"># Propose ISAXes</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">choose_bbs</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">├──</span> <span class="n">pool</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">random</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">│</span>   <span class="err">└──</span> <span class="n">query_candidates_from_db</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="n">iss</span>  <span class="c1"># ISS retargeting</span>
+<span class="err">│</span>       <span class="err">└──</span> <span class="n">generate_etiss_core</span><span class="o">.</span><span class="n">py</span>
+<span class="err">├──</span> <span class="n">session</span>  <span class="c1"># Infrastructure for sessions/artifacts</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">artifact</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">config</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">create</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">session</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="n">summary</span><span class="o">.</span><span class="n">py</span>
+<span class="err">├──</span> <span class="n">utils</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">cli</span><span class="o">.</span><span class="n">py</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">nx_converter</span><span class="o">.</span><span class="n">py</span>  <span class="c1"># Nextworkx graph to images</span>
+<span class="err">│</span>   <span class="err">├──</span> <span class="n">pickle_printer</span><span class="o">.</span><span class="n">py</span>  <span class="c1"># Convert pickle files (including DFs to text)</span>
+<span class="err">│</span>   <span class="err">└──</span> <span class="o">...</span>
+<span class="err">└──</span> <span class="n">visualize</span>
+    <span class="err">└──</span> <span class="n">pie</span>  <span class="c1"># Pie chart generators</span>
+        <span class="err">├──</span> <span class="n">disass_counts</span><span class="o">.</span><span class="n">py</span>
+        <span class="err">├──</span> <span class="n">mem_footprint</span><span class="o">.</span><span class="n">py</span>
+        <span class="err">└──</span> <span class="n">runtime</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+</section>
+<section id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h3>
+</section>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<section id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h3>
+<p>Install (optional) APT Requirements:
+sudo apt install libgraphviz-dev</p>
+<p>Setup a Python virtual environment:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>virtualenv<span class="w"> </span>-p<span class="w"> </span>python3<span class="w"> </span>venv/
+<span class="c1"># Alternative: python3 -m venv venv/</span>
+</pre></div>
+</div>
+<p>Install packages:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+
+<span class="c1"># Optional:</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[memgraph]&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="demo">
+<h3>Demo<a class="headerlink" href="#demo" title="Link to this heading"></a></h3>
+<p>~~Package installation: TODO~~</p>
+<p>Make sure to add the top level directory of this repository to your Python path:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:<span class="nv">$PYTHONPATH</span>
+</pre></div>
+</div>
+<p>For Python v3.10+ you can also just use <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code>!</p>
+<p>Minimal example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>isaac_toolkit.session.create<span class="w"> </span>--session<span class="w"> </span>sess/
+python3<span class="w"> </span>-m<span class="w"> </span>isaac_toolkit.session.summary<span class="w"> </span>--session<span class="w"> </span>sess/
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="#Examples/README.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">Examples/standalone/coremark/README.md</span></code></span></a> for an end-to-end example.</p>
+</section>
+</section>
+<section id="development">
+<h2>Development<a class="headerlink" href="#development" title="Link to this heading"></a></h2>
+<section id="style">
+<h3>Style<a class="headerlink" href="#style" title="Link to this heading"></a></h3>
+<p>We use the <a class="reference external" href="https://black.readthedocs.io/en/stable/"><code class="docutils literal notranslate"><span class="pre">black</span></code></a> formatter to maintain a consistent Python style (See <code class="docutils literal notranslate"><span class="pre">setup.cfg</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>)</p>
+<p>Pylint config is also available, but not enforced.</p>
+</section>
+<section id="testing">
+<h3>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h3>
+<p>First, make sure that the additional development packages are installed via:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements_dev.txt
+</pre></div>
+</div>
+<p>Run Pytest:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests<span class="w"> </span>-rs<span class="w"> </span>-s
+</pre></div>
+</div>
+<p>Create Coverage Report:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>coverage<span class="w"> </span>run<span class="w"> </span>--source<span class="w"> </span>isaac_toolkit<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests
+coverage<span class="w"> </span>report<span class="w"> </span>-m
+coverage<span class="w"> </span>html
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to ISAAC Toolkit’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, TUM Department of Electrical and Computer Engineering - Chair of Electronic Design Automation.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

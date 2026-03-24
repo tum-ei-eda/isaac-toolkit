@@ -1,0 +1,23 @@
+isaac\_toolkit.frontend.timing\_trace.etiss\_perf
+=================================================
+
+.. automodule:: isaac_toolkit.frontend.timing_trace.etiss_perf
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_parser
+      handle
+      load_timing_trace
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+      TraceArtifact
+   

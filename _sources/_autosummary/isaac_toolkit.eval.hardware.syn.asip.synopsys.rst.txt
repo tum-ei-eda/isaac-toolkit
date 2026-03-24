@@ -1,0 +1,22 @@
+isaac\_toolkit.eval.hardware.syn.asip.synopsys
+==============================================
+
+.. automodule:: isaac_toolkit.eval.hardware.syn.asip.synopsys
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_parser
+      handle
+      main
+      run_synopsys_asip_syn
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+   

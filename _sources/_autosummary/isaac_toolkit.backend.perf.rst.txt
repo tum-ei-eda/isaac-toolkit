@@ -1,0 +1,13 @@
+isaac\_toolkit.backend.perf
+===========================
+
+.. automodule:: isaac_toolkit.backend.perf
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   trace_analyzer

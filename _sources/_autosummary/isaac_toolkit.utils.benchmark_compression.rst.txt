@@ -1,0 +1,27 @@
+isaac\_toolkit.utils.benchmark\_compression
+===========================================
+
+.. automodule:: isaac_toolkit.utils.benchmark_compression
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      filter_artifacts
+      get_artifact_size
+      get_file_size
+      get_parser
+      get_table_artifact_ext
+      handle
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      ArtifactsSettings
+      Path
+      Session
+   

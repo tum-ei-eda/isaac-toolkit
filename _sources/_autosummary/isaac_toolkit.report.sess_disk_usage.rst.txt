@@ -1,0 +1,28 @@
+isaac\_toolkit.report.sess\_disk\_usage
+=======================================
+
+.. automodule:: isaac_toolkit.report.sess_disk_usage
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      format_size
+      generate_sess_disk_usage
+      get_directory_size
+      get_file_size
+      get_parser
+      handle
+      main
+      save_pdf_report
+      size_df_to_html
+      size_df_to_markdown
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+   

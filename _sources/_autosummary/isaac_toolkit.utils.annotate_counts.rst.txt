@@ -1,0 +1,15 @@
+isaac\_toolkit.utils.annotate\_counts
+=====================================
+
+.. automodule:: isaac_toolkit.utils.annotate_counts
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      annotate_counts
+      get_parser
+      handle
+      main
+   

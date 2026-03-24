@@ -1,0 +1,27 @@
+isaac\_toolkit.flow.demo.stage.pick
+===================================
+
+.. automodule:: isaac_toolkit.flow.demo.stage.pick
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      analyze_bottleneck_bbs
+      check_ise_potential
+      check_ise_potential_per_llvm_bb
+      choose_bbs
+      get_logger
+      get_parser
+      handle
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+   

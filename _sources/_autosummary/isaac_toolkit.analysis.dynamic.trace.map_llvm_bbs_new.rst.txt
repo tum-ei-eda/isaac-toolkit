@@ -1,0 +1,27 @@
+isaac\_toolkit.analysis.dynamic.trace.map\_llvm\_bbs\_new
+=========================================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.trace.map_llvm_bbs_new
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      filter_artifacts
+      get_logger
+      get_parser
+      handle
+      main
+      map_llvm_bbs_new
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+   

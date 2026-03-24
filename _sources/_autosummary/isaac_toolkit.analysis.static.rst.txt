@@ -1,0 +1,17 @@
+isaac\_toolkit.analysis.static
+==============================
+
+.. automodule:: isaac_toolkit.analysis.static
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   dwarf
+   histogram
+   linker_map
+   llvm_bbs
+   mem_footprint

@@ -1,0 +1,28 @@
+isaac\_toolkit.analysis.dynamic.histogram.instr
+===============================================
+
+.. automodule:: isaac_toolkit.analysis.dynamic.histogram.instr
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      collect_instructions
+      create_instr_hist
+      filter_artifacts
+      get_logger
+      get_parser
+      handle
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+   

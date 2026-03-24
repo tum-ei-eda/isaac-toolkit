@@ -1,0 +1,22 @@
+isaac\_toolkit.session.summary
+==============================
+
+.. automodule:: isaac_toolkit.session.summary
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_parser
+      get_summary
+      handle_summary
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+   

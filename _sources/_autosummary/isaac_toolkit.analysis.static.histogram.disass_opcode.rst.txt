@@ -1,0 +1,28 @@
+isaac\_toolkit.analysis.static.histogram.disass\_opcode
+=======================================================
+
+.. automodule:: isaac_toolkit.analysis.static.histogram.disass_opcode
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      collect_opcodes
+      create_disass_opcode_hist
+      decode_opcode
+      filter_artifacts
+      get_logger
+      get_parser
+      handle
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+      TableArtifact
+   

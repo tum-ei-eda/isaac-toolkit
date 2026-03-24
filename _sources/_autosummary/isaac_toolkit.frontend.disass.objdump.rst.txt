@@ -1,0 +1,26 @@
+isaac\_toolkit.frontend.disass.objdump
+======================================
+
+.. automodule:: isaac_toolkit.frontend.disass.objdump
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_logger
+      get_parser
+      handle
+      load_disass
+      main
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      DisassArtifact
+      Path
+      Session
+      TableArtifact
+   

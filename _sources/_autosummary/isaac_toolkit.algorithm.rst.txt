@@ -1,0 +1,13 @@
+isaac\_toolkit.algorithm
+========================
+
+.. automodule:: isaac_toolkit.algorithm
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   ise
