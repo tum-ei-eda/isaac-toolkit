@@ -25,23 +25,15 @@ import argparse
 import posixpath
 from pathlib import Path
 from collections import defaultdict
-from cpp_demangle import demangle
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.demangle import unmangle_helper
 
 logger = get_logger()
-
-
-def unmangle_helper(func_name: Optional[str]):
-    if func_name is None:
-        return None
-    if not func_name.startswith("_Z"):
-        return func_name
-    return demangle(func_name)
 
 
 PC_FUNC_NAME_CACHE = {}

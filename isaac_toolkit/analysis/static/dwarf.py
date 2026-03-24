@@ -29,6 +29,7 @@ from elftools.elf.elffile import ELFFile
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.demangle import unmangle_helper
 
 logger = get_logger()
 
@@ -162,9 +163,8 @@ def parse_dwarf(elf_path):
                         func_name = "???"
                     if "DW_AT_linkage_name" in DIE.attributes:
                         linkage_name = DIE.attributes["DW_AT_linkage_name"].value.decode()
-                        from cpp_demangle import demangle
 
-                        unmangled_linkage_name = demangle(linkage_name)
+                        unmangled_linkage_name = unmangle_helper(linkage_name)
                     else:
                         linkage_name = "???"
                         unmangled_linkage_name = "???"
