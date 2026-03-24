@@ -47,7 +47,8 @@ jobs:
     - name: Install dependencies
       run: |
         source $VENV_DIR/bin/activate
-        pip install -r requirements_dev.txt
+        pip install -e ".[dev]"
+        pip install -e ".[memgraph]"
     - name: Run Pytest (via coverage)
       run: |
         source $VENV_DIR/bin/activate
