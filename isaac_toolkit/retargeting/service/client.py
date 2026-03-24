@@ -67,7 +67,7 @@ class RetargetClient(ABC):
         return data["job_id"], data["token"]
 
     @abstractmethod
-    def submit_job(self, tag: str, *args, *kwargs):
+    def submit_job(self, tag: str, *args, **kwargs):
         raise NotImplementedError
 
     def get_status(self, job_id: str):
