@@ -49,10 +49,12 @@ elif [[ "$tool_lower" == "pk" ]]
 then
     # TODO: label?
     archive=pk-$lib.$ext
+    tool_lower=gnu
 elif [[ "$tool_lower" == "htif" ]]
 then
     # TODO: label?
     archive=htif-$lib.$ext
+    tool_lower=gnu
 elif [[ "$tool_lower" == "etiss" ]]
 then
     # TODO: label?
