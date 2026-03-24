@@ -140,13 +140,17 @@ jobs:
             sudo apt -qq install -y qemu-user
         fi
 
+        echo A
         if [[ "$SIMULATOR" == "etiss" ]]
         then
             # ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss ${{ matrix.versions.etiss_version }}
             ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.versions.etiss_version }}
+            echo B
             ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss ${{ matrix.versions.etiss_examples_version }}
+            echo C
             ls $INSTALL_DIR/etiss/custom.ini
         fi
+        echo Z
 
         if [[ "$SIMULATOR" == "etiss_perf" ]]
         then
