@@ -20,11 +20,11 @@ with pd.read_csv(
         pcs_chunk = df[0].str.extract(r"\[(?:[^/]+/){1}([^/]+)/")[0].apply(lambda x: int(x, 16))
         pcs_chunk = pcs_chunk.astype("category")
 
-        print("B", pcs_chunk.head(), len(pcs_chunk), pcs_chunk.dtypes, pcs_chunk.memory_usage())
+        # print("B", pcs_chunk.head(), len(pcs_chunk), pcs_chunk.dtypes, pcs_chunk.memory_usage())
         # process pcs_chunk or append to list
         dfs.append(pcs_chunk)
 
 full_df = pd.concat(dfs)
 full_df = full_df.astype("category")
 
-print("FULL", full_df.head(), len(full_df), full_df.dtypes, full_df.memory_usage())
+# print("FULL", full_df.head(), len(full_df), full_df.dtypes, full_df.memory_usage())
