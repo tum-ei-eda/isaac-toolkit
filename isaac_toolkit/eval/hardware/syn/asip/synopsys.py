@@ -50,8 +50,8 @@ def run_synopsys_asip_syn(
     core_name: Optional[str] = None,
     pdk: Optional[str] = None,
     clk_period: Optional[float] = None,
-    script_path: Optional[str, Path] = None,
-    constraints_file: Optional[str, Path] = None,
+    script_path: Optional[Union[str, Path]] = None,
+    constraints_file: Optional[Union[str, Path]] = None,
     dse: bool = False,
     force: bool = False,
 ):

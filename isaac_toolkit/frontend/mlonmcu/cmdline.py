@@ -18,6 +18,7 @@
 #
 import sys
 import argparse
+from typing import Optional
 from pathlib import Path
 
 from isaac_toolkit.session import Session
