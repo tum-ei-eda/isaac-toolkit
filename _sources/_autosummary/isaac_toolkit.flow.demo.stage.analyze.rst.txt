@@ -1,0 +1,39 @@
+isaac\_toolkit.flow.demo.stage.analyze
+======================================
+
+.. automodule:: isaac_toolkit.flow.demo.stage.analyze
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      analyze_artifacts
+      analyze_basic_blocks
+      analyze_dwarf
+      analyze_instr_operands
+      analyze_linker_map
+      analyze_llvm_bbs
+      analyze_mem_footprint
+      create_disass_instr_hist
+      create_disass_opcode_hist
+      create_instr_hist
+      create_opcode_hist
+      create_opcode_per_llvm_bb_hist
+      get_logger
+      get_parser
+      handle
+      has_operands
+      main
+      map_llvm_bbs_new
+      set_log_level
+      track_unused_functions
+      trunc_trace
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+   

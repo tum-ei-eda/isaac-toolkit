@@ -28,6 +28,7 @@ isaac\_toolkit.utils
    cli
    combine_pdfs
    compression
+   demangle
    filter_index
    graph_utils
    names_helper

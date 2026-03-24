@@ -1,0 +1,31 @@
+isaac\_toolkit.analysis.static.dwarf
+====================================
+
+.. automodule:: isaac_toolkit.analysis.static.dwarf
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      analyze_dwarf
+      filter_artifacts
+      get_logger
+      get_parser
+      handle
+      main
+      parse_dwarf
+      set_log_level
+      unmangle_helper
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      ELFFile
+      Path
+      Session
+      TableArtifact
+      defaultdict
+   

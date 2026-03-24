@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>isaac_toolkit.backend.profile &mdash; ISAAC Toolkit 0.5.7 documentation</title>
+  <title>isaac_toolkit.analysis.static.dwarf &mdash; ISAAC Toolkit 0.5.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="isaac_toolkit.backend.profile.annotate" href="isaac_toolkit.backend.profile.annotate.html" />
-    <link rel="prev" title="isaac_toolkit.backend.perf.trace_analyzer.ranges" href="isaac_toolkit.backend.perf.trace_analyzer.ranges.html" /> 
+    <link rel="next" title="isaac_toolkit.analysis.static.histogram" href="isaac_toolkit.analysis.static.histogram.html" />
+    <link rel="prev" title="isaac_toolkit.analysis.static" href="isaac_toolkit.analysis.static.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,16 +48,13 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="isaac_toolkit.html">isaac_toolkit</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.algorithm.html">isaac_toolkit.algorithm</a></li>
-<li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.analysis.html">isaac_toolkit.analysis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.arch.html">isaac_toolkit.arch</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="isaac_toolkit.backend.html">isaac_toolkit.backend</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.backend.isa.html">isaac_toolkit.backend.isa</a></li>
-<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.backend.ise.html">isaac_toolkit.backend.ise</a></li>
-<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.backend.pctrace.html">isaac_toolkit.backend.pctrace</a></li>
-<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.backend.perf.html">isaac_toolkit.backend.perf</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">isaac_toolkit.backend.profile</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="isaac_toolkit.analysis.html">isaac_toolkit.analysis</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.analysis.dynamic.html">isaac_toolkit.analysis.dynamic</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="isaac_toolkit.analysis.static.html">isaac_toolkit.analysis.static</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.arch.html">isaac_toolkit.arch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.backend.html">isaac_toolkit.backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.eval.html">isaac_toolkit.eval</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.flow.html">isaac_toolkit.flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.frontend.html">isaac_toolkit.frontend</a></li>
@@ -89,10 +86,11 @@
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.html">isaac_toolkit</a></li>
-          <li class="breadcrumb-item"><a href="isaac_toolkit.backend.html">isaac_toolkit.backend</a></li>
-      <li class="breadcrumb-item active">isaac_toolkit.backend.profile</li>
+          <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.html">isaac_toolkit.analysis</a></li>
+          <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.static.html">isaac_toolkit.analysis.static</a></li>
+      <li class="breadcrumb-item active">isaac_toolkit.analysis.static.dwarf</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/isaac_toolkit.backend.profile.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/isaac_toolkit.analysis.static.dwarf.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -100,28 +98,60 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-isaac_toolkit.backend.profile">
-<span id="isaac-toolkit-backend-profile"></span><h1>isaac_toolkit.backend.profile<a class="headerlink" href="#module-isaac_toolkit.backend.profile" title="Link to this heading"></a></h1>
-<p class="rubric">Modules</p>
+  <section id="module-isaac_toolkit.analysis.static.dwarf">
+<span id="isaac-toolkit-analysis-static-dwarf"></span><h1>isaac_toolkit.analysis.static.dwarf<a class="headerlink" href="#module-isaac_toolkit.analysis.static.dwarf" title="Link to this heading"></a></h1>
+<p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="isaac_toolkit.backend.profile.annotate.html#module-isaac_toolkit.backend.profile.annotate" title="isaac_toolkit.backend.profile.annotate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">annotate</span></code></a></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyze_dwarf</span></code>(sess[, force])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="isaac_toolkit.backend.profile.callgrind.html#module-isaac_toolkit.backend.profile.callgrind" title="isaac_toolkit.backend.profile.callgrind"><code class="xref py py-obj docutils literal notranslate"><span class="pre">callgrind</span></code></a></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_artifacts</span></code>(artifacts, func)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="isaac_toolkit.backend.profile.callgrind_new.html#module-isaac_toolkit.backend.profile.callgrind_new" title="isaac_toolkit.backend.profile.callgrind_new"><code class="xref py py-obj docutils literal notranslate"><span class="pre">callgrind_new</span></code></a></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_logger</span></code>()</p></td>
+<td><p>Helper function which return the main isaac-toolkit logger while ensuring that is is properly initialized.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="isaac_toolkit.backend.profile.dot.html#module-isaac_toolkit.backend.profile.dot" title="isaac_toolkit.backend.profile.dot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dot</span></code></a></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>(args)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="isaac_toolkit.backend.profile.lcov.html#module-isaac_toolkit.backend.profile.lcov" title="isaac_toolkit.backend.profile.lcov"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lcov</span></code></a></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(argv)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="isaac_toolkit.backend.profile.text.html#module-isaac_toolkit.backend.profile.text" title="isaac_toolkit.backend.profile.text"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text</span></code></a></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_dwarf</span></code>(elf_path)</p></td>
 <td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_log_level</span></code>([console_level, file_level])</p></td>
+<td><p>Set command line log level at runtime.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unmangle_helper</span></code>(func_name)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactFlag</span></code>(value)</p></td>
+<td><p>An enumeration.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ELFFile</span></code>(stream[, stream_loader])</p></td>
+<td><p>Creation: the constructor accepts a stream (file-like object) with the contents of an ELF file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code>(*args, **kwargs)</p></td>
+<td><p>PurePath subclass that can make system calls.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code>(session_dir, config)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableArtifact</span></code>(name[, df, path, flags, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultdict</span></code></p></td>
+<td><p>defaultdict(default_factory=None, /, [...]) --&gt; dict with default factory</p></td>
 </tr>
 </tbody>
 </table>
@@ -131,8 +161,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="isaac_toolkit.backend.perf.trace_analyzer.ranges.html" class="btn btn-neutral float-left" title="isaac_toolkit.backend.perf.trace_analyzer.ranges" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="isaac_toolkit.backend.profile.annotate.html" class="btn btn-neutral float-right" title="isaac_toolkit.backend.profile.annotate" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="isaac_toolkit.analysis.static.html" class="btn btn-neutral float-left" title="isaac_toolkit.analysis.static" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="isaac_toolkit.analysis.static.histogram.html" class="btn btn-neutral float-right" title="isaac_toolkit.analysis.static.histogram" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

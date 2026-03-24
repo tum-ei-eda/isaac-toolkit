@@ -1,0 +1,30 @@
+isaac\_toolkit.backend.profile.callgrind\_new
+=============================================
+
+.. automodule:: isaac_toolkit.backend.profile.callgrind_new
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      build_call_trace
+      callgrind_format_converter
+      callgrind_format_get_inclusive_cost
+      filter_artifacts
+      find_func_name
+      generate_callgrind_output
+      get_parser
+      handle
+      main
+      unmangle_helper
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      defaultdict
+   
