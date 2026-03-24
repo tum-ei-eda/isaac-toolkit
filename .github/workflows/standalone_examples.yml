@@ -162,6 +162,7 @@ jobs:
             pip list
             conan remote add gitea https://git.minres.com/api/packages/Tooling/conan
             conan remote list
+            conan profile detect
             conan list
             gcc --version
             g++ --version
