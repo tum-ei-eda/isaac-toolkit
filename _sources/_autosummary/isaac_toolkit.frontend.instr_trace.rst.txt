@@ -15,6 +15,7 @@ isaac\_toolkit.frontend.instr\_trace
    etiss_perf
    helper
    ovpsim
+   riscv_qemu
    spike
    tgc
    utils
