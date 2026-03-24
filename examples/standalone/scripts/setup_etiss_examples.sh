@@ -9,6 +9,7 @@ if [ "$#" -lt 1 ]; then
 fi
 
 ETISS_INSTALL_DIR=$(readlink -f $1)
+ETISS_EXAMPLES_REF=${2:-bc0fe0298f1c79201a48235989aede8b21c04d41}
 ETISS_EXAMPLES_DIR=$(dirname $ETISS_INSTALL_DIR)/etiss_riscv_examples
 ETISS_INI=$ETISS_INSTALL_DIR/custom.ini
 ETISS_LDSCRIPT=$ETISS_INSTALL_DIR/etiss.ld
@@ -25,6 +26,7 @@ then
 else
     git clone https://github.com/tum-ei-eda/etiss_riscv_examples.git $ETISS_EXAMPLES_DIR
 fi
+git -C $ETISS_EXAMPLES_DIR checkout $ETISS_EXAMPLES_REF
 
 export MEM_ROM_ORIGIN=0x10000000
 export MEM_ROM_LENGTH=0x00400000

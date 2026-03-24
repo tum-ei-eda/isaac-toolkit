@@ -30,17 +30,18 @@ jobs:
         toolchain: ["gcc", "llvm"]
         # simulator: ["etiss", "etiss_perf", "spike", "spike_bm", "qemu_user", "tgc"]
         # TODO: rename to dbt-risce-riscv
-        # simulator: ["etiss", "spike", "spike_bm"]
-        simulator: ["etiss"]
+        simulator: ["etiss", "spike", "spike_bm", "tgc"]
         optimize: ["3"]
+        versions:
+          - {etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_examples_version: "bc0fe0298f1c79201a48235989aede8b21c04d41", etiss_perf_version: "TODO", spike_version: "0bc176b3", tgc_version: "f55fc06867a11e5f7ab57772167109be9e6c4446", tgc_bsp_version: "c8ea882b3ef0f5bb476041edd50765801bfea9be", gnu_version: "2025.08.08_min", llvm_version: "19.1.1"}
         # TODO: update gnu version & llvm version
         config:
-          # - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "v0.11.2", etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
-          # - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "v0.11.2", etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
-          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64, etiss_version: "v0.11.2", etiss_arch: "RV64IMACFD", etiss_jit: "TCC"}
-          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
-          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
-          - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV64IMACFD", etiss_jit: "TCC"}
+          # - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
+          # - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
+          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD", etiss_jit: "TCC"}
+          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
+          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC"}
+          - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD", etiss_jit: "TCC"}
         # include:
         #   # - python-version: ["3.10"]
         #   #   toolchain: ["gcc"]
@@ -86,11 +87,11 @@ jobs:
       RISCV_NAME: ${{ matrix.config.gnu_name }}
       RISCV_PREFIX: ${{ github.workspace }}/examples/standalone/install/gnu
       OPTIMIZE: ${{ matrix.optimize }}
-      SPIKE: ${{ github.workspace }}/examples/standalone/install/spike/bin/spike
-      PK: ${{ github.workspace }}/examples/standalone/install/gnu/bin/pk_${{ matrix.config.arch }}_${{ matrix.config.abi }}
-      HTIF: ${{ github.workspace }}/examples/standalone/install/gnu/bin/htif_${{ matrix.config.arch }}_${{ matrix.config.abi }}
-      ETISS: ${{ github.workspace }}/examples/standalone/install/etiss/bin/run_helper.sh
-      ETISS_INI: ${{ github.workspace }}/examples/standalone/install/etiss/custom.ini
+      # SPIKE: ${{ github.workspace }}/examples/standalone/install/spike/bin/spike
+      # PK: ${{ github.workspace }}/examples/standalone/install/gnu/bin/pk_${{ matrix.config.arch }}_${{ matrix.config.abi }}
+      # HTIF: ${{ github.workspace }}/examples/standalone/install/gnu/bin/htif_${{ matrix.config.arch }}_${{ matrix.config.abi }}
+      # ETISS: ${{ github.workspace }}/examples/standalone/install/etiss/bin/run_helper.sh
+      # ETISS_INI: ${{ github.workspace }}/examples/standalone/install/etiss/custom.ini
       ETISS_JIT: ${{ matrix.config.etiss_jit }}
       # PERF_MODEL: ?
       # ETISS_PERF: ?
@@ -127,11 +128,11 @@ jobs:
     - name: Setup dependencies
       working-directory: examples/standalone
       run: |
-        ./scripts/download_helper.sh $RISCV_PREFIX gnu ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+        ./scripts/download_helper.sh $RISCV_PREFIX gnu ${{ matrix.versions.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
 
         if [[ "$TOOLCHAIN" == "llvm" ]]
         then
-            ./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm ${{ matrix.config.llvm_version }}
+            ./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm ${{ matrix.versions.llvm_version }}
         fi
 
         if [[ "$SIMULATOR" == "qemu_user" ]]
@@ -141,37 +142,41 @@ jobs:
 
         if [[ "$SIMULATOR" == "etiss" ]]
         then
-            # ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss ${{ matrix.config.etiss_version }}
-            ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_version }}
-            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
+            # ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss ${{ matrix.versions.etiss_version }}
+            ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.versions.etiss_version }}
+            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss ${{ matrix.versions.etiss_examples_version }}
+            ls $INSTALL_DIR/etiss/custom.ini
         fi
 
         if [[ "$SIMULATOR" == "etiss_perf" ]]
         then
-            ./scripts/download_helper.sh $INSTALL_DIR/etiss_perf etiss_perf ${{ matrix.config.etiss_perf_version }}
-            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
-            # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_perf_version }}
+            ./scripts/download_helper.sh $INSTALL_DIR/etiss_perf etiss_perf ${{ matrix.versions.etiss_perf_version }}
+            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss  # TODO
+            # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.versions.etiss_perf_version }}
         fi
 
         if [[ "$SIMULATOR" == "tgc" ]]
         then
-            # ./scripts/download_helper.sh $INSTALL_DIR/tgc tgc ${{ matrix.config.tgc_version }}
-            ./scripts/setup_tgc.sh $INSTALL_DIR/tgc ${{ matrix.config.tgc_version }}
+            # ./scripts/download_helper.sh $INSTALL_DIR/tgc tgc ${{ matrix.versions.tgc_version }}
+            pip install conan
+            ./scripts/setup_tgc.sh $INSTALL_DIR/tgc ${{ matrix.versions.tgc_version }}
+            ./scripts/setup_tgc_bsp.sh $INSTALL_DIR/tgc_bsp ${{ matrix.versions.tgc_bsp_version }}
         fi
 
         if [[ "$SIMULATOR" == "spike" ]]
         then
-            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.config.spike_version }}
-            ./scripts/download_spike.sh $INSTALL_DIR/pk pk ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
-            # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.config.spike_version }}
+            # ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.versions.spike_version }}
+            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.versions.spike_version }}
+            ./scripts/download_spike.sh $INSTALL_DIR/pk pk ${{ matrix.versions.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+            # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.versions.spike_version }}
             # ./scripts/setup_pk.sh $INSTALL_DIR/pk ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
         fi
 
         if [[ "$SIMULATOR" == "spike_bm" ]]
         then
-            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.config.spike_version }}
-            ./scripts/download_spike.sh $INSTALL_DIR/htif htif ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
-            # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.config.spike_version }}
+            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.versions.spike_version }}
+            ./scripts/download_spike.sh $INSTALL_DIR/htif htif ${{ matrix.versions.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+            # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.versions.spike_version }}
             # ./scripts/setup_htif.sh $INSTALL_DIR/htif ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
         fi
     - name: Run Coremark example
