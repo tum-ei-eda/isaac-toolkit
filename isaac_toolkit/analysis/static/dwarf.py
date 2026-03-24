@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -18,7 +18,6 @@
 #
 import os
 import sys
-import logging
 import argparse
 import posixpath
 from pathlib import Path
@@ -29,9 +28,10 @@ from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.demangle import unmangle_helper
 
-
-logger = logging.getLogger("dwarf")
+logger = get_logger()
 
 
 def parse_dwarf(elf_path):
@@ -128,12 +128,17 @@ def parse_dwarf(elf_path):
             # File and directory indices are 1-indexed.
             file_entry = file_entries[file_index] if line_program.header.version >= 5 else file_entries[file_index - 1]
             dir_index = file_entry["dir_index"] if line_program.header.version >= 5 else file_entry["dir_index"] - 1
+            # dir_index = file_entry["dir_index"]
             assert dir_index >= 0
 
             # A dir_index of 0 indicates that no absolute directory was recorded during
             # compilation; return just the basename.
             if dir_index == 0:
                 return file_entry.name.decode()
+
+            # if min_dir_index == 0:
+            if True:
+                dir_index -= 1
 
             directory = lp_header["include_directory"][dir_index]
             # TODO: try out actual_path = op.normpath(CU.get_top_DIE().get_full_path())?
@@ -158,9 +163,8 @@ def parse_dwarf(elf_path):
                         func_name = "???"
                     if "DW_AT_linkage_name" in DIE.attributes:
                         linkage_name = DIE.attributes["DW_AT_linkage_name"].value.decode()
-                        from cpp_demangle import demangle
 
-                        unmangled_linkage_name = demangle(linkage_name)
+                        unmangled_linkage_name = unmangle_helper(linkage_name)
                     else:
                         linkage_name = "???"
                         unmangled_linkage_name = "???"
@@ -200,6 +204,7 @@ def parse_dwarf(elf_path):
 
 
 def analyze_dwarf(sess: Session, force: bool = False):
+    logger.info("Analyzing DWARF info...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -253,6 +258,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     analyze_dwarf(sess, force=args.force)
     sess.save()
 

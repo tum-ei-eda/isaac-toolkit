@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,16 +17,19 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 import subprocess
+import multiprocessing
 from typing import Optional, Union
 from pathlib import Path
 
+
 from isaac_toolkit.session import Session
+from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.annotate_enc_score import annotate_enc_score
+from isaac_toolkit.utils.analyze_encoding import analyze_encoding
 
-
-logger = logging.getLogger("generate_cdsl")
+logger = get_logger()
 
 
 def generate_cdsl(
@@ -34,9 +37,14 @@ def generate_cdsl(
     workdir: Optional[Union[str, Path]] = None,
     index_file: Optional[Union[str, Path]] = None,
     gen_dir: Optional[Union[str, Path]] = None,
+    n_parallel: Optional[int] = None,
+    suffix: str = "",
     force: bool = False,
 ):
     del sess, force
+    logger.info("Generating CDSL...")
+    if workdir is not None:
+        workdir = Path(workdir)
     combined_index_file = workdir / "combined_index.yml" if index_file is None else Path(index_file)
     assert combined_index_file.is_file()
     # with open(combined_index_file, "r") as f:
@@ -53,6 +61,8 @@ def generate_cdsl(
         "--progress",
         "--inplace",  # TODO use gen/index.yml instead!
     ]
+    if n_parallel is not None:
+        generate_args += ["--parallel", str(n_parallel)]
     generate_cdsl_args = [
         "python3",
         "-m",
@@ -77,6 +87,10 @@ def generate_cdsl(
     subprocess.run(generate_cdsl_args, check=True)
     subprocess.run(generate_flat_args, check=True)
     subprocess.run(generate_fuse_cdsl_args, check=True)
+    enc_score_csv = workdir / f"encoding_score{suffix}.csv"
+    total_enc_metrics_csv = workdir / f"total_encoding_metrics{suffix}.csv"
+    analyze_encoding(combined_index_file, score=enc_score_csv, output=total_enc_metrics_csv)
+    annotate_enc_score(combined_index_file, inplace=True, enc_score_csv=enc_score_csv)
 
 
 def handle(args):
@@ -84,12 +98,14 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     generate_cdsl(
         sess,
         workdir=args.workdir,
         gen_dir=args.gen_dir,
         index_file=args.index,
         force=args.force,
+        n_parallel=args.parallel,
     )
     sess.save()
 
@@ -106,6 +122,7 @@ def get_parser():
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--gen-dir", type=str, default=None)
     parser.add_argument("--index", type=str, default=None)
+    parser.add_argument("--parallel", type=int, default=multiprocessing.cpu_count())
     return parser
 
 

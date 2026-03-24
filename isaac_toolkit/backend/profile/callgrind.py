@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -21,29 +21,19 @@ from typing import Dict, List, Set, Tuple, Optional, Union
 import bisect
 
 import sys
-import logging
 import argparse
 import posixpath
 from pathlib import Path
 from collections import defaultdict
-from cpp_demangle import demangle
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
+from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.demangle import unmangle_helper
 
-
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
-
-
-def unmangle_helper(func_name: Optional[str]):
-    if func_name is None:
-        return None
-    if not func_name.startswith("_Z"):
-        return func_name
-    return demangle(func_name)
+logger = get_logger()
 
 
 PC_FUNC_NAME_CACHE = {}
@@ -432,6 +422,8 @@ def generate_callgrind_output(
     dump_pos: bool = False,
     unmangle_names: bool = False,
 ):
+    logger.info("Generating callgrind coutput...")
+    assert output is not None
     artifacts = sess.artifacts
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
     assert len(elf_artifacts) == 1
@@ -515,6 +507,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     generate_callgrind_output(
         sess,
         output=args.output,

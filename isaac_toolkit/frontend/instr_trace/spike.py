@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -29,8 +29,11 @@ from typing import Optional
 from tqdm import tqdm
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import InstrTraceArtifact
+from isaac_toolkit.session.artifact import InstrTraceArtifact, TraceArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+
+logger = get_logger()
 
 
 # TODO: logger
@@ -108,11 +111,13 @@ def load_instr_trace(
     input_file: Path,
     force: bool = False,
     operands: bool = False,
+    progress: bool = False,
     num_workers: Optional[int] = None,
     executor: str = "process_pool",
     chunk_size: int = 2**22,
 ):
-    assert input_file.is_file()
+    logger.info("Loading Spike instruction trace...")
+    assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
@@ -131,7 +136,7 @@ def load_instr_trace(
                         chunk_iter(input_file, chunk_size=chunk_size),
                         itertools.repeat(operands),
                     ),
-                    disable=False,
+                    disable=not progress,
                 )
             )
             dfs += dfs_
@@ -193,6 +198,11 @@ def load_instr_trace(
         "cpu_arch": "unknown",
         "by": "isaac_toolkit.frontend.instr_trace.spike",
     }
+    if operands:
+        operands_trace_df = df[["instr", "operands"]]
+        df.drop(columns=["operands"], inplace=True)
+        operands_artifact = TraceArtifact("operands_trace", operands_trace_df, attrs=attrs)
+        sess.add_artifact(operands_artifact, override=force)
     artifact = InstrTraceArtifact(name, df, attrs=attrs)
     sess.add_artifact(artifact, override=force)
 
@@ -202,8 +212,15 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     input_file = Path(args.file)
-    load_instr_trace(sess, input_file, force=args.force, operands=args.operands)
+    load_instr_trace(
+        sess,
+        input_file,
+        force=args.force,
+        operands=args.operands,
+        progress=args.progress,
+    )
     sess.save()
 
 
@@ -218,6 +235,7 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--operands", action="store_true")
+    parser.add_argument("--progress", action="store_true")
     return parser
 
 

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -26,9 +25,9 @@ import pandas as pd
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TableArtifact, filter_artifacts
 from .check_ise_potential import get_unsupported_opcodes, get_ise_potential_df
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("check_ise_potential")
+logger = get_logger()
 
 
 def check_ise_potential_per_llvm_bb(
@@ -41,9 +40,11 @@ def check_ise_potential_per_llvm_bb(
     allow_compressed: bool = True,
     allow_custom: bool = True,
     allow_fp: bool = False,
+    allow_rvv: bool = False,
     allow_system: bool = False,
     force: bool = False,
 ):
+    logger.info("Checking ISE potential per LLVM BB...")
     artifacts = sess.artifacts
     opcodes_hist_artifacts = filter_artifacts(artifacts, lambda x: x.name == "opcodes_per_llvm_bb_hist")
     assert len(opcodes_hist_artifacts) == 1
@@ -58,6 +59,7 @@ def check_ise_potential_per_llvm_bb(
         allow_compressed=allow_compressed,
         allow_custom=allow_custom,
         allow_fp=allow_fp,
+        allow_rvv=allow_rvv,
         allow_system=allow_system,
     )
 
@@ -67,12 +69,23 @@ def check_ise_potential_per_llvm_bb(
         # print("func_name", func_name)
         # print("bb_name", bb_name)
         # print("opcodes_hist_df")
-        print(opcodes_hist_df)
+        # print(opcodes_hist_df)
+        # force_rvv = True
+        force_rvv = False
+        forced_opcodes = []
+        if force_rvv:
+            forced_opcodes = ["OP-V"]
+        if forced_opcodes:
+            forced_opcodes_hist_df = opcodes_hist_df[opcodes_hist_df["opcode"].isin(forced_opcodes)]
+            if len(forced_opcodes_hist_df) == 0:
+                # TODO: logging
+                continue
+
         ise_potential_df = get_ise_potential_df(opcodes_hist_df, unsupported_opcodes, min_supported)
         ise_potential_df.insert(0, "func_name", func_name)
         ise_potential_df.insert(1, "bb_name", bb_name)
         # print("ise_potential_df")
-        print(ise_potential_df)
+        # print(ise_potential_df)
         dfs.append(ise_potential_df)
     ise_potential_per_llvm_bb_df = pd.concat(dfs)
     # print(ise_potential_per_llvm_bb_df)
@@ -92,6 +105,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     check_ise_potential_per_llvm_bb(
         sess,
         allow_mem=args.allow_mem,
@@ -101,6 +115,7 @@ def handle(args):
         allow_compressed=args.allow_compressed,
         allow_custom=args.allow_custom,
         allow_fp=args.allow_fp,
+        allow_rvv=args.allow_rvv,
         allow_system=args.allow_system,
         force=args.force,
     )
@@ -125,6 +140,7 @@ def get_parser():
     parser.add_argument("--allow-compressed", action="store_true")
     parser.add_argument("--allow-custom", action="store_true")
     parser.add_argument("--allow-fp", action="store_true")
+    parser.add_argument("--allow-rvv", action="store_true")
     parser.add_argument("--allow-system", action="store_true")
     return parser
 

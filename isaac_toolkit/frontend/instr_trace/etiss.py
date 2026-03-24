@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -19,87 +19,100 @@
 
 # import time
 import sys
-import pandas as pd
 import argparse
 from pathlib import Path
+from typing import Optional
 
-from tqdm import tqdm
+import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import InstrTraceArtifact
+from isaac_toolkit.session.artifact import InstrTraceArtifact, TraceArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
+from .utils import parse_instr_trace, DEFAULT_CHUNK_SIZE
+
+logger = get_logger()
 
 
-# TODO: logger
-
-
-def load_instr_trace(sess: Session, input_file: Path, force: bool = False, operands: bool = False):
-    assert input_file.is_file()
-    name = input_file.name
-    # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
-    dfs = []
-    with pd.read_csv(input_file, sep=":", names=["pc", "rest"], chunksize=2**22) as reader:
-        for df in tqdm(reader, disable=False):
-            # print("A", time.time())
-            df["pc"] = df["pc"].apply(lambda x: int(x, 0))
-            df["pc"] = pd.to_numeric(df["pc"])
-            # print("B", time.time())
-            # TODO: normalize instr names
-            df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
-            df["instr"] = df["instr"].apply(lambda x: x.strip())
-            df["instr"] = df["instr"].astype("category")
-            # print("C", time.time())
-            # print("D", time.time())
-            df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
-            # print("E", time.time())
-
-            def detect_size(bytecode):
-                if bytecode[:2] == "0x":
-                    return len(bytecode[2:]) // 2
-                elif bytecode[:2] == "0b":
-                    return len(bytecode[2:]) // 8
-                else:
-                    assert len(set(bytecode)) == 2
-                    return len(bytecode) // 8
-
-            df["size"] = df["bytecode"].apply(detect_size)
-            df["size"] = df["size"].astype("category")
-            # print("F", time.time())
-            df["bytecode"] = df["bytecode"].apply(
-                lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
-            )
-            df["bytecode"] = pd.to_numeric(df["bytecode"])
-            # print("H", time.time())
-
-            def convert(x):
-                ret = {}
-                for y in x:
-                    if len(y.strip()) == 0:
-                        continue
-                    assert "=" in y
-                    k, v = y.split("=", 1)
-                    assert k not in ret
-                    ret[k] = int(v)
-                return ret
-
-            if operands:
-                df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
-            else:
-                df.drop(columns=["operands"], inplace=True)
-            df.drop(columns=["rest"], inplace=True)
-            # print("I", time.time())
-            dfs.append(df)
-    df = pd.concat(dfs, axis=0)
+def process_etiss_trace_df(df, operands: bool = False):
+    df["pc"] = df["pc"].apply(lambda x: int(x, 0))
+    df["pc"] = pd.to_numeric(df["pc"])
+    df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
+    df["instr"] = df["instr"].apply(lambda x: x.strip())
     df["instr"] = df["instr"].astype("category")
+    df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
+
+    def detect_size(bytecode):
+        if bytecode[:2] == "0x":
+            return len(bytecode[2:]) // 2
+        elif bytecode[:2] == "0b":
+            return len(bytecode[2:]) // 8
+        else:
+            assert len(set(bytecode)) == 2
+            return len(bytecode) // 8
+
+    df["size"] = df["bytecode"].apply(detect_size)
     df["size"] = df["size"].astype("category")
-    df["pc"] = pd.to_numeric(df["pc"], downcast="unsigned")
-    df["bytecode"] = pd.to_numeric(df["bytecode"], downcast="unsigned")
-    df.reset_index(drop=True, inplace=True)
+    df["bytecode"] = df["bytecode"].apply(
+        lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
+    )
+    df["bytecode"] = pd.to_numeric(df["bytecode"])
+
+    def convert(x):
+        ret = {}
+        for y in x:
+            if len(y.strip()) == 0:
+                continue
+            assert "=" in y
+            k, v = y.split("=", 1)
+            assert k not in ret
+            ret[k] = int(v)
+        return ret
+
+    if operands:
+        df["operands"] = df["operands"].apply(lambda x: convert(x[1:-1].split(" | ")))
+    else:
+        df.drop(columns=["operands"], inplace=True)
+    df.drop(columns=["rest"], inplace=True)
+    return df
+
+
+def load_instr_trace(
+    sess: Session,
+    input_file: Path,
+    force: bool = False,
+    operands: bool = False,
+    progress: bool = False,
+    num_workers: Optional[int] = None,
+    executor: str = "process_pool",
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+):
+    logger.info("Loading ETISS intruction trace...")
+    assert input_file.is_file(), f"File not found: {input_file}"
+    name = input_file.name
+
+    df = parse_instr_trace(
+        input_file,
+        process_etiss_trace_df,
+        num_workers=num_workers,
+        progress=progress,
+        chunk_size=chunk_size,
+        executor=executor,
+        sep=":",
+        names=["pc", "rest"],
+        operands=operands,
+        header=None,
+    )
 
     attrs = {
         "simulator": "etiss",
         "cpu_arch": "unknown",
         "by": "isaac_toolkit.frontend.instr_trace.etiss",
     }
+    if operands:
+        operands_trace_df = df[["instr", "operands"]]
+        df.drop(columns=["operands"], inplace=True)
+        operands_artifact = TraceArtifact("operands_trace", operands_trace_df, attrs=attrs)
+        sess.add_artifact(operands_artifact, override=force)
     artifact = InstrTraceArtifact(name, df, attrs=attrs)
     sess.add_artifact(artifact, override=force)
 
@@ -109,8 +122,18 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     input_file = Path(args.file)
-    load_instr_trace(sess, input_file, force=args.force, operands=args.operands)
+    load_instr_trace(
+        sess,
+        input_file,
+        force=args.force,
+        operands=args.operands,
+        progress=args.progress,
+        executor=args.executor,
+        num_workers=args.parallel,
+        chunk_size=args.chunk_size,
+    )
     sess.save()
 
 
@@ -125,6 +148,10 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--operands", action="store_true")
+    parser.add_argument("--progress", action="store_true")
+    parser.add_argument("--executor", type=str, choices=["process_pool", "thread_pool"], default="process_pool")
+    parser.add_argument("--parallel", type=int, default=None)
+    parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
     return parser
 
 

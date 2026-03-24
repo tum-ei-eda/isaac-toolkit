@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -25,9 +24,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TableArtifact, filter_artifacts, ArtifactFlag
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("ise_util")
+logger = get_logger()
 
 
 # TODO: get names from artifacts?
@@ -38,6 +37,7 @@ def check_util(
     force: bool = False,
     # names_csv: str = None,
 ):
+    logger.info("Checking ISE utilization...")
     artifacts = sess.artifacts
 
     # instruction names
@@ -92,7 +92,12 @@ def check_util(
     total_instrs = instrs_hist_df["count"].sum()
 
     merged_instrs_hist_custom_df = pd.merge(
-        ise_instrs_df, instrs_hist_custom_df, how="outer", left_on="instr_lower", right_on="instr", suffixes=("", "_y")
+        ise_instrs_df,
+        instrs_hist_custom_df,
+        how="outer",
+        left_on="instr_lower",
+        right_on="instr",
+        suffixes=("", "_y"),
     )
     # dynamic_count_sum = instrs_hist_df["count"].sum()
     # dynamic_count_max = instrs_hist_df["count"].max()
@@ -187,7 +192,10 @@ def check_util(
     merged_instrs_hist_custom_df["used"] = merged_instrs_hist_custom_df["count"] > 0
 
     ise_util_df = pd.merge(
-        merged_disass_hist_custom_df, merged_instrs_hist_custom_df, on="instr", suffixes=("_static", "_dynamic")
+        merged_disass_hist_custom_df,
+        merged_instrs_hist_custom_df,
+        on="instr",
+        suffixes=("_static", "_dynamic"),
     )
     ise_util_df["used_only_static"] = ise_util_df["used_static"] & ~ise_util_df["used_dynamic"]
     n_instrs = len(ise_instrs_df)
@@ -208,7 +216,10 @@ def check_util(
         ]
     )
     ise_util_df = pd.concat(
-        [ise_util_agg_df, ise_util_df[["instr", "used_static", "used_dynamic", "used_only_static"]]]
+        [
+            ise_util_agg_df,
+            ise_util_df[["instr", "used_static", "used_dynamic", "used_only_static"]],
+        ]
     )
 
     attrs = {}
@@ -336,7 +347,9 @@ def check_util(
         "dynamic_counts_custom_per_func", dynamic_counts_custom_per_func_df, attrs=attrs
     )
     dynamic_rel_counts_custom_per_func_artifact = TableArtifact(
-        "dynamic_rel_counts_custom_per_func", dynamic_rel_counts_custom_per_func_df, attrs=attrs
+        "dynamic_rel_counts_custom_per_func",
+        dynamic_rel_counts_custom_per_func_df,
+        attrs=attrs,
     )
 
     sess.add_artifact(dynamic_counts_custom_per_func_artifact, override=force)
@@ -381,7 +394,9 @@ def check_util(
         "static_counts_custom_per_func", static_counts_custom_per_func_df, attrs=attrs
     )
     static_rel_counts_custom_per_func_artifact = TableArtifact(
-        "static_rel_counts_custom_per_func", static_rel_counts_custom_per_func_df, attrs=attrs
+        "static_rel_counts_custom_per_func",
+        static_rel_counts_custom_per_func_df,
+        attrs=attrs,
     )
 
     sess.add_artifact(static_counts_custom_per_func_artifact, override=force)
@@ -393,6 +408,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     check_util(
         sess,
         force=args.force,

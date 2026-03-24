@@ -1,0 +1,51 @@
+---
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - \d+.\d+.\d+  # Push events for 0.1.0, 20.15.10 but not 0.1.0dev0
+name: Create Release
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'tum-ei-eda/isaac-toolkit' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      # - name: Generate changelog
+      #   id: changelog
+      #   uses: metcalfc/changelog-generator@v4.3.1
+      #   with:
+      #     myToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          # body: |
+          #   Changes in this Release:
+          #   ${{ steps.changelog.outputs.changelog }}
+          draft: true
+          prerelease: false
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'tum-ei-eda/isaac-toolkit' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install deps
+        run: |
+          sudo apt install libgraphviz-dev
+      - name: Build package
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
