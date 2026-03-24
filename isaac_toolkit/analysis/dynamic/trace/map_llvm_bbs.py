@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -25,12 +24,13 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logger = logging.getLogger("map_llvm_bbs")
+logger = get_logger()
 
 
 def map_llvm_bbs(sess: Session, force: bool = False):
+    logger.info("Mapping LLVM BBs (old)...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -163,6 +163,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     map_llvm_bbs(sess, force=args.force)
     sess.save()
 

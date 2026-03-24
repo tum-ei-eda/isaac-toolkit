@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -21,29 +21,25 @@ from typing import Dict, List, Set, Tuple, Optional, Union
 import bisect
 
 import sys
-import logging
 import argparse
 import posixpath
 from pathlib import Path
 from collections import defaultdict
-from cpp_demangle import demangle
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import BasicBlock  # TODO: move
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
+from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.demangle import unmangle_helper
+
+logger = get_logger()
 
 
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+PC_FUNC_NAME_CACHE = {}
 
 
-def unmangle_helper(func_name: Optional[str]):
-    if func_name is None:
-        return None
-    if not func_name.startswith("_Z"):
-        return func_name
-    return demangle(func_name)
+# TODO: reset?
 
 
 def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
@@ -51,11 +47,17 @@ def find_func_name(mapping: Dict[str, Tuple[int, int]], pc: int) -> str:
     """
     Given a program counter, find the function it belongs to
     """
+    found = PC_FUNC_NAME_CACHE.get(pc)
+    if found is not None:
+        return found
     for func, ranges in mapping.items():
         for range_ in ranges:
             if pc >= range_[0] and pc <= range_[1]:
+                PC_FUNC_NAME_CACHE[pc] = func
                 return func
-    return hex(pc)
+    ret = hex(pc)
+    PC_FUNC_NAME_CACHE[pc] = ret
+    return ret
 
 
 def collect_bbs(trace_df, mapping):
@@ -420,6 +422,7 @@ def generate_callgrind_output(
     dump_pos: bool = False,
     unmangle_names: bool = False,
 ):
+    logger.info("Generating callgrind coutput...")
     assert output is not None
     artifacts = sess.artifacts
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -484,6 +487,17 @@ def generate_callgrind_output(
         elf_file_path=elf_file_path,
         unmangle_names=unmangle_names,
     )
+
+    if output is None:
+        profile_dir = sess.directory / "profile"
+        profile_dir.mkdir(exist_ok=True)
+        out_name = "callgrind"
+        if dump_pc:
+            out_name += "_pc"
+        if dump_pos:
+            out_name += "_pos"
+        out_name += ".out"
+        output = profile_dir / out_name
     with open(output, "w") as f:
         f.write(content)
 
@@ -493,6 +507,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     generate_callgrind_output(
         sess,
         output=args.output,

@@ -94,6 +94,9 @@ isaac_toolkit
 
 ### Prerequisites
 
+Install (optional) APT Requirements:
+sudo apt install libgraphviz-dev
+
 Setup a Python virtual environment:
 
 ```sh
@@ -104,11 +107,11 @@ virtualenv -p python3 venv/
 Install packages:
 
 ```sh
-pip install -r requirements.txt
+pip install -e .
 
 # Optional:
-pip install -r requirements_full.txt  # for specific backends
-pip install -r requirements_dev.txt  # for linting, testing,...
+pip install -e ".[dev]"
+pip install -e ".[memgraph]"
 ```
 
 ### Demo
@@ -120,6 +123,8 @@ Make sure to add the top level directory of this repository to your Python path:
 ```sh
 export PYTHONPATH=$(pwd):$PYTHONPATH
 ```
+
+For Python v3.10+ you can also just use `pip install -e .`!
 
 Minimal example:
 
@@ -158,4 +163,14 @@ Create Coverage Report:
 coverage run --source isaac_toolkit -m pytest tests
 coverage report -m
 coverage html
+```
+
+### Versioning
+
+Versions can be incremented as follows:
+```
+# Pick one of the commands below
+bumpver update --major
+bumpver update --minor
+bumpver update --patch
 ```

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from typing import Union
 from pathlib import Path
@@ -26,10 +25,10 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
+logger = get_logger()
 
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
 
 RISCV_OPCODE_MAPPING = {
     0b0010011: "OP-IMM",
@@ -93,6 +92,8 @@ RISCV_COMPRESSED_OPCODE_MAPPING = {
 def decode_opcode(instr_word: Union[str, int]):
     if isinstance(instr_word, str):
         instr_word = int(instr_word, 0)
+    elif isinstance(instr_word, float):
+        instr_word = int(instr_word)
     assert isinstance(instr_word, int)
     opcode = instr_word & 0b1111111
     lsbs = opcode & 0b11
@@ -108,23 +109,27 @@ def decode_opcode(instr_word: Union[str, int]):
 
 
 def collect_opcodes(trace_df):
-    # avoid modifying original df and copying whole df
-    temp_df = trace_df[["bytecode"]].copy()
-    temp_df["opcode"] = temp_df["bytecode"].apply(lambda x: decode_opcode(x))
-    opcodes = temp_df["opcode"].value_counts().to_dict()
-    opcodes_data = []
-    for opcode_name, opcode_count in opcodes.items():
-        opcode_data = {"opcode": opcode_name, "count": opcode_count}
-        opcodes_data.append(opcode_data)
-    opcodes_df = pd.DataFrame(opcodes_data)
+    # Step 1: Count bytecode frequencies directly
+    bytecode_counts = trace_df["bytecode"].value_counts()
+
+    # Step 2: Decode each unique bytecode only once
+    decoded_map = {bc: decode_opcode(bc) for bc in bytecode_counts.index}
+
+    # Step 3: Replace bytecodes with opcodes and sum counts
+    opcode_counts = {}
+    for bc, count in bytecode_counts.items():
+        op = decoded_map[bc]
+        opcode_counts[op] = opcode_counts.get(op, 0) + count
+
+    # Step 4: Build DataFrame
+    opcodes_df = pd.DataFrame([{"opcode": op, "count": cnt} for op, cnt in opcode_counts.items()])
     total_count = opcodes_df["count"].sum()
     opcodes_df["rel_count"] = opcodes_df["count"] / total_count
-    opcodes_df.sort_values("count", ascending=False, inplace=True)
-
-    return opcodes_df
+    return opcodes_df.sort_values("count", ascending=False)
 
 
 def create_opcode_hist(sess: Session, force: bool = False):
+    logger.info("Creating opcode historgram...")
     artifacts = sess.artifacts
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
     assert len(trace_artifacts) == 1
@@ -147,6 +152,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     create_opcode_hist(sess, force=args.force)
     sess.save()
 

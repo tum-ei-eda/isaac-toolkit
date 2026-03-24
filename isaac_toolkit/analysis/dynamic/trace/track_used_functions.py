@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -17,7 +17,6 @@
 # limitations under the License.
 #
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -25,10 +24,9 @@ import pandas as pd
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
 
-
-logging.basicConfig(level=logging.DEBUG)  # TODO
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
@@ -43,17 +41,16 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
         func_name = row["func"]
         matches = func2pc_df.where(lambda x: x["func"] == func_name).dropna()
         # print("matches", matches)
-        assert len(matches) == 1
-        pc_range = matches["pc_range"].values[0]
-        # print("pc_range", pc_range)
-        start_pc, end_pc = pc_range
-        if end_pc < 0:
-            continue
-        matches = trace_df_unique.where(lambda x: x["pc"] >= start_pc).dropna()
-        matches = matches.where(lambda x: x["pc"] < end_pc).dropna()
-        if len(matches) > 0:
-            # print("matches", matches)
-            df.loc[index, "Used"] = True
+        assert len(matches) > 0
+        for pc_range in matches["pc_range"].values:
+            start_pc, end_pc = pc_range
+            if end_pc < 0:
+                continue
+            matches = trace_df_unique.where(lambda x: x["pc"] >= start_pc).dropna()
+            matches = matches.where(lambda x: x["pc"] < end_pc).dropna()
+            if len(matches) > 0:
+                df.loc[index, "Used"] = True
+                break
     # bytes_before = df["bytes"].sum()
     df = df[df["Used"]]
     bytes_after = df["bytes"].sum()
@@ -66,6 +63,7 @@ def get_effective_footprint_df(trace_df, func2pc_df, footprint_df):
 
 
 def track_unused_functions(sess: Session, force: bool = False):
+    logger.info("Tracking unused functions...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
@@ -102,6 +100,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     track_unused_functions(sess, force=args.force)
     sess.save()
 

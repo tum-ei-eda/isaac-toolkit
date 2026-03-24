@@ -1,0 +1,7 @@
+PROG := coremark
+PROG_SRCS := src/*.c
+PROG_INCS := -Iinc/
+COREMARK_ITERATIONS ?= 100
+PROG_DEFS := -DITERATIONS=$(COREMARK_ITERATIONS) -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO
+
+include ../common.mk

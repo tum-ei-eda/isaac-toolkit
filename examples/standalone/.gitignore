@@ -1,2 +1,14 @@
 install/
 dl/
+build*/
+*.pdf
+*.dot
+*.log
+*.out
+*.in
+*.info
+*.a
+*.json
+*.svg
+out*/
+html/

@@ -1,0 +1,50 @@
+---
+name: Build Documentation
+on:
+  push:
+    branches: [main]
+    tags: [v*]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install deps
+        run: |
+          sudo apt install libgraphviz-dev
+      - name: Initialize Virtualenv
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python -m venv .venv
+      - name: Install package into virtualenv
+        run: |
+          source .venv/bin/activate
+          pip install -e ".[dev]"
+          pip install -e ".[memgraph]"
+          pip install -r docs/requirements.txt
+      - name: Build docs
+        run: |
+          source .venv/bin/activate
+          cd docs
+          make html
+      - name: Store docs as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-docs
+          path: docs/_build/html
+      - name: Deploy docs
+        uses: peaceiris/actions-gh-pages@v4
+        if: ${{ github.ref == 'refs/heads/main' }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_build/html

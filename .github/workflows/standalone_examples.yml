@@ -16,31 +16,94 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ##
+---
 name: Standalone Examples
 on:
   workflow_dispatch:
 
 jobs:
-  benchmark:
+  coremark:
     runs-on: ubuntu-22.04
-    # runs-on: self-hosted
     strategy:
       matrix:
-        python-version: ["3.8"]
-        toolchain: ["gcc"]
-        # simulator: ["etiss", "spike"]
+        python-version: ["3.10"]
+        toolchain: ["gcc", "llvm"]
+        # simulator: ["etiss", "etiss_perf", "spike", "spike_bm", "qemu_user", "tgc"]
+        # TODO: rename to dbt-risce-riscv
+        # simulator: ["etiss", "spike", "spike_bm"]
         simulator: ["etiss"]
-        full: ["0", "1"]
+        optimize: ["3"]
+        # TODO: update gnu version & llvm version
+        config:
+          # - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "v0.11.2", etiss_arch: "RV32IMACFD"}
+          # - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "v0.11.2", etiss_arch: "RV32IMACFD"}
+          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64, etiss_version: "v0.11.2", etiss_arch: "RV64IMACFD"}
+          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV32IMACFD"}
+          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV32IMACFD"}
+          - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64, etiss_version: "e55e2c474013be6af44789e65699d13e14c7aab0", etiss_arch: "RV64IMACFD"}
+        # include:
+        #   # - python-version: ["3.10"]
+        #   #   toolchain: ["gcc"]
+        #   #   simulator: ["etiss_perf"]
+        #   #   config: {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32, etiss_perf_version: "", etiss_arch: "RV32IMACFD", perf_model: "cv32e40p"}
+        #   # - python-version: ["3.10"]
+        #   #   toolchain: ["gcc"]
+        #   #   simulator: ["etiss_perf"]
+        #   #   config: {arch: "rv64im_zicsr_zifencei", abi: "lp64", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64, etiss_perf_vesion: "", etiss_arch: "RV64IMACFD", perf_model: "cva6"}
+        #   - python-version: ["3.10"]
+        #     toolchain: ["gcc"]
+        #     simulator: ["spike_bm"]
+        #     config: {arch: "rv32im_zve32x_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32}
+        #   - python-version: ["3.10"]
+        #     toolchain: ["gcc"]
+        #     simulator: ["spike_bm"]
+        #     config: {arch: "rv32gcv", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32}
+        #   - python-version: ["3.10"]
+        #     toolchain: ["gcc"]
+        #     simulator: ["spike_bm"]
+        #     config: {arch: "rv64gcv", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64}
+        #   # - python-version: ["3.10"]
+        #   #   toolchain: ["gcc"]
+        #   #   simulator: ["qemu_user"]
+        #   #   config: {arch: "rv32im_zve32x_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32}
+          # - python-version: ["3.10"]
+          #   toolchain: ["gcc"]
+          #   simulator: ["qemu_user"]
+          #   config: {arch: "rv32gcv", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 32}
+          # - python-version: ["3.10"]
+          #   toolchain: ["gcc"]
+          #   simulator: ["qemu_user"]
+          #   config: {arch: "rv64gcv", abi: "lp64d", gnu_name: "riscv64-unknown-elf", gnu_version: "2024.09.03", llvm_version: "19.1.1", xlen: 64}
     env:
       INSTALL_DIR: ${{ github.workspace }}/examples/standalone/install
+      OUT_DIR: ${{ github.workspace }}/examples/standalone/out
       VENV_DIR: ${{ github.workspace }}/venv
       PYTHONPATH: ${{ github.workspace }}
-      RISCV_NAME: "riscv32-unknown-elf"
-      RISCV_ARCH: "rv32im_zicsr_zifencei"
-      RISCV_ABI: "ilp32"
       SIMULATOR: ${{ matrix.simulator }}
       TOOLCHAIN: ${{ matrix.toolchain }}
-      FULL: ${{ matrix.full }}
+      RISCV_ARCH: ${{ matrix.config.arch }}
+      RISCV_ABI: ${{ matrix.config.abi }}
+      RISCV_NAME: ${{ matrix.config.gnu_name }}
+      RISCV_PREFIX: ${{ github.workspace }}/examples/standalone/install/gnu
+      OPTIMIZE: ${{ matrix.optimize }}
+      SPIKE: ${{ github.workspace }}/examples/standalone/install/spike/bin/spike
+      PK: ${{ github.workspace }}/examples/standalone/install/gnu/bin/pk_${{ matrix.config.arch }}_${{ matrix.config.abi }}
+      HTIF: ${{ github.workspace }}/examples/standalone/install/gnu/bin/htif_${{ matrix.config.arch }}_${{ matrix.config.abi }}
+      ETISS: ${{ github.workspace }}/examples/standalone/install/etiss/bin/run_helper.sh
+      ETISS_INI: ${{ github.workspace }}/examples/standalone/install/etiss/custom.ini
+      ETISS_JIT: ${{ matrix.config.etiss_jit }}
+      # PERF_MODEL: ?
+      # ETISS_PERF: ?
+      # ETISS_PERF_INI: ?
+      # ETISS_PERF_INI2: ?
+      # FIVP_SDK_DIR: ?
+      # FIVP_SDK_TARGET: ?
+      # TGC_BSP_DIR: ?
+      # TGC_SRC_DIR: ?
+      # TGC_BUILD_DIR: ?
+      # TGC_INSTALL_DIR: ?
+      # TGC_BACKEND: ?
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -52,7 +115,7 @@ jobs:
     # TODO: caching
     - name: Install APT packages
       run: |
-        sudo apt -qq install -y build-essential git cmake libboost-system-dev libboost-filesystem-dev libboost-program-options-dev kcachegrind graphviz-dev
+        sudo apt -qq install -y build-essential git cmake libboost-system-dev libboost-filesystem-dev libboost-program-options-dev kcachegrind libgraphviz-dev
     - name: Initialize Virtualenv
       run: |
         python -m pip install --upgrade pip
@@ -64,145 +127,64 @@ jobs:
     - name: Setup dependencies
       working-directory: examples/standalone
       run: |
-        ./scripts/download_helper.sh $INSTALL_DIR/rv32im_ilp32/ gnu 2024.09.03 rv32im_zicsr_zifencei_ilp32
+        ./scripts/download_helper.sh $RISCV_PREFIX gnu ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
 
         if [[ "$TOOLCHAIN" == "llvm" ]]
         then
-            ./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm 19.1.1
+            ./scripts/download_helper.sh $INSTALL_DIR/llvm/ llvm ${{ matrix.config.llvm_version }}
+        fi
+
+        if [[ "$SIMULATOR" == "qemu_user" ]]
+        then
+            sudo apt -qq install -y qemu-user
         fi
 
         if [[ "$SIMULATOR" == "etiss" ]]
         then
-            ./scripts/setup_etiss.sh $INSTALL_DIR/etiss
+            # ./scripts/download_helper.sh $INSTALL_DIR/etiss etiss ${{ matrix.config.etiss_version }}
+            ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_version }}
+            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
+        fi
+
+        if [[ "$SIMULATOR" == "etiss_perf" ]]
+        then
+            ./scripts/download_helper.sh $INSTALL_DIR/etiss_perf etiss_perf ${{ matrix.config.etiss_perf_version }}
+            ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss
+            # ./scripts/setup_etiss.sh $INSTALL_DIR/etiss ${{ matrix.config.etiss_perf_version }}
+        fi
+
+        if [[ "$SIMULATOR" == "tgc" ]]
+        then
+            # ./scripts/download_helper.sh $INSTALL_DIR/tgc tgc ${{ matrix.config.tgc_version }}
+            ./scripts/setup_tgc.sh $INSTALL_DIR/tgc ${{ matrix.config.tgc_version }}
+        fi
+
+        if [[ "$SIMULATOR" == "spike" ]]
+        then
+            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.config.spike_version }}
+            ./scripts/download_spike.sh $INSTALL_DIR/pk pk ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+            # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.config.spike_version }}
+            # ./scripts/setup_pk.sh $INSTALL_DIR/pk ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+        fi
+
+        if [[ "$SIMULATOR" == "spike_bm" ]]
+        then
+            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.config.spike_version }}
+            ./scripts/download_spike.sh $INSTALL_DIR/htif htif ${{ matrix.config.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+            # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.config.spike_version }}
+            # ./scripts/setup_htif.sh $INSTALL_DIR/htif ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
         fi
     - name: Run Coremark example
       working-directory: examples/standalone/coremark
       run: |
         source $VENV_DIR/bin/activate
-
-        export SESS=$(pwd)/sess
-        export BUILD_DIR=$(pwd)/build
-
-        export RISCV_PREFIX=$INSTALL_DIR/rv32im_ilp32
-        export SYSROOT=$RISCV_PREFIX/$RISCV_NAME
-        export CC=$RISCV_PREFIX/bin/$RISCV_NAME-gcc
-        export OBJDUMP=$RISCV_PREFIX/bin/$RISCV_NAME-objdump
-
-        if [[ "$SIMULATOR" == "etiss" ]]
-        then
-            export ETISS=$INSTALL_DIR/etiss/install/bin/run_helper.sh
-            export ETISS_INI=$INSTALL_DIR/etiss/install/custom.ini
-            export ETISS_CRT=$INSTALL_DIR/etiss/etiss_riscv_examples/riscv_crt0
-            export ETISS_LDSCRIPT=$INSTALL_DIR/etiss/install/etiss.ld
-        elif [[ "$SIMULATOR" == "spike" ]]
-        then
-            export SIMULATOR=spike
-            export SPIKE=$INSTALL_DIR/spike/spike
-            export PK=$INSTALL_DIR/spike/pk_rv32gc
-        else
-            echo "Unsupported SIMULATOR=$SIMULATOR"
-            exit 1
-        fi
-
-        python3 -m isaac_toolkit.session.create --session $SESS
-
-        mkdir -p $BUILD_DIR
-        if [[ "$SIMULATOR" == "etiss" ]]
-        then
-            $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c $ETISS_CRT/crt0.S $ETISS_CRT/trap_handler.c -T $ETISS_LDSCRIPT -nostdlib -lc -lgcc -lsemihost -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
-        elif [[ "$SIMULATOR" == "spike" ]]
-        then
-            $CC -march=$RISCV_ARCH -mabi=$RISCV_ABI src/*.c -o $BUILD_DIR/coremark.elf -Iinc/ -DITERATIONS=100 -DFLAGS_STR='"testing"' -DPERFORMANCE_RUN -DHAS_STDIO -g -O3 -Xlinker -Map=build/coremark.map
-        else
-            echo "Unsupported SIMULATOR=$SIMULATOR"
-            exit 1
-        fi
-        if [[ "$FULL" == "1" ]]
-        then
-            $OBJDUMP -d $BUILD_DIR/coremark.elf > $BUILD_DIR/coremark.dump
-        fi
-
-        python3 -m isaac_toolkit.frontend.elf.riscv --session $SESS $BUILD_DIR/coremark.elf
-
-        if [[ "$FULL" == "1" ]]
-        then
-            python3 -m isaac_toolkit.frontend.linker_map --session $SESS $BUILD_DIR/coremark.map
-            python3 -m isaac_toolkit.frontend.disass.objdump --session $SESS $BUILD_DIR/coremark.dump
-        fi
-
-        python3 -m isaac_toolkit.analysis.static.dwarf --session $SESS
-        python3 -m isaac_toolkit.analysis.static.mem_footprint --session $SESS
-
-        if [[ "$FULL" == "1" ]]
-        then
-            python3 -m isaac_toolkit.analysis.static.linker_map --session $SESS
-            python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $SESS
-            python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $SESS
-        fi
-
-        python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend
-
-        if [[ "$FULL" == "1" ]]
-        then
-            python3 -m isaac_toolkit.visualize.pie.disass_counts --session $SESS --legend
-        fi
-
-        if [[ "$SIMULATOR" == "etiss" ]]
-        then
-            $ETISS build/coremark.elf -i$ETISS_INI -pPrintInstruction | grep "^0x00000000" > etiss_instrs.log
-        elif [[ "$SIMULATOR" == "spike" ]]
-        then
-            $SPIKE --isa=${ARCH}_zicntr -l --log=spike_instrs.log $PK $BUILD_DIR/coremark.elf -s
-        else
-            echo "Unsupported SIMULATOR=$SIMULATOR"
-            exit 1
-        fi
-
-        # if [[ "$FULL" == "1" && "$SIMULATOR" == "etiss" ]]
-        if [[ "$FULL" == "1" && "$SIMULATOR" == "etiss" && "1" == "0" ]]  # disabled due to RAM issues
-        then
-            python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS --operands
-        else
-            python3 -m isaac_toolkit.frontend.instr_trace.${SIMULATOR} ${SIMULATOR}_instrs.log --session $SESS
-        fi
-
-        python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $SESS
-        python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $SESS
-        python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $SESS
-
-        if [[ "$FULL" == "1" ]]
-        then
-            python3 -m isaac_toolkit.analysis.dynamic.trace.track_used_functions --session $SESS
-            # if [[ "$SIMULATOR" == "etiss" ]]
-            if [[ "$SIMULATOR" == "etiss" && "1" == "0" ]]  # disabled due to RAM issues
-            then
-                python3 -m isaac_toolkit.analysis.dynamic.trace.instr_operands --session $SESS --imm-only
-            fi
-        fi
-
-        python3 -m isaac_toolkit.visualize.pie.runtime --session $SESS --legend
-
-        if [[ "$FULL" == "1" ]]
-        then
-            python3 -m isaac_toolkit.visualize.pie.mem_footprint --session $SESS --legend --force
-        fi
-
-        python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pos --output callgrind_pos.out
-        python3 -m isaac_toolkit.backend.profile.callgrind --session $SESS --dump-pc --output callgrind_pc.out
-
-        # Callgraph
-        gprof2dot --format=callgrind --output=callgraph.dot callgrind_pos.out -n 0.1 -e 0.1 --color-nodes-by-selftime
-        dot -Tpdf callgraph.dot > callgraph.pdf
-
-        # Annotate source code (ASCII)
-        callgrind_annotate callgrind_pos.out src/*.c
+        make all
     - name: Archive reports
       uses: actions/upload-artifact@v4
       with:
         name: results-${{ matrix.toolchain }}-${{ matrix.simulator }}-${{ matrix.full }}
         path: |
-          examples/standalone/coremark/sess/
-          examples/standalone/coremark/*.pdf
-          examples/standalone/coremark/*.out
-          !examples/standalone/coremark/sess/elf
-          !examples/standalone/coremark/sess/instr_trace/
+          ${{ env.OUT_DIR }}/*.pdf
+          ${{ env.OUT_DIR }}/*.out
+          !${{ env.OUT_DIR }}/sess/elf
+          !${{ env.OUT_DIR }}/sess/instr_trace

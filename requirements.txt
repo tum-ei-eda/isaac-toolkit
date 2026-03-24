@@ -1,9 +1,8 @@
 tqdm
 pyyaml
 pyelftools
-pandas
+pandas>=2.1
 dacite
-pygraphviz
 matplotlib
 leb128
 fastparquet
@@ -12,4 +11,14 @@ mapfile-parser
 gprof2dot
 capstone
 networkx<3.0.0,>=2.5.1
-cpp-demangle
+setuptools-rust
+cpp-demangle==0.1.2; python_version < "3.11"
+# cpp-demangle @ git+https://github.com/benfred/py-cpp-demangle@master
+# pdf reports
+weasyprint
+tabulate
+jinja2
+lz4
+zstandard
+zstd
+humanize

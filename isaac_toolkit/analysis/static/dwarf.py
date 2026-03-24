@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 TUM Department of Electrical and Computer Engineering.
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
 #
 # This file is part of ISAAC Toolkit.
 # See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
@@ -16,8 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import sys
-import logging
 import argparse
 import posixpath
 from pathlib import Path
@@ -28,13 +28,15 @@ from elftools.elf.elffile import ELFFile
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
+from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.demangle import unmangle_helper
 
-
-logger = logging.getLogger("dwarf")
+logger = get_logger()
 
 
 def parse_dwarf(elf_path):
-    func2pcs_data = []
+    # func2pcs_data = []
+    func_ranges = {}
     # the mapping between source file and its function
     srcFile_func_dict = defaultdict(lambda: [set(), set(), set()])
     # the mapping between program counter and source line
@@ -43,22 +45,68 @@ def parse_dwarf(elf_path):
         elffile = ELFFile(f)
 
         # mapping function symbol to pc range
-        for section in elffile.iter_sections():
-            if section.name == ".symtab":
-                symbol_table = section
-                break
+        symtab = elffile.get_section_by_name(".symtab")
+        if symtab is None:
+            raise RuntimeError("No symbol table found (.symtab missing)")
 
-        for symbol in symbol_table.iter_symbols():
-            symbol_type = symbol["st_info"]["type"]
-            if symbol_type == "STT_FUNC":
-                start_pc = symbol["st_value"]
-                end_pc = start_pc + symbol["st_size"] - 1
-                # range = (start_pc, end_pc)
-                # mapping[symbol.name] = range
-                new = (symbol.name, (start_pc, end_pc))
-                func2pcs_data.append(new)
-            # Warning: this mapping uses mangled func names
+        funcs_by_section = defaultdict(list)  # shndx -> list of (start, size, name, symbol)
+        for symbol in symtab.iter_symbols():
+            try:
+                st_type = symbol["st_info"]["type"]
+            except Exception:
+                continue
+            if st_type != "STT_FUNC":
+                continue
+            start = symbol["st_value"]
+            size = symbol["st_size"]
+            shndx = symbol["st_shndx"]
+            name = symbol.name or "<anon>"
+            funcs_by_section[shndx].append((start, size, name, symbol))
 
+        # 3) For each section, sort by start addr and compute ranges
+        for shndx, syms in funcs_by_section.items():
+            # skip special indices (we still handle them but there might be no section)
+            section = None
+            try:
+                if isinstance(shndx, int):
+                    section = elffile.get_section(shndx)
+                else:
+                    # PyElfTools may give SHN_UNDEF as string, leave section None
+                    section = None
+            except Exception:
+                section = None
+
+            syms_sorted = sorted(syms, key=lambda x: x[0])
+            for idx, (start, size, name, symbol) in enumerate(syms_sorted):
+
+                if size and size != 0:
+                    end = start + size - 1
+                    func_ranges[name] = (start, end)
+                    continue
+
+                # size == 0: try to infer from next symbol in same section
+                end = None
+                # find next symbol with start > this start
+                next_start = None
+                for j in range(idx + 1, len(syms_sorted)):
+                    candidate_start = syms_sorted[j][0]
+                    if candidate_start > start:
+                        next_start = candidate_start
+                        break
+                if next_start is not None:
+                    end = next_start - 1
+                elif section is not None:
+                    # fallback to section end
+                    sec_start = section["sh_addr"]
+                    sec_size = section["sh_size"]
+                    end = sec_start + sec_size - 1
+                else:
+                    # last resort: set end == start (or None)
+                    end = start
+
+                func_ranges[name] = (start, end)
+
+        func2pcs_data = list(func_ranges.items())
         # mapping source file to function
         if not elffile.has_dwarf_info():
             logger.error("ELF file has no DWARF info!")
@@ -80,6 +128,7 @@ def parse_dwarf(elf_path):
             # File and directory indices are 1-indexed.
             file_entry = file_entries[file_index] if line_program.header.version >= 5 else file_entries[file_index - 1]
             dir_index = file_entry["dir_index"] if line_program.header.version >= 5 else file_entry["dir_index"] - 1
+            # dir_index = file_entry["dir_index"]
             assert dir_index >= 0
 
             # A dir_index of 0 indicates that no absolute directory was recorded during
@@ -87,7 +136,12 @@ def parse_dwarf(elf_path):
             if dir_index == 0:
                 return file_entry.name.decode()
 
+            # if min_dir_index == 0:
+            if True:
+                dir_index -= 1
+
             directory = lp_header["include_directory"][dir_index]
+            # TODO: try out actual_path = op.normpath(CU.get_top_DIE().get_full_path())?
             return posixpath.join(directory, file_entry.name).decode()
 
         for CU in dwarfinfo.iter_CUs():
@@ -109,9 +163,8 @@ def parse_dwarf(elf_path):
                         func_name = "???"
                     if "DW_AT_linkage_name" in DIE.attributes:
                         linkage_name = DIE.attributes["DW_AT_linkage_name"].value.decode()
-                        from cpp_demangle import demangle
 
-                        unmangled_linkage_name = demangle(linkage_name)
+                        unmangled_linkage_name = unmangle_helper(linkage_name)
                     else:
                         linkage_name = "???"
                         unmangled_linkage_name = "???"
@@ -131,20 +184,27 @@ def parse_dwarf(elf_path):
                 logger.warning("  DWARF info is missing a line program for this CU")
                 continue
 
-            CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
+            # CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
+            actual_path = os.path.normpath(CU.get_top_DIE().get_full_path())
+            # print("actual_path", actual_path)
 
             for entry in line_program.get_entries():
                 if entry.state:
                     pc = entry.state.address
                     line = entry.state.line
-                    pc_to_source_line_mapping[CU_name].append((pc, line))
+                    # print("line", line)
+                    # pc_to_source_line_mapping[CU_name].append((pc, line))
+                    pc_to_source_line_mapping[actual_path].append((pc, line))
 
-            if CU_name in pc_to_source_line_mapping:
-                pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
+            # if CU_name in pc_to_source_line_mapping:
+            if actual_path in pc_to_source_line_mapping:
+                # pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
+                pc_to_source_line_mapping[actual_path].sort(key=lambda x: x[0])
     return func2pcs_data, srcFile_func_dict, pc_to_source_line_mapping
 
 
 def analyze_dwarf(sess: Session, force: bool = False):
+    logger.info("Analyzing DWARF info...")
     artifacts = sess.artifacts
     # print("artifacts", artifacts)
     elf_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.ELF)
@@ -198,6 +258,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
     analyze_dwarf(sess, force=args.force)
     sess.save()
 
