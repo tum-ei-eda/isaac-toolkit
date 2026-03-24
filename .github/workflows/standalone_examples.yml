@@ -165,17 +165,16 @@ jobs:
 
         if [[ "$SIMULATOR" == "spike" ]]
         then
-            # ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.versions.spike_version }}
-            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.versions.spike_version }}
-            ./scripts/download_spike.sh $INSTALL_DIR/pk pk ${{ matrix.versions.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+            ./scripts/download_helper.sh $INSTALL_DIR/spike spike ${{ matrix.versions.spike_version }}
+            ./scripts/download_helper.sh $INSTALL_DIR/pk pk ${{ matrix.versions.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
             # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.versions.spike_version }}
             # ./scripts/setup_pk.sh $INSTALL_DIR/pk ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
         fi
 
         if [[ "$SIMULATOR" == "spike_bm" ]]
         then
-            ./scripts/download_spike.sh $INSTALL_DIR/spike spike ${{ matrix.versions.spike_version }}
-            ./scripts/download_spike.sh $INSTALL_DIR/htif htif ${{ matrix.versions.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
+            ./scripts/download_helper.sh $INSTALL_DIR/spike spike ${{ matrix.versions.spike_version }}
+            ./scripts/download_helper.sh $INSTALL_DIR/htif htif ${{ matrix.versions.gnu_version }} ${{ matrix.config.arch }}_${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
             # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.versions.spike_version }}
             # ./scripts/setup_htif.sh $INSTALL_DIR/htif ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
         fi
