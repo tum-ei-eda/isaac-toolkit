@@ -38,11 +38,18 @@ Original Author: Shay Gal-on
 
 #include "core_portme.h"
 
+#if defined(SIM_VICUNA)
+#if HAS_PRINTF
+#include "uart.h"
+#define ee_printf uart_printf
+#endif
+#else
 #if HAS_STDIO
 #include <stdio.h>
 #endif
 #if HAS_PRINTF
 #define ee_printf printf
+#endif
 #endif
 
 /* Actual benchmark execution in iterate */

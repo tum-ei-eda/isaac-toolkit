@@ -13,6 +13,7 @@ RISCV_ABI ?= ilp32
 SYSROOT ?= $(RISCV_PREFIX)/$(RISCV_NAME)
 CC := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-gcc
 OBJDUMP := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objdump
+OBJCOPY := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objcopy
 
 FORCE ?= 1
 FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
@@ -52,6 +53,15 @@ DBT_SRC_DIR ?= $(INSTALL_DIR)/install/dbt_src
 DBT_BUILD_DIR ?= $(DBT_SRC_DIR)/build
 DBT_INSTALL_DIR ?= $(INSTALL_DIR)/dbt
 DBT_BACKEND ?= interp
+
+VICUNA_UTILS_DIR ?= $(abspath ../vicuna_utils)
+VICUNA_ROOT ?= /path/to/vicuna
+VICUNA_EXE ?= $(VICUNA_ROOT)/build_model/build/verilated_model
+VICUNA_BSP_DIR ?= $(VICUNA_ROOT)/bsp
+VICUNA_MEM_W ?= 32
+VICUNA_MEM_SZ ?= 4194304
+VICUNA_MEM_LATENCY ?= 1
+VICUNA_EXTRA_CYCLES ?= 1
 
 # TGC_NEW ?= 0  # TODO
 
@@ -112,6 +122,11 @@ EXTRA_COMPILE_FLAGS ?=
 
 # ELF / trace file
 ELF := $(BUILD_DIR)/$(PROG).elf
+ifeq ($(SIMULATOR),vicuna)
+  BIN := $(BUILD_DIR)/$(PROG).bin
+  VMEM := $(BUILD_DIR)/$(PROG).vmem
+  PROG_TXT := $(BUILD_DIR)/prog_$(PROG).txt
+endif
 MAP := $(BUILD_DIR)/$(PROG).map
 DUMP := $(BUILD_DIR)/$(PROG).dump
 TRACE := $(OUT_DIR)/$(SIMULATOR)_instrs.log
@@ -296,6 +311,22 @@ else ifeq ($(SIMULATOR),spike_bm)
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
+else ifeq ($(SIMULATOR),vicuna)
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
+		$(PROG_SRCS) $(VICUNA_BSP_DIR)/crt0.S $(VICUNA_BSP_DIR)/lib/*.c -I$(VICUNA_BSP_DIR)/lib \
+		-T $(VICUNA_BSP_DIR)/lld_link.ld -fno-exceptions -fno-threadsafe-statics -nostartfiles -lm -lstdc++ \
+		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
+    $(EXTRA_COMPILE_FLAGS) -DSIM_VICUNA \
+		-Xlinker -Map=$(MAP)
+	$(OBJCOPY) -O binary $(ELF) $(BIN)
+	srec_cat $(BIN) -binary -offset 0x0000 -byte-swap 4 -o $(VMEM) -vmem
+	rm -f $(PROG_TXT)
+	echo -n $(VMEM)\ $(ELF)_unused.txt\  > $(PROG_TXT)
+	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vref_start | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
+	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vref_end | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
+	echo -n $(ELF)_vicuna_sim_out.txt\  >> $(PROG_TXT)
+	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vdata_start | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
+	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vdata_end | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
 else
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
@@ -330,6 +361,9 @@ else ifeq ($(SIMULATOR),etiss_perf)
 	test -d $(TRACE) && rm -r $(TRACE) || :
 	mkdir $(TRACE)
 	cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
+else ifeq ($(SIMULATOR),vicuna)
+	$(VICUNA_EXE) $(PROG_TXT) $(VICUNA_MEM_W) $(VICUNA_MEM_SZ) $(VICUNA_MEM_LATENCY) $(VICUNA_EXTRA_CYCLES) $(TRACE).tmp
+	python3 $(VICUNA_UTILS_DIR)/process_vicuna_trace.py $(TRACE).tmp $(TRACE)
 else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 	cd $(OUT_DIR) && $(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML) && mv output.trc $(TRACE)  # TODO: move to OUT_DIR
 endif
@@ -347,6 +381,8 @@ else ifeq ($(SIMULATOR),etiss)
 else ifeq ($(SIMULATOR),etiss_perf)
 	set -o pipefail && \
 	$(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+else ifeq ($(SIMULATOR),vicuna)
+	$(VICUNA_EXE) $(PROG_TXT) $(VICUNA_MEM_W) $(VICUNA_MEM_SZ) $(VICUNA_MEM_LATENCY) $(VICUNA_EXTRA_CYCLES) | tee $(OUTP)
 else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 	set -o pipefail && \
 	$(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) | tee $(OUTP)
