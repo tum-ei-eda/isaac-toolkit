@@ -31,13 +31,18 @@ jobs:
         # simulator: ["etiss", "etiss_perf", "spike", "spike_bm", "qemu_user", "tgc", "dbt"]
         simulator: ["etiss", "spike", "spike_bm"]
         optimize: ["3"]
+        options:
+          - {simulator: "etiss", etiss_jit: "TCC", make_target: "all"}
+          - {simulator: "spike", make_target: "all"}
+          - {simulator: "spike_bm", make_target: "all"}
+          - {simulator: "dbt", tgc_backend: "interp", make_target: "run"}
         versions:
           - {etiss_version: "2be75ef6ac248e77276f3f36f550b98f06ac55e5", etiss_examples_version: "bc0fe0298f1c79201a48235989aede8b21c04d41", etiss_perf_version: "TODO", spike_version: "0bc176b3", tgc_version: "f55fc06867a11e5f7ab57772167109be9e6c4446", tgc_bsp_version: "c8ea882b3ef0f5bb476041edd50765801bfea9be", dbt_version: "6557dd6bdcda150fc3bb4680fc998e60dc6e51c9", gnu_version: "2025.08.08_min", llvm_version: "19.1.1"}
         # TODO: update gnu version & llvm version
         config:
-          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC", tgc_backend: "intepr"}
-          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC", tgc_backend: "interpr"}
-          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD", etiss_jit: "TCC", tgc_backend: "intepr"}
+          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD"}
+          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD"}
+          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD"}
         # include:
         #   # - python-version: ["3.10"]
         #   #   toolchain: ["gcc"]
@@ -76,17 +81,18 @@ jobs:
       OUT_DIR: ${{ github.workspace }}/examples/standalone/out
       VENV_DIR: ${{ github.workspace }}/venv
       PYTHONPATH: ${{ github.workspace }}
-      SIMULATOR: ${{ matrix.simulator }}
+      SIMULATOR: ${{ matrix.options.simulator }}
       TOOLCHAIN: ${{ matrix.toolchain }}
       RISCV_ARCH: ${{ matrix.config.arch }}
       RISCV_ABI: ${{ matrix.config.abi }}
       RISCV_NAME: ${{ matrix.config.gnu_name }}
       RISCV_PREFIX: ${{ github.workspace }}/examples/standalone/install/gnu
       OPTIMIZE: ${{ matrix.optimize }}
-      ETISS_JIT: ${{ matrix.config.etiss_jit }}
-      PERF_MODEL: ${{ matrix.config.perf_model }}
-      TGC_BACKEND: ${{ matrix.config.tgc_backend }}
-      DBT_BACKEND: ${{ matrix.config.tgc_backend }}
+      ETISS_JIT: ${{ matrix.options.etiss_jit }}
+      PERF_MODEL: ${{ matrix.options.perf_model }}
+      TGC_BACKEND: ${{ matrix.options.tgc_backend }}
+      DBT_BACKEND: ${{ matrix.options.tgc_backend }}
+      MAKE_TARGET: ${{ matrix.options.make_target }}
 
     steps:
     - uses: actions/checkout@v4
@@ -193,11 +199,11 @@ jobs:
       working-directory: examples/standalone/coremark
       run: |
         source $VENV_DIR/bin/activate
-        make all
+        make ${{ env.MAKE_TARGET }}
     - name: Archive reports
       uses: actions/upload-artifact@v4
       with:
-        name: results-coremark-${{ matrix.toolchain }}-${{ matrix.simulator }}-${{ matrix.optimize }}-${{ matrix.config.arch }}
+        name: results-coremark-${{ matrix.toolchain }}-${{ matrix.options.simulator }}-${{ matrix.optimize }}-${{ matrix.config.arch }}
         path: |
           ${{ env.OUT_DIR }}/*.pdf
           ${{ env.OUT_DIR }}/*.out
@@ -211,15 +217,20 @@ jobs:
         bench: ["crc32"]
         toolchain: ["gcc", "llvm"]
         # simulator: ["etiss", "etiss_perf", "spike", "spike_bm", "qemu_user", "tgc", "dbt"]
-        simulator: ["etiss", "spike", "spike_bm", "dbt"]
+        simulator: ["etiss", "spike", "spike_bm"]
         optimize: ["3"]
+        options:
+          - {simulator: "etiss", etiss_jit: "TCC", make_target: "all"}
+          - {simulator: "spike", make_target: "all"}
+          - {simulator: "spike_bm", make_target: "all"}
+          - {simulator: "dbt", tgc_backend: "interp", make_target: "run"}
         versions:
           - {etiss_version: "2be75ef6ac248e77276f3f36f550b98f06ac55e5", etiss_examples_version: "bc0fe0298f1c79201a48235989aede8b21c04d41", etiss_perf_version: "TODO", spike_version: "0bc176b3", tgc_version: "f55fc06867a11e5f7ab57772167109be9e6c4446", tgc_bsp_version: "c8ea882b3ef0f5bb476041edd50765801bfea9be", dbt_version: "6557dd6bdcda150fc3bb4680fc998e60dc6e51c9", gnu_version: "2025.08.08_min", llvm_version: "19.1.1"}
         # TODO: update gnu version & llvm version
         config:
-          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC", tgc_backend: "intepr"}
-          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD", etiss_jit: "TCC", tgc_backend: "interpr"}
-          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD", etiss_jit: "TCC", tgc_backend: "intepr"}
+          - {arch: "rv32im_zicsr_zifencei", abi: "ilp32", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD"}
+          - {arch: "rv32gc", abi: "ilp32d", gnu_name: "riscv32-unknown-elf", xlen: 32, etiss_arch: "RV32IMACFD"}
+          # - {arch: "rv64gc", abi: "lp64d", gnu_name: "riscv64-unknown-elf", xlen: 64, etiss_arch: "RV64IMACFD"}
         # include:
         #   # - python-version: ["3.10"]
         #   #   toolchain: ["gcc"]
@@ -258,17 +269,18 @@ jobs:
       OUT_DIR: ${{ github.workspace }}/examples/standalone/out
       VENV_DIR: ${{ github.workspace }}/venv
       PYTHONPATH: ${{ github.workspace }}
-      SIMULATOR: ${{ matrix.simulator }}
+      SIMULATOR: ${{ matrix.options.simulator }}
       TOOLCHAIN: ${{ matrix.toolchain }}
       RISCV_ARCH: ${{ matrix.config.arch }}
       RISCV_ABI: ${{ matrix.config.abi }}
       RISCV_NAME: ${{ matrix.config.gnu_name }}
       RISCV_PREFIX: ${{ github.workspace }}/examples/standalone/install/gnu
       OPTIMIZE: ${{ matrix.optimize }}
-      ETISS_JIT: ${{ matrix.config.etiss_jit }}
-      PERF_MODEL: ${{ matrix.config.perf_model }}
-      TGC_BACKEND: ${{ matrix.config.tgc_backend }}
-      DBT_BACKEND: ${{ matrix.config.tgc_backend }}
+      ETISS_JIT: ${{ matrix.options.etiss_jit }}
+      PERF_MODEL: ${{ matrix.options.perf_model }}
+      TGC_BACKEND: ${{ matrix.options.tgc_backend }}
+      DBT_BACKEND: ${{ matrix.options.tgc_backend }}
+      MAKE_TARGET: ${{ matrix.options.make_target }}
       BENCH: ${{ matrix.bench }}
 
     steps:
@@ -372,15 +384,15 @@ jobs:
             # ./scripts/setup_spike.sh $INSTALL_DIR/spike ${{ matrix.versions.spike_version }}
             # ./scripts/setup_htif.sh $INSTALL_DIR/htif ${{ matrix.config.arch }} ${{ matrix.config.abi }} ${{ matrix.config.gnu_name }}
         fi
-    - name: Run Coremark example
-      working-directory: examples/standalone/coremark
+    - name: Run Embench IoT example
+      working-directory: examples/standalone/embench
       run: |
         source $VENV_DIR/bin/activate
-        make all
+        make ${{ env.MAKE_TARGET }}
     - name: Archive reports
       uses: actions/upload-artifact@v4
       with:
-        name: results-embench-${{ matrix.bench }}-${{ matrix.toolchain }}-${{ matrix.simulator }}-${{ matrix.optimize }}-${{ matrix.config.arch }}
+        name: results-embench-${{ matrix.bench }}-${{ matrix.toolchain }}-${{ matrix.options.simulator }}-${{ matrix.optimize }}-${{ matrix.config.arch }}
         path: |
           ${{ env.OUT_DIR }}/*.pdf
           ${{ env.OUT_DIR }}/*.out
