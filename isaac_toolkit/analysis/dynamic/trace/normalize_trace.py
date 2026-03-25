@@ -196,8 +196,35 @@ def normalize_trace(
 
     if not has_size:
         logger.info("Filling missing column: size")
-        # TODO: detect from major opcode or elf?
-        raise NotImplementedError("size")
+        if has_bytecode:
+            isa = "riscv"  # TODO: support other ISAs
+            assert isa == "riscv"
+
+            def detect_riscv_instr_size(bytecode):  # TODO: move to riscv utils
+                major_opcode = bytecode & 0b1111111
+                bits10 = major_opcode & 0b11
+                bits432 = (major_opcode >> 2) & 0b111
+                bits65 = (major_opcode >> 5) & 0b11
+                if bits10 != 0b11:
+                    return 16
+                if bits432 != 0b111:
+                    return 32
+                if bits65 == 0b00:
+                    return 48
+                elif bits65 == 0b01:
+                    return 64
+                elif bits65 == 0b10:
+                    return 48
+                elif bits65 == 0b11:
+                    raise NotImplementedError("Encoding size >=80b not supported")
+                    return ">=80"
+                assert False, "Should not be reached"
+                return 0
+
+            trace_df["size"] = trace_df["bytecode"].apply(detect_riscv_instr_size)
+        else:
+            # TODO: detect from major opcode or elf?
+            raise NotImplementedError("size")
         has_size = True
 
     if not has_instr:
@@ -240,9 +267,11 @@ def normalize_trace(
     if not has_instr:
 
         logger.info("Filling missing column: instr")
-        unique_pc_size = trace_df[["pc", "size"]].drop_duplicates()
+        unique_pc_size = trace_df[["pc", "size", "bytecode"]].drop_duplicates()
         unique_pc_size["instr"] = unique_pc_size.apply(disassemble_row, axis=1)
         unique_pc_size["instr"] = unique_pc_size["instr"].astype("category")
+        if has_bytecode:
+            unique_pc_size.drop(columns=["bytecode"], inplace=True)
         trace_df = trace_df.merge(unique_pc_size, on=["pc", "size"], how="left")
         has_instr = True
 
