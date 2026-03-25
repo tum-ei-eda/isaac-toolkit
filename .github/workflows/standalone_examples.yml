@@ -216,7 +216,6 @@ jobs:
         bench: ["crc32"]
         toolchain: ["gcc", "llvm"]
         # simulator: ["etiss", "etiss_perf", "spike", "spike_bm", "qemu_user", "tgc", "dbt"]
-        simulator: ["etiss", "spike", "spike_bm"]
         optimize: ["3"]
         options:
           - {simulator: "etiss", etiss_jit: "TCC", make_target: "all"}
