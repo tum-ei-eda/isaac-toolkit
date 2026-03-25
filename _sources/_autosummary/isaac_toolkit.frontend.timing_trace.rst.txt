@@ -11,3 +11,4 @@ isaac\_toolkit.frontend.timing\_trace
    :recursive:
 
    etiss_perf
+   vicuna

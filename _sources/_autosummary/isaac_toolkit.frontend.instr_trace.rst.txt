@@ -19,3 +19,4 @@ isaac\_toolkit.frontend.instr\_trace
    spike
    tgc
    utils
+   vicuna
