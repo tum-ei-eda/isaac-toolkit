@@ -165,7 +165,7 @@ endef
 	measure measure_flow measure_full_flow measure_mips measure_load flow_load \
 	flow_analyze flow_visualize flow_profile flow_lcov_new normalize normalize_trace, flow_normalize
 
-all: init compile run load analyze visualize profile callgraph
+all: init compile run load normalize analyze visualize report profile_both callgraph
 
 measure: $(OUT_DIR)
 	@echo "stage,time_ms" > $(TIMING_CSV)
@@ -397,10 +397,10 @@ full_flow: $(ELF) $(MAP) $(DUMP) $(TRACE)
 	# cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
 	cp $(SESS)/profile/callgrind_pc_pos.out $(CALLGRIND_BOTH)
 
-flow_load: $(ELF) $(MAP) $(DUMP) $(TRACE)
+flow_load: $(SESS) $(ELF) $(MAP) $(DUMP) $(TRACE)
 	python3 -m isaac_toolkit.flow.rvf.stage.load --session $(SESS) --elf $(ELF) --linker-map $(MAP) --disass $(DUMP) --instr-trace $(TRACE)	$(FORCE_ARG)
 
-load_static: $(ELF)
+load_static: $(SESS) $(ELF)
 	python3 -m isaac_toolkit.frontend.elf.riscv --session $(SESS) $(ELF) $(FORCE_ARG)
 	@if [ -f "$(MAP)" ]; then python3 -m isaac_toolkit.frontend.linker_map --session $(SESS) $(MAP) $(FORCE_ARG); fi
 	@if [ -f "$(DUMP)" ]; then python3 -m isaac_toolkit.frontend.disass.objdump --session $(SESS) $(DUMP) $(FORCE_ARG); fi
@@ -411,7 +411,7 @@ else
 INSTR_TRACE_FRONTEND ?= $(SIMULATOR)
 endif
 
-load_dynamic: $(TRACE)
+load_dynamic: $(SESS) $(TRACE)
 ifeq ($(SIMULATOR),etiss_perf)
 	python3 -m isaac_toolkit.frontend.instr_trace.$(INSTR_TRACE_FRONTEND) $(TRACE)/asm_trace_*.txt --session $(SESS) $(FORCE_ARG)
 else
@@ -421,7 +421,7 @@ endif
 load: load_static load_dynamic
 
 normalize_trace:
-	python3 -m isaac_toolkit.analysis.dynamic.trace_normalize_trace --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.dynamic.trace.normalize_trace --session $(SESS) $(FORCE_ARG)
 
 flow_normalize:
 	python3 -m isaac_toolkit.flow.rvf.stage.normalize --session $(SESS) $(FORCE_ARG)
