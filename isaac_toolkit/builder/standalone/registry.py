@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 
-from .etiss import ETISSStandaloneBuilder
-from .etiss import invoke_etiss_builder, parse_etiss_args
+from .etiss import ETISSStandaloneBuilder, invoke_etiss_builder, parse_etiss_args
+from .spike import SpikeStandaloneBuilder, invoke_spike_builder, parse_spike_args
 
 # from .etiss_perf import invoke_etiss_perf_builder, parse_etiss_perf_args
 
@@ -35,7 +35,7 @@ def lookup_simulator(name):
 
 register_simulator("etiss", parse_etiss_args, invoke_etiss_builder)
 # register_simulator("etiss_perf", parse_etiss_perf_args, invoke_etiss_perf_builder)
-# register_simulator("spike", parse_spike_args, invoke_spike_builder)
+register_simulator("spike", parse_spike_args, invoke_spike_builder)
 # register_simulator("spike_bm", parse_spike_bm_args, invoke_spike_bm_builder)
 # register_simulator("tgc", parse_tgc_args, invoke_tgc_builder)
 # register_simulator("tgc", parse_dbt_args, invoke_dbt_builder)
@@ -44,4 +44,5 @@ register_simulator("etiss", parse_etiss_args, invoke_etiss_builder)
 
 STANDALONE_BUILDERS = {
     "etiss": ETISSStandaloneBuilder,
+    "spike": SpikeStandaloneBuilder,
 }

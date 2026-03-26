@@ -174,18 +174,18 @@ def handle(args, make_dir, extra_overrides):
     sess.save()
 
 
-def get_parser():
-    parser = argparse.ArgumentParser()
-    add_common_args(parser)
-    add_prog_args(parser)
-    return parser
-
-
-def main(argv):
-    parser = get_parser()
-    args = parser.parse_args(argv)
-    args.func(args)
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
+# def get_parser():
+#     parser = argparse.ArgumentParser()
+#     add_common_args(parser)
+#     add_prog_args(parser)
+#     return parser
+#
+#
+# def main(argv):
+#     parser = get_parser()
+#     args = parser.parse_args(argv)
+#     args.func(args)
+#
+#
+# if __name__ == "__main__":
+#     main(sys.argv[1:])

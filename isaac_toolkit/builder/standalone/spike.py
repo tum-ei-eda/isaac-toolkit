@@ -41,19 +41,17 @@ from .common import load_build_artifacts
 logger = get_logger()
 
 
-class ETISSStandaloneBuilder(RISCVStandaloneBuilder):
+class SpikeStandaloneBuilder(RISCVStandaloneBuilder):
 
     def __init__(
         self,
         make_dir: Union[str, Path],
-        # jit: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(make_dir, "etiss", **kwargs)
-        # self.jit = jit
+        super().__init__(make_dir, "spike", **kwargs)
 
 
-def invoke_etiss_builder(
+def invoke_spike_builder(
     sess: Session,
     make_dir: Union[str, Path],
     program: str = "unknown",
@@ -75,10 +73,10 @@ def invoke_etiss_builder(
 ):
     # TODO: docker support
     # TODO: allow debug?
-    logger.info("Building ETISS program...")
+    logger.info("Building Spike program...")
 
-    # runner = ETISSStandaloneBuilder(make_dir, jit=jit, toolchain=toolchain, optimize=optimize)
-    builder = ETISSStandaloneBuilder(
+    # runner = SpikeStandaloneBuilder(make_dir, jit=jit, toolchain=toolchain, optimize=optimize)
+    builder = SpikeStandaloneBuilder(
         make_dir,
         arch=arch,
         abi=abi,
@@ -91,7 +89,7 @@ def invoke_etiss_builder(
 
     if label is None:
         # TODO: add timestamp?
-        label = f"{program}-etiss-build"
+        label = f"{program}-spike-build"
 
     if dest_dir is not None:
         dest_dir = Path(dest_dir)
@@ -109,13 +107,6 @@ def invoke_etiss_builder(
     if load:
         load_build_artifacts(sess, dest_dir, program, force=force)
 
-    # attrs = {
-    #     "by": __name__,
-    #     "kind": "",
-    # }
-    # initializer_artifact = FileArtifact(name, input_file, attrs=attrs)
-    # sess.add_artifact(initializer_artifact, override=force)
-
     sess.save()
     if cleanup:
         logger.info("Cleaning up files...")
@@ -123,14 +114,12 @@ def invoke_etiss_builder(
         # shutil.rmtree(dest_dir / "out")
 
 
-def add_etiss_args(parser):
-    etiss_group = parser.add_argument_group("etiss options")
-    del etiss_group
-    # etiss_group.add_argument("--jit", type=str, choices=["GCC", "TCC", "LLVM"], default=None)
+def add_spike_args(parser):
+    spike_group = parser.add_argument_group("spike options")
+    del spike_group
 
 
-def parse_etiss_args(args):
-    # ret = {"jit": args.jit}
+def parse_spike_args(args):
     ret = parse_riscv_args(args)
     return ret
 
@@ -140,9 +129,9 @@ def get_parser():
 
     parser = argparse.ArgumentParser()
     add_common_args(parser)
-    parser.set_defaults(simulator="etiss")
+    parser.set_defaults(simulator="spike")
     add_riscv_args(parser)
-    add_etiss_args(parser)
+    add_spike_args(parser)
     add_prog_args(parser)
     return parser
 
