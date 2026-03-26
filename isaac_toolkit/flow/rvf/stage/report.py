@@ -22,8 +22,8 @@ from pathlib import Path
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.report.report_runtime import generate_runtime_report
-from isaac_toolkit.report.sess_disk_usage import generate_sess_disk_usage
-from isaac_toolkit.report.sess_mem_usage import generate_sess_mem_usage
+from isaac_toolkit.report.sess_disk_usage import generate_sess_disk_usage_report
+from isaac_toolkit.report.sess_mem_usage import generate_sess_mem_usage_report
 
 # logger = get_logger()
 import logging
@@ -43,7 +43,7 @@ def generate_reports(sess, output=None, fmt="md", detailed=False, portable=False
         topk=topk,
         force=force,
     )
-    generate_sess_disk_usage(
+    generate_sess_disk_usage_report(
         sess,
         output=output,
         fmt=fmt,
@@ -54,7 +54,7 @@ def generate_reports(sess, output=None, fmt="md", detailed=False, portable=False
         raw=False,
         force=force,
     )
-    generate_sess_mem_usage(
+    generate_sess_mem_usage_report(
         sess,
         output=output,
         fmt=fmt,
