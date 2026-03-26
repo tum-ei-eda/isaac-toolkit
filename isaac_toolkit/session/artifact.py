@@ -177,6 +177,7 @@ class FileArtifact(Artifact):
         if dest.resolve() == self.path.resolve():
             return
         shutil.copyfile(self.path, dest)
+        self.path = dest  # ?
 
 
 class ElfArtifact(FileArtifact):
