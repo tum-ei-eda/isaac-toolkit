@@ -224,6 +224,7 @@ endif
 MAP := $(BUILD_DIR)/$(PROG).map
 DUMP := $(BUILD_DIR)/$(PROG).dump
 TRACE := $(OUT_DIR)/$(SIMULATOR)_instrs.log
+PERF_TRACE := $(OUT_DIR)/$(SIMULATOR)_perf.log
 OUTP := $(OUT_DIR)/$(SIMULATOR)_out.log
 TIMING_CSV := $(OUT_DIR)/stage_timings.csv
 CALLGRIND_POS = $(OUT_DIR)/callgrind_pos.out
@@ -353,6 +354,9 @@ $(SESS): $(DEST)
 $(OUT_DIR): $(DEST)
 	mkdir -p $(OUT_DIR)
 
+$(BUILD_DIR): $(DEST)
+	mkdir -p $(BUILD_DIR)
+
 init: $(SESS)
 
 ifneq (,$(filter $(SIMULATOR),tgc dbt))
@@ -422,13 +426,13 @@ endif
 endif
 
 ifeq ($(SIMULATOR),vicuna)
-$(BIN): $(ELF)
+$(BIN): $(ELF) | $(BUILD_DIR)
 	$(OBJCOPY) -O binary $(ELF) $(BIN)
 
-$(VMEM): $(BIN)
+$(VMEM): $(BIN) | $(BUILD_DIR)
 	srec_cat $(BIN) -binary -offset 0x0000 -byte-swap 4 -o $(VMEM) -vmem
 
-$(PROG_TXT):
+$(PROG_TXT): $(VMEM) | $(BUILD_DIR)
 	rm -f $(PROG_TXT)
 	echo -n $(VMEM)\ $(ELF)_unused.txt\  > $(PROG_TXT)
 	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vref_start | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
@@ -448,7 +452,7 @@ SPIKE_ISA := $(RISCV_ARCH)_zicntr
 ifeq ($(SIMULATOR),vicuna)
 $(TRACE): $(PROG_TXT) | $(OUT_DIR)
 	$(VICUNA_EXE) $(PROG_TXT) $(VICUNA_MEM_W) $(VICUNA_MEM_SZ) $(VICUNA_MEM_LATENCY) $(VICUNA_EXTRA_CYCLES) $(TRACE).tmp
-	python3 $(VICUNA_UTILS_DIR)/process_vicuna_trace.py $(TRACE).tmp $(TRACE)
+	python3 $(VICUNA_UTILS_DIR)/process_vicuna_trace.py $(TRACE).tmp $(TRACE) $(PERF_TRACE)
 else
 $(TRACE): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
@@ -499,39 +503,42 @@ else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 endif
 endif
 
+ifeq ($(SIMULATOR),vicuna)
+$(OUTP): $(PROG_TXT) | $(OUT_DIR)
+	$(VICUNA_EXE) $(PROG_TXT) $(VICUNA_MEM_W) $(VICUNA_MEM_SZ) $(VICUNA_MEM_LATENCY) $(VICUNA_EXTRA_CYCLES) 2>&1 | tee $(OUTP)
+else
 $(OUTP): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
 	set -o pipefail && \
-	$(SPIKE) --isa=$(SPIKE_ISA) $(PK) $(ELF) -s | tee $(OUTP)
+	$(SPIKE) --isa=$(SPIKE_ISA) $(PK) $(ELF) -s 2>&1 | tee $(OUTP)
 else ifeq ($(SIMULATOR),spike_bm)
 	set -o pipefail && \
-	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) -s | tee $(OUTP)
+	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) -s 2>&1 | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss)
 	set -o pipefail && \
-	$(ETISS) -i$(ETISS_INI) $(ETISS_ARGS) --vp.elf_file=$(ELF) --jit.verify=false --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+	$(ETISS) -i$(ETISS_INI) $(ETISS_ARGS) --vp.elf_file=$(ELF) --jit.verify=false --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.uArch=$(PERF_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
 	set -o pipefail && \
-	($(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)) || true
-	# $(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
-	# $(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+	($(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)) || true
+	# $(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
+	# $(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss_perf_vicuna)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.uArch=$(PERF_VICUNA_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
 	set -o pipefail && \
-	(VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)) || true
-	# $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
-	# $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
-else ifeq ($(SIMULATOR),vicuna)
-	$(VICUNA_EXE) $(PROG_TXT) $(VICUNA_MEM_W) $(VICUNA_MEM_SZ) $(VICUNA_MEM_LATENCY) $(VICUNA_EXTRA_CYCLES) | tee $(OUTP)
+	(VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)) || true
+	# $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
+	# $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
 else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 	set -o pipefail && \
-	$(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) | tee $(OUTP)
+	$(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) 2>&1 | tee $(OUTP)
+endif
 endif
 
 trace: $(TRACE)
