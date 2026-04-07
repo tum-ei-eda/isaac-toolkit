@@ -25,7 +25,7 @@ from .etiss_perf_vicuna import (
     parse_etiss_perf_vicuna_args,
 )
 
-# from .vicuna import VicunaStandaloneRunner, invoke_vicuna_runner, parse_vicuna_args
+from .vicuna import VicunaStandaloneRunner, invoke_vicuna_runner, parse_vicuna_args
 # from .spike import SpikeStandaloneRunner, invoke_spike_runner, parse_spike_args
 
 invoke_lookup = {}
@@ -42,7 +42,7 @@ def lookup_simulator(name):
 register_simulator("etiss", parse_etiss_args, invoke_etiss_runner)
 register_simulator("etiss_perf", parse_etiss_perf_args, invoke_etiss_perf_runner)
 register_simulator("etiss_perf_vicuna", parse_etiss_perf_vicuna_args, invoke_etiss_perf_vicuna_runner)
-# register_simulator("vicuna", parse_vicuna_args, invoke_vicuna_runner)
+register_simulator("vicuna", parse_vicuna_args, invoke_vicuna_runner)
 # register_simulator("spike", parse_spike_args, invoke_spike_runner)
 # register_simulator("spike_bm", parse_spike_bm_args, invoke_spike_bm_runner)
 # register_simulator("tgc", parse_tgc_args, invoke_tgc_runner)
@@ -54,5 +54,6 @@ STANDALONE_RUNNERS = {
     "etiss": ETISSStandaloneRunner,
     "etiss_perf": ETISSPerfStandaloneRunner,
     "etiss_perf_vicuna": ETISSPerfVicunaStandaloneRunner,
+    "vicuna": VicunaStandaloneRunner,
     # "spike": SpikeStandaloneRunner,
 }
