@@ -28,6 +28,7 @@ from .artifact import (
     TraceArtifact,
     SourceArtifact,
     DisassArtifact,
+    MetricsArtifact,
     TableArtifact,
     M2ISARArtifact,
     GraphArtifact,
@@ -138,6 +139,8 @@ def load_artifacts(base):
             artifact_ = DisassArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.GRAPH:
             artifact_ = GraphArtifact.from_dict(artifact)
+        elif flags_ & ArtifactFlag.METRICS:
+            artifact_ = MetricsArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.TABLE:
             artifact_ = TableArtifact.from_dict(artifact)
         elif flags_ & ArtifactFlag.M2ISAR:
