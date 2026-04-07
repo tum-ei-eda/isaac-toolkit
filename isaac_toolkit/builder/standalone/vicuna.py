@@ -41,12 +41,12 @@ from .common import load_build_artifacts
 logger = get_logger()
 
 
-class ETISSStandaloneBuilder(RISCVStandaloneBuilder):
+class VicunaStandaloneBuilder(RISCVStandaloneBuilder):
 
     def __init__(
         self,
         make_dir: Union[str, Path],
-        name: str = "etiss",
+        name: str = "vicuna",
         # jit: Optional[str] = None,
         **kwargs,
     ):
@@ -54,7 +54,7 @@ class ETISSStandaloneBuilder(RISCVStandaloneBuilder):
         # self.jit = jit
 
 
-def invoke_etiss_builder(
+def invoke_vicuna_builder(
     sess: Session,
     make_dir: Union[str, Path],
     program: str = "unknown",
@@ -76,10 +76,9 @@ def invoke_etiss_builder(
 ):
     # TODO: docker support
     # TODO: allow debug?
-    logger.info("Building ETISS program...")
+    logger.info("Building Vicuna program...")
 
-    # runner = ETISSStandaloneBuilder(make_dir, jit=jit, toolchain=toolchain, optimize=optimize)
-    builder = ETISSStandaloneBuilder(
+    builder = VicunaStandaloneBuilder(
         make_dir,
         arch=arch,
         abi=abi,
@@ -92,7 +91,7 @@ def invoke_etiss_builder(
 
     if label is None:
         # TODO: add timestamp?
-        label = f"{program}-etiss-build"
+        label = f"{program}-vicuna-build"
 
     if dest_dir is not None:
         dest_dir = Path(dest_dir)
@@ -124,13 +123,12 @@ def invoke_etiss_builder(
         # shutil.rmtree(dest_dir / "out")
 
 
-def add_etiss_args(parser):
-    etiss_group = parser.add_argument_group("etiss options")
-    del etiss_group
-    # etiss_group.add_argument("--jit", type=str, choices=["GCC", "TCC", "LLVM"], default=None)
+def add_vicuna_args(parser):
+    vicuna_group = parser.add_argument_group("vicuna options")
+    del vicuna_group
 
 
-def parse_etiss_args(args):
+def parse_vicuna_args(args):
     # ret = {"jit": args.jit}
     ret = parse_riscv_args(args)
     return ret
@@ -141,9 +139,9 @@ def get_parser():
 
     parser = argparse.ArgumentParser()
     add_common_args(parser)
-    parser.set_defaults(simulator="etiss")
+    parser.set_defaults(simulator="vicuna")
     add_riscv_args(parser)
-    add_etiss_args(parser)
+    add_vicuna_args(parser)
     add_prog_args(parser)
     return parser
 

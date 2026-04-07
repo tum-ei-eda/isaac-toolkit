@@ -18,6 +18,9 @@
 #
 
 from .etiss import ETISSStandaloneBuilder, invoke_etiss_builder, parse_etiss_args
+from .etiss_perf import ETISSPerfStandaloneBuilder, invoke_etiss_perf_builder, parse_etiss_perf_args
+from .etiss_perf_vicuna import ETISSPerfVicunaStandaloneBuilder, invoke_etiss_perf_vicuna_builder, parse_etiss_perf_vicuna_args
+from .vicuna import VicunaStandaloneBuilder, invoke_vicuna_builder, parse_vicuna_args
 from .spike import SpikeStandaloneBuilder, invoke_spike_builder, parse_spike_args
 
 # from .etiss_perf import invoke_etiss_perf_builder, parse_etiss_perf_args
@@ -34,7 +37,9 @@ def lookup_simulator(name):
 
 
 register_simulator("etiss", parse_etiss_args, invoke_etiss_builder)
-# register_simulator("etiss_perf", parse_etiss_perf_args, invoke_etiss_perf_builder)
+register_simulator("etiss_perf", parse_etiss_perf_args, invoke_etiss_perf_builder)
+register_simulator("etiss_perf_vicuna", parse_etiss_perf_vicuna_args, invoke_etiss_perf_vicuna_builder)
+register_simulator("vicuna", parse_vicuna_args, invoke_vicuna_builder)
 register_simulator("spike", parse_spike_args, invoke_spike_builder)
 # register_simulator("spike_bm", parse_spike_bm_args, invoke_spike_bm_builder)
 # register_simulator("tgc", parse_tgc_args, invoke_tgc_builder)
