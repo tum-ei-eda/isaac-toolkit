@@ -178,6 +178,10 @@ def invoke_etiss_perf_vicuna_runner(
                 sim_metrics["jit"] = jit
             if cpu_arch:
                 sim_metrics["cpu_arch"] = cpu_arch
+            if vlen:
+                sim_metrics["vlen"] = vlen
+            if vlane_width:
+                sim_metrics["vlane_width"] = vlane_width
             print("sim_metrics", sim_metrics)
             load_sim_metrics(sess, sim_metrics, program=program, simulator="etiss_perf_vicuna", force=force)
             # load_run_artifacts(sess, dest_dir, program, force=force)
