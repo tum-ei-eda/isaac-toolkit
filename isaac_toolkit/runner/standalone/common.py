@@ -36,6 +36,15 @@ from isaac_toolkit.frontend.instr_trace.etiss_new import (
 from isaac_toolkit.frontend.instr_trace.spike import (
     load_instr_trace as load_spike_instr_trace,
 )
+from isaac_toolkit.frontend.instr_trace.vicuna import (
+    load_instr_trace as load_vicuna_instr_trace,
+)
+from isaac_toolkit.frontend.perf_trace.etiss_perf import (
+    load_perf_trace as load_etiss_perf_perf_trace,
+)
+from isaac_toolkit.frontend.perf_trace.vicuna import (
+    load_perf_trace as load_vicuna_perf_trace,
+)
 
 from isaac_toolkit.logging import get_logger
 
@@ -82,6 +91,7 @@ def load_trace_artifacts(
         "spike_rv32": load_spike_instr_trace,
         "spike_rv64": load_spike_instr_trace,
         "spike_bm": load_spike_instr_trace,
+        "vicuna": load_vicuna_instr_trace,
     }
     load_instr_trace = instr_trace_frontends.get(simulator)
     assert load_instr_trace is not None
@@ -93,6 +103,21 @@ def load_trace_artifacts(
         force=force,
         operands=operands,
     )
+    perf_trace_file = out_dir / f"{simulator}_perf.log"
+    if perf_trace_file.is_file():
+        perf_trace_frontends = {
+            "etiss_perf": load_etiss_perf_perf_trace,
+            "etiss_perf_vicuna": load_etiss_perf_perf_trace,
+            "vicuna": load_vicuna_perf_trace,
+        }
+        load_perf_trace = perf_trace_frontends.get(simulator)
+        assert load_perf_trace is not None
+        operands = False  # TODO: store operands in extra artifact!
+        load_perf_trace(
+            sess,
+            perf_trace_file,
+            force=force,
+        )
 
 
 def load_sim_metrics(
