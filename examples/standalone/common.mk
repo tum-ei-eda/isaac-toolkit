@@ -7,14 +7,52 @@ BUILD_DIR ?= $(DEST)/build
 OUT_DIR ?= $(DEST)/out
 RISCV_PREFIX ?= $(INSTALL_DIR)/rv32im_ilp32
 RISCV_NAME ?= riscv32-unknown-elf
+SYSROOT ?= $(RISCV_PREFIX)/$(RISCV_NAME)
+
 RISCV_ARCH ?= rv32im_zicsr_zifencei
 RISCV_ABI ?= ilp32
 RISCV_XLEN ?= 32
+
+LLVM_DIR ?= $(INSTALL_DIR)/llvm
+CLANG_ARGS :=
+TOOLCHAIN ?= gcc
+ifeq ($(TOOLCHAIN),gcc)
+    CC := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-gcc
+    CXX := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-g++
+    LD := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-ld
+    OBJDUMP := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objdump
+    OBJCOPY := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objcopy
+    GNU_OBJDUMP := $(OBJDUMP)
+    GNU_OBJCOPY := $(OBJCOPY)
+else ifeq ($(TOOLCHAIN),llvm)
+    ifeq ($(LLVM_DIR),)
+        CC := clang
+        CXX := clang++
+        OBJDUMP := llvm-objdump
+        OBJCOPY := llvm-objcopy
+    else
+        ifeq ($(wildcard $(LLVM_DIR)),)
+            $(error LLVM_DIR not found: $(LLVM_DIR))
+        endif
+        CC := $(LLVM_DIR)/bin/clang
+        CXX := $(LLVM_DIR)/bin/clang++
+        OBJDUMP := $(LLVM_DIR)/bin/llvm-objdump
+        OBJCOPY := $(LLVM_DIR)/bin/llvm-objcopy
+    endif
+    GNU_OBJDUMP := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objdump
+    GNU_OBJCOPY := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objcopy
+    CLANG_ARGS := $(CLANG_ARGS) -target riscv$(RISCV_XLEN) --gcc-toolchain=$(RISCV_PREFIX) --sysroot=$(SYSROOT)
+    GNU_LD := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-ld
+    # LLVM_LINKER ?= $(GNU_LD)
+    LLVM_LINKER ?= lld
+    ifneq ($(LLVM_LINKER),)
+        CLANG_ARGS := $(CLANG_ARGS) -fuse-ld=$(LLVM_LINKER)
+    endif
+else
+    $(error Unsupported toolchain: $(TOOLCHAIN))
+endif
+
 # TODO: RISCV_CMODEL
-SYSROOT ?= $(RISCV_PREFIX)/$(RISCV_NAME)
-CC := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-gcc
-OBJDUMP := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objdump
-OBJCOPY := $(RISCV_PREFIX)/bin/$(RISCV_NAME)-objcopy
 
 FORCE ?= 1
 FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
@@ -35,12 +73,14 @@ ETISS_JIT ?= TCC
 
 PERF_MODEL ?= cv32e40p
 PERF_MODEL_UPPER ?= $(shell echo '$(PERF_MODEL)' | tr '[:lower:]' '[:upper:]')
+PERF_MODEL2 ?= $(PERF_MODEL_UPPER)
+PERF_MODEL3 ?= $(PERF_MODEL)
 PERF_SIM_WORKSPACE_DIR ?= $(INSTALL_DIR)/PerformanceSimulation_workspace
 PERF_SIM_DIR ?= $(PERF_SIM_WORKSPACE_DIR)/etiss-perf-sim
 # ETISS_PERF ?= $(PERF_SIM_DIR)/etiss/build_dir/installed/bin/run_helper.sh
 ETISS_PERF ?= $(INSTALL_DIR)/etiss_perf/bin/run_helper.sh
 ETISS_PERF_INI ?= $(PERF_SIM_DIR)/simulator/ini/common.ini
-ETISS_PERF_INI2 ?= $(PERF_SIM_DIR)/simulator/ini/$(PERF_MODEL).ini
+ETISS_PERF_INI2 ?= $(PERF_SIM_DIR)/simulator/ini/$(PERF_MODEL3).ini
 
 FIVP_SDK_DIR ?= /path/to/fivp-sdk
 FIVP_SDK_TARGET ?= ri5cy
@@ -57,6 +97,21 @@ DBT_BUILD_DIR ?= $(DBT_SRC_DIR)/build
 DBT_INSTALL_DIR ?= $(INSTALL_DIR)/dbt
 DBT_BACKEND ?= interp
 
+# TODO: expose VLEN for spike & vicuna, etiss_perf_vicuna, VLANE_W,... for vicuna & etiss_perf_vicuna
+VLEN ?= 1024
+VLANE_WIDTH ?= 512
+
+PERF_SIM_VICUNA_DIR ?= $(INSTALL_DIR)/etiss_perf_vicuna
+# ETISS_PERF_VICUNA ?= $(PERF_SIM_DIR)/etiss/build_dir/installed/bin/run_helper.sh
+ETISS_PERF_VICUNA ?= $(PERF_SIM_VICUNA_DIR)/etiss/build_dir/installed/bin/run_helper.sh
+
+PERF_VICUNA_MODEL ?= Vicuna_zvl$(VLEN)b
+# PERF_VICUNA_MODEL_UPPER ?= $(shell echo '$(PERF_VICUNA_MODEL)' | tr '[:lower:]' '[:upper:]')
+PERF_VICUNA_MODEL2 ?= $(PERF_VICUNA_MODEL)
+PERF_VICUNA_MODEL3 ?= $(PERF_VICUNA_MODEL)
+ETISS_PERF_VICUNA_INI ?= $(PERF_SIM_VICUNA_DIR)/simulator/ini/common.ini
+ETISS_PERF_VICUNA_INI2 ?= $(PERF_SIM_VICUNA_DIR)/simulator/ini/$(PERF_VICUNA_MODEL3).ini
+
 VICUNA_UTILS_DIR ?= $(abspath ../vicuna_utils)
 VICUNA_ROOT ?= /path/to/vicuna
 VICUNA_EXE ?= $(VICUNA_ROOT)/build_model/build/verilated_model
@@ -65,6 +120,19 @@ VICUNA_MEM_W ?= 32
 VICUNA_MEM_SZ ?= 4194304
 VICUNA_MEM_LATENCY ?= 1
 VICUNA_EXTRA_CYCLES ?= 1
+
+ifeq ($(SIMULATOR),etiss_perf_vicuna)
+ETISS_ARCH ?= RV$(RISCV_XLEN)IMACFDV_zvl$(VLEN)b
+    ifeq ($(RISCV_XLEN),32)
+        PERF_TRACE_MODEL ?= AssemblyTrace
+    else
+        PERF_TRACE_MODEL ?= AssemblyTrace_RV$(RISCV_XLEN)
+    endif
+endif
+ETISS_ARGS :=
+ifneq ($(ETISS_ARCH),)
+    ETISS_ARGS := $(ETISS_ARGS) --arch.cpu=$(ETISS_ARCH)
+endif
 
 # TGC_NEW ?= 0  # TODO
 
@@ -125,6 +193,10 @@ else ifeq ($(SIMULATOR),etiss)
 else ifeq ($(SIMULATOR),etiss_perf)
   ifeq ($(wildcard $(ETISS_PERF)),)
     $(error ETISS_PERF not found, please install dependencies first!)
+  endif
+else ifeq ($(SIMULATOR),etiss_perf_vicuna)
+  ifeq ($(wildcard $(ETISS_PERF_VICUNA)),)
+    $(error ETISS_PERF_VICUNA not found, please install dependencies first!)
   endif
 else ifeq ($(SIMULATOR),spike)
   ifeq ($(wildcard $(SPIKE)),)
@@ -289,7 +361,7 @@ ifneq (,$(filter $(SIMULATOR),tgc dbt))
 include $(TGC_BSP_DIR)/libwrap/libwrap.mk
 $(ELF): $(PROG_SRCS) $(LIBWRAP)
 	mkdir -p $(BUILD_DIR)
-	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
 		$(PROG_SRCS) $(TGC_BSP_DIR)/env/start.S $(TGC_BSP_DIR)/env/entry.S \
 		$(TGC_BSP_DIR)/env/iss/init.c \
 		$(TGC_BSP_DIR)/env/iss/bsp_write.c \
@@ -307,40 +379,26 @@ else
 $(ELF): $(PROG_SRCS)
 	mkdir -p $(BUILD_DIR)
 ifeq ($(SIMULATOR),etiss)
-	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
 		$(PROG_SRCS) $(ETISS_STARTUP) $(ETISS_CRT0_DIR)/trap_handler.c \
 		-T $(ETISS_LDSCRIPT) -nostdlib -lc -lgcc -lsemihost \
 		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
-else ifeq ($(SIMULATOR),etiss_perf)
-	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
+else ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
 		$(PROG_SRCS) $(ETISS_STARTUP) $(ETISS_CRT0_DIR)/trap_handler.c \
 		-T $(ETISS_LDSCRIPT) -nostdlib -lc -lgcc -lsemihost \
 		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
-	# $(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
-  # -I$(FIVP_SDK_DIR)/csp/$(FIVP_SDK_TARGET)/include -I$(FIVP_SDK_DIR)/csp/common/include -I$(FIVP_SDK_DIR)/csp/periph/include -nostartfiles -static -T $(FIVP_SDK_DIR)/csp/$(FIVP_SDK_TARGET)/link.ld -DVP_${FIVP_SDK_TARGET} -DETISS_LOGGER_ADDR=0x10000000 -DROM_START=0x0 -DROM_SIZE=0x00080000 -DRAM_START=0x00080000 -DRAM_SIZE=0x00080000 -DSTACK_SIZE=0x4000 -DHEAP_SIZE= \
-  #   $(FIVP_SDK_DIR)/csp/ri5cy/src/csp.c \
-  #   $(FIVP_SDK_DIR)/csp/common/src/exception.c \
-  #   $(FIVP_SDK_DIR)/csp/common/src/cust_print.c \
-  #   $(FIVP_SDK_DIR)/csp/common/libs/sys_lib/src/syscalls.c \
-  #   $(FIVP_SDK_DIR)/csp/periph/src/uart_drv.c \
-  #   $(FIVP_SDK_DIR)/csp/periph/src/plic_drv.c \
-  #   $(FIVP_SDK_DIR)/csp/periph/src/clint_drv.c \
-  #   $(FIVP_SDK_DIR)/csp/periph/src/timer_drv.c \
-	# 	$(PROG_SRCS) $(FIVP_SDK_DIR)/csp/common/crt0.S \
-	# 	-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
-  #   $(EXTRA_COMPILE_FLAGS) \
-	# 	-Xlinker -Map=$(MAP)
-else ifeq ($(SIMULATOR),spike_bm)
-	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) -specs=htif_nano.specs -specs=htif_wrap.specs \
+else ifeq ($(SIMULATOR),spike_bm)  # TODO: llvm does not support specfiles...
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) -specs=htif_nano.specs -specs=htif_wrap.specs $(CLANG_ARGS) \
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 else ifeq ($(SIMULATOR),vicuna)
-	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
 		$(PROG_SRCS) $(VICUNA_BSP_DIR)/crt0.S $(VICUNA_BSP_DIR)/lib/*.c -I$(VICUNA_BSP_DIR)/lib \
 		-T $(VICUNA_BSP_DIR)/lld_link.ld -fno-exceptions -fno-threadsafe-statics -nostartfiles -lm -lstdc++ \
 		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
@@ -356,11 +414,28 @@ else ifeq ($(SIMULATOR),vicuna)
 	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vdata_start | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
 	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vdata_end | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
 else
-	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) \
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 endif
+endif
+
+ifeq ($(SIMULATOR),vicuna)
+$(BIN): $(ELF)
+	$(OBJCOPY) -O binary $(ELF) $(BIN)
+
+$(VMEM): $(BIN)
+	srec_cat $(BIN) -binary -offset 0x0000 -byte-swap 4 -o $(VMEM) -vmem
+
+$(PROG_TXT):
+	rm -f $(PROG_TXT)
+	echo -n $(VMEM)\ $(ELF)_unused.txt\  > $(PROG_TXT)
+	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vref_start | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
+	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vref_end | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
+	echo -n $(ELF)_vicuna_sim_out.txt\  >> $(PROG_TXT)
+	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vdata_start | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
+	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vdata_end | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
 endif
 
 $(DUMP): $(ELF)
@@ -370,6 +445,11 @@ compile: $(ELF) $(DUMP)
 
 SPIKE_ISA := $(RISCV_ARCH)_zicntr
 
+ifeq ($(SIMULATOR),vicuna)
+$(TRACE): $(PROG_TXT) | $(OUT_DIR)
+	$(VICUNA_EXE) $(PROG_TXT) $(VICUNA_MEM_W) $(VICUNA_MEM_SZ) $(VICUNA_MEM_LATENCY) $(VICUNA_EXTRA_CYCLES) $(TRACE).tmp
+	python3 $(VICUNA_UTILS_DIR)/process_vicuna_trace.py $(TRACE).tmp $(TRACE)
+else
 $(TRACE): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
 	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(PK) $(ELF) -s
@@ -377,16 +457,16 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(ELF) -s
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
-	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) --jit.verify=false -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
+	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) $(ETISS_ARGS) --jit.verify=false -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
 else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
-	@echo "plugin.perfEst.uArch=$(PERF_MODEL_UPPER)"       >> $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.uArch=$(PERF_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=1"                         >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.printDir=$(TRACE)"               >> $(OUT_DIR)/custom.ini
 	@echo ""                                               >> $(OUT_DIR)/custom.ini
 	@echo "[Plugin TracePrinterPlugin]"                    >> $(OUT_DIR)/custom.ini
-	@echo "plugin.tracePrinter.trace=AssemblyTrace_RV$(RISCV_XLEN)"   >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.trace=$(PERF_TRACE_MODEL)"  >> $(OUT_DIR)/custom.ini
 	@echo "plugin.tracePrinter.stream.toFile=1"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.tracePrinter.stream.outDir=$(TRACE)"     >> $(OUT_DIR)/custom.ini
 	@echo "plugin.tracePrinter.stream.fileName=asm_trace"  >> $(OUT_DIR)/custom.ini
@@ -396,11 +476,27 @@ else ifeq ($(SIMULATOR),etiss_perf)
 	# cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
 	# cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
 	(cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT) || true
-else ifeq ($(SIMULATOR),vicuna)
-	$(VICUNA_EXE) $(PROG_TXT) $(VICUNA_MEM_W) $(VICUNA_MEM_SZ) $(VICUNA_MEM_LATENCY) $(VICUNA_EXTRA_CYCLES) $(TRACE).tmp
-	python3 $(VICUNA_UTILS_DIR)/process_vicuna_trace.py $(TRACE).tmp $(TRACE)
+else ifeq ($(SIMULATOR),etiss_perf_vicuna)
+	@echo "Generating $(OUT_DIR)/custom.ini"
+	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.uArch=$(PERF_VICUNA_MODEL2)"            >> $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.print=1"                         >> $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.printDir=$(TRACE)"               >> $(OUT_DIR)/custom.ini
+	@echo ""                                               >> $(OUT_DIR)/custom.ini
+	@echo "[Plugin TracePrinterPlugin]"                    >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.trace=$(PERF_TRACE_MODEL)"  >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.stream.toFile=1"            >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.stream.outDir=$(TRACE)"     >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.stream.fileName=asm_trace"  >> $(OUT_DIR)/custom.ini
+	@echo "plugin.tracePrinter.stream.rotateSize=0x1000000" >> $(OUT_DIR)/custom.ini
+	test -d $(TRACE) && rm -r $(TRACE) || :
+	mkdir $(TRACE)
+	# cd $(OUT_DIR) && $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
+	# cd $(OUT_DIR) && $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
+	(cd $(OUT_DIR) && VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT) || true
 else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 	cd $(OUT_DIR) && $(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML) && mv output.trc $(TRACE)  # TODO: move to OUT_DIR
+endif
 endif
 
 $(OUTP): $(ELF) | $(OUT_DIR)
@@ -412,16 +508,25 @@ else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) -s | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss)
 	set -o pipefail && \
-	$(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) --jit.verify=false --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+	$(ETISS) -i$(ETISS_INI) $(ETISS_ARGS) --vp.elf_file=$(ELF) --jit.verify=false --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
-	@echo "plugin.perfEst.uArch=$(PERF_MODEL_UPPER)"       >> $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.uArch=$(PERF_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
 	set -o pipefail && \
-	($(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)) || true
-	# $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
-	# $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+	($(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)) || true
+	# $(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+	# $(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+else ifeq ($(SIMULATOR),etiss_perf_vicuna)
+	@echo "Generating $(OUT_DIR)/custom.ini"
+	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.uArch=$(PERF_VICUNA_MODEL2)"            >> $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
+	set -o pipefail && \
+	(VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)) || true
+	# $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
+	# $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) --jit.type=$(ETISS_JIT)JIT | tee $(OUTP)
 else ifeq ($(SIMULATOR),vicuna)
 	$(VICUNA_EXE) $(PROG_TXT) $(VICUNA_MEM_W) $(VICUNA_MEM_SZ) $(VICUNA_MEM_LATENCY) $(VICUNA_EXTRA_CYCLES) | tee $(OUTP)
 else ifneq (,$(filter $(SIMULATOR),tgc dbt))
@@ -448,12 +553,15 @@ load_static: $(SESS) $(ELF)
 
 ifeq ($(SIMULATOR),spike_bm)
 INSTR_TRACE_FRONTEND ?= spike
+else ifeq ($(SIMULATOR),etiss_perf_vicuna)
+INSTR_TRACE_FRONTEND ?= etiss_perf
 else
 INSTR_TRACE_FRONTEND ?= $(SIMULATOR)
 endif
 
 load_dynamic: $(SESS) $(TRACE)
-ifeq ($(SIMULATOR),etiss_perf)
+# ifeq ($(SIMULATOR),etiss_perf)
+ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
 	python3 -m isaac_toolkit.frontend.instr_trace.$(INSTR_TRACE_FRONTEND) $(TRACE)/asm_trace_*.txt --session $(SESS) $(FORCE_ARG)
 else
 	python3 -m isaac_toolkit.frontend.instr_trace.$(INSTR_TRACE_FRONTEND) $(TRACE) --session $(SESS) $(FORCE_ARG)
