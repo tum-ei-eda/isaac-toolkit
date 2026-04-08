@@ -128,7 +128,7 @@ def load_sim_metrics(
     force: bool = False,
     # progress: bool = False,
 ):
-    print("load_sim_metrics")
+    # print("load_sim_metrics", sim_metrics)
     if isinstance(sim_metrics, dict):
         metrics_df = pd.DataFrame([sim_metrics])
     else:

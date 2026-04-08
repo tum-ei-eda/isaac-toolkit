@@ -25,7 +25,7 @@ from pathlib import Path
 from isaac_toolkit.session import Session
 
 # from isaac_toolkit.logging import get_logger, set_log_level
-from isaac_toolkit.builder.standalone import STANDALONE_BUILDERS
+from isaac_toolkit.builder.standalone.registry import STANDALONE_BUILDERS
 
 # from isaac_toolkit.frontend.compile_commands.json import load_compile_commands_json
 

@@ -449,7 +449,7 @@ $(DUMP): $(ELF)
 
 compile: $(ELF) $(DUMP)
 
-SPIKE_ISA := $(RISCV_ARCH)_zicntr
+SPIKE_ISA ?= $(RISCV_ARCH)_zicntr
 
 ifeq ($(SIMULATOR),vicuna)
 $(TRACE): $(PROG_TXT) | $(OUT_DIR)
@@ -458,9 +458,9 @@ $(TRACE): $(PROG_TXT) | $(OUT_DIR)
 else
 $(TRACE): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
-	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(PK) $(ELF) -s
+	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(PK) -s $(ELF)
 else ifeq ($(SIMULATOR),spike_bm)
-	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(ELF) -s
+	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(ELF)
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
 	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) $(ETISS_ARGS) --jit.verify=false -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
@@ -512,10 +512,10 @@ else
 $(OUTP): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
 	set -o pipefail && \
-	$(SPIKE) --isa=$(SPIKE_ISA) $(PK) $(ELF) -s 2>&1 | tee $(OUTP)
+	$(SPIKE) --isa=$(SPIKE_ISA) $(PK) -s $(ELF) 2>&1 | tee $(OUTP)
 else ifeq ($(SIMULATOR),spike_bm)
 	set -o pipefail && \
-	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) -s 2>&1 | tee $(OUTP)
+	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) 2>&1 | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss)
 	set -o pipefail && \
 	$(ETISS) -i$(ETISS_INI) $(ETISS_ARGS) --vp.elf_file=$(ELF) --jit.verify=false --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)

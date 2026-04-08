@@ -28,7 +28,7 @@ from isaac_toolkit.cli.utils import parse_override_args
 
 from .stage.compile import compile_program
 from .stage.run import run_program
-from .stage.trace import trace_program
+# from .stage.trace import trace_program
 
 # from .stage.load import load_artifacts
 from .stage.normalize import normalize_artifacts
@@ -61,9 +61,9 @@ def run_full_example_flow(
     report_topk=10,
 ):
     logger.info("Running full Example flow...")
-    compile_program(program, simulator, toolchain=toolchain, optimize=optimize, overrides=overrides, load=True)
-    run_program(program, simulator, overrides=overrides, load=True)
-    trace_program(program, simulator, overrides=overrides, load=True)
+    compile_program(sess, program, simulator, toolchain=toolchain, optimize=optimize, overrides=overrides, load=True)
+    run_program(sess, program, simulator, overrides=overrides, load=True)
+    # trace_program(program, simulator, overrides=overrides, load=True)
     # load_artifacts(
     #     sess,
     #     elf_file=elf_file,
