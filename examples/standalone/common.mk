@@ -120,6 +120,7 @@ VICUNA_MEM_W ?= 32
 VICUNA_MEM_SZ ?= 4194304
 VICUNA_MEM_LATENCY ?= 1
 VICUNA_EXTRA_CYCLES ?= 1
+USE_NEW_VICUNA_BSP ?= 0
 
 ifeq ($(SIMULATOR),etiss_perf_vicuna)
 ETISS_ARCH ?= RV$(RISCV_XLEN)IMACFDV_zvl$(VLEN)b
@@ -402,21 +403,22 @@ else ifeq ($(SIMULATOR),spike_bm)  # TODO: llvm does not support specfiles...
     $(EXTRA_COMPILE_FLAGS) \
 		-Xlinker -Map=$(MAP)
 else ifeq ($(SIMULATOR),vicuna)
+  ifeq ($(USE_NEW_VICUNA_BSP),1)
+	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
+		$(PROG_SRCS) $(VICUNA_BSP_DIR)/crt0.S $(VICUNA_BSP_DIR)/lib/*.c $(VICUNA_BSP_DIR)/libwrap/sys/*.c -I$(VICUNA_BSP_DIR)/lib \
+		-Wl,--wrap=_exit -Wl,--wrap=_write -Wl,--wrap=_fstat -Wl,--wrap=_isatty -Wl,--wrap=_sbrk \
+		-T $(VICUNA_BSP_DIR)/lld_link.ld -fno-exceptions -fno-threadsafe-statics -nostartfiles -lc -lm -lstdc++ \
+		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
+    $(EXTRA_COMPILE_FLAGS) -DSIM_VICUNA \
+		-Xlinker -Map=$(MAP)
+  else
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
 		$(PROG_SRCS) $(VICUNA_BSP_DIR)/crt0.S $(VICUNA_BSP_DIR)/lib/*.c -I$(VICUNA_BSP_DIR)/lib \
 		-T $(VICUNA_BSP_DIR)/lld_link.ld -fno-exceptions -fno-threadsafe-statics -nostartfiles -lm -lstdc++ \
 		-o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) -DSIM_VICUNA \
 		-Xlinker -Map=$(MAP)
-	$(OBJCOPY) -O binary $(ELF) $(BIN)
-	srec_cat $(BIN) -binary -offset 0x0000 -byte-swap 4 -o $(VMEM) -vmem
-	rm -f $(PROG_TXT)
-	echo -n $(VMEM)\ $(ELF)_unused.txt\  > $(PROG_TXT)
-	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vref_start | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
-	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vref_end | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
-	echo -n $(ELF)_vicuna_sim_out.txt\  >> $(PROG_TXT)
-	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vdata_start | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
-	readelf -s $(ELF) | sed '2,13 s/ //1' | grep vdata_end | cut -d \  -f 6 | tr "\n" \  >> $(PROG_TXT)
+  endif
 else
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
