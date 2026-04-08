@@ -50,7 +50,7 @@ class StandaloneRunner(ISAACRunner):
         extra_args: Optional[List[str]] = None,
         overrides: Optional[dict] = None,
         verbose: bool = False,
-    ):
+    ) -> dict:
         assert dest_dir is not None
         args = ["make", "-C", self.make_dir, make_target]
         args.append(f"DEST={dest_dir}")
@@ -75,6 +75,8 @@ class StandaloneRunner(ISAACRunner):
             subprocess.run(args, check=True)
         else:
             subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        metrics = {}
+        return metrics
 
     def trace(
         self,
@@ -84,8 +86,8 @@ class StandaloneRunner(ISAACRunner):
         extra_args: Optional[List[str]] = None,
         overrides: Optional[dict] = None,
         verbose: bool = False,
-    ):
-        self.run(
+    ) -> dict:
+        return self.run(
             dest_dir,
             elf_file=elf_file,
             make_target="trace",

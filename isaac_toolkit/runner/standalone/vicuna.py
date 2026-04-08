@@ -100,8 +100,10 @@ class VicunaStandaloneRunner(RISCVStandaloneRunner):
         extra_args: Optional[List[str]] = None,
         overrides: Optional[dict] = None,
         verbose: bool = False,
-    ):
-        super().run(
+    ) -> dict:
+        # TODO: store output for trace too to check trace mips
+        # TODO: also add build metrics (code size?)
+        sim_metrics = super().run(
             dest_dir,
             elf_file=elf_file,
             make_target=make_target,
@@ -110,10 +112,11 @@ class VicunaStandaloneRunner(RISCVStandaloneRunner):
             verbose=verbose,
         )
         if make_target == "run":
-            sim_metrics = self.parse_sim_metrics(dest_dir, make_target=make_target)
+            sim_metrics_ = self.parse_sim_metrics(dest_dir, make_target=make_target)
+            sim_metrics.update(sim_metrics_)
+        if sim_metrics:
             self.add_metrics(sim_metrics)
-        # TODO: store output for trace too to check trace mips
-        # TODO: also add build metrics (code size?)
+        return sim_metrics
 
 
 def invoke_vicuna_runner(
@@ -170,10 +173,10 @@ def invoke_vicuna_runner(
     else:
         elf_file = None
     if make_target == "run":
-        runner.run(dest_dir=dest_dir, elf_file=elf_file, verbose=verbose, overrides=overrides)
+        sim_metrics = runner.run(dest_dir=dest_dir, elf_file=elf_file, verbose=verbose, overrides=overrides)
         if load:
             # TODO: refactor to outp frontend and parser generating sim_metrics.json?
-            sim_metrics = runner.get_metrics(latest=True)
+            # sim_metrics = runner.get_metrics(latest=True)
             if vlen:
                 sim_metrics["vlen"] = vlen
             if vlane_width:
@@ -182,7 +185,7 @@ def invoke_vicuna_runner(
             load_sim_metrics(sess, sim_metrics, program=program, simulator="vicuna", force=force)
             # load_run_artifacts(sess, dest_dir, program, force=force)
     elif make_target == "trace":
-        runner.trace(dest_dir=dest_dir, elf_file=elf_file, verbose=verbose, overrides=overrides)
+        _ = runner.trace(dest_dir=dest_dir, elf_file=elf_file, verbose=verbose, overrides=overrides)
         if load:
             # load_run_artifacts(sess, dest_dir, program, force=force)
             load_trace_artifacts(sess, dest_dir, program=program, simulator="vicuna", force=force)

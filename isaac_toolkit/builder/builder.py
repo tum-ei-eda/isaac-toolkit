@@ -27,6 +27,25 @@ logger = get_logger()
 
 class ISAACBuilder(ABC):
 
+    def __init__(self):
+        self.metrics = []
+
     @abstractmethod
-    def build(self, dest_dir: Union[str, Path], verbose: bool = False, **kwargs):
+    def build(self, dest_dir: Union[str, Path], verbose: bool = False, **kwargs) -> dict:
         raise NotImplementedError
+
+    def add_metrics(self, metrics):
+        if isinstance(metrics, dict):
+            self.metrics.append(metrics)
+        else:
+            self.metrics.extend(metrics)
+
+    def get_metrics(self, latest: bool = False, allow_none: bool = False):
+        if latest:
+            if len(self.metrics) > 0:
+                return self.metrics[-1]
+            assert allow_none
+            return None
+        if len(self.metrics) == 0:
+            assert allow_none
+        return self.metrics

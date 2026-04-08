@@ -17,10 +17,13 @@
 # limitations under the License.
 #
 
-from typing import Union
+from typing import Union, List
 from pathlib import Path
 
+import pandas as pd
+
 from isaac_toolkit.session import Session
+from isaac_toolkit.session.artifact import MetricsArtifact
 
 from isaac_toolkit.logging import get_logger
 from isaac_toolkit.frontend.elf.riscv import load_elf
@@ -61,3 +64,31 @@ def load_build_artifacts(
     else:
         logger.warning("Skipping missing disass file: %s", disass_file)
     # load_compile_commands_json(sess, compile_commands_file, force=force)
+
+
+def load_compile_metrics(
+    sess: Session,
+    compile_metrics: Union[dict, List[dict]],
+    program: str,
+    simulator: str,
+    force: bool = False,
+    # progress: bool = False,
+):
+    print("load_compile_metrics")
+    if isinstance(compile_metrics, dict):
+        metrics_df = pd.DataFrame([compile_metrics])
+    else:
+        assert isinstance(compile_metrics, list)
+        assert len(compile_metrics) > 0
+        assert isinstance(compile_metrics[0], dict)
+        metrics_df = pd.DataFrame(compile_metrics)
+
+    attrs = {
+        "simulator": simulator,
+        "program": program,
+        "kind": "compile_metrics",
+        "by": __name__,
+    }
+    metrics_artifact = MetricsArtifact("compile_metrics", metrics_df, attrs=attrs)
+    print("metrics_artifact", metrics_artifact)
+    sess.add_artifact(metrics_artifact, override=force)

@@ -170,10 +170,10 @@ def invoke_etiss_perf_vicuna_runner(
     else:
         elf_file = None
     if make_target == "run":
-        runner.run(dest_dir=dest_dir, elf_file=elf_file, verbose=verbose, overrides=overrides)
+        sim_metrics = runner.run(dest_dir=dest_dir, elf_file=elf_file, verbose=verbose, overrides=overrides)
         if load:
             # TODO: refactor to outp frontend and parser generating sim_metrics.json?
-            sim_metrics = runner.get_metrics(latest=True)
+            # sim_metrics = runner.get_metrics(latest=True)
             if jit:
                 sim_metrics["jit"] = jit
             if cpu_arch:

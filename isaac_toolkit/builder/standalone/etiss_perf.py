@@ -106,7 +106,7 @@ def invoke_etiss_perf_builder(
         shutil.rmtree(dest_dir)
     dest_dir.mkdir(exist_ok=True, parents=True)
 
-    builder.build(dest_dir=dest_dir, verbose=verbose, overrides=overrides)
+    compile_metrics = builder.build(dest_dir=dest_dir, verbose=verbose, overrides=overrides)
 
     if load:
         load_build_artifacts(sess, dest_dir, program, force=force)

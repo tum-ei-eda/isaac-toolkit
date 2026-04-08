@@ -31,11 +31,11 @@ class ISAACRunner(ABC):
         self.metrics = []
 
     @abstractmethod
-    def run(self, dest_dir: Union[str, Path], verbose: bool = False, **kwargs):
+    def run(self, dest_dir: Union[str, Path], verbose: bool = False, **kwargs) -> dict:
         raise NotImplementedError
 
     @abstractmethod
-    def trace(self, dest_dir: Union[str, Path], verbose: bool = False, **kwargs):
+    def trace(self, dest_dir: Union[str, Path], verbose: bool = False, **kwargs) -> dict:
         raise NotImplementedError
 
     # TODO: builder metrics

@@ -34,7 +34,7 @@ from isaac_toolkit.logging import get_logger, set_log_level
 # from .standalone import StandaloneBuilder
 
 from .riscv import RISCVStandaloneBuilder, add_riscv_args, parse_riscv_args
-from .common import load_build_artifacts
+from .common import load_build_artifacts, load_compile_metrics
 
 # from .cli import add_common_args, add_prog_args
 
@@ -105,10 +105,12 @@ def invoke_etiss_builder(
         shutil.rmtree(dest_dir)
     dest_dir.mkdir(exist_ok=True, parents=True)
 
-    builder.build(dest_dir=dest_dir, verbose=verbose, overrides=overrides)
+    compile_metrics = builder.build(dest_dir=dest_dir, verbose=verbose, overrides=overrides)
 
     if load:
         load_build_artifacts(sess, dest_dir, program, force=force)
+        # compile_metrics = builder.get_metrics(latest=True)
+        load_compile_metrics(sess, compile_metrics, program=program, simulator="etiss", force=force)
 
     # attrs = {
     #     "by": __name__,
