@@ -61,6 +61,7 @@ FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
 SIMULATOR ?= spike
 SPIKE ?= $(INSTALL_DIR)/spike/spike
 # PK ?= $(INSTALL_DIR)/spike/pk_rv32gc
+RISCV_QEMU ?= qemu-riscv$(RISCV_XLEN)
 PK ?= $(SYSROOT)/bin/pk
 # ETISS ?= $(INSTALL_DIR)/etiss/bin/run_helper.sh
 ETISS ?= $(INSTALL_DIR)/etiss/bin/bare_etiss_processor
@@ -209,6 +210,10 @@ else ifeq ($(SIMULATOR),spike)
 else ifeq ($(SIMULATOR),spike_bm)
   ifeq ($(wildcard $(SPIKE)),)
     $(error SPIKE not found, please install dependencies first!)
+  endif
+else ifeq ($(SIMULATOR),riscv_qemu)
+  ifeq ($(shell which $(RISCV_QEMU)),)
+    $(error RISCV_QEMU not found, please install dependencies first! ($(RISCV_QEMU)))
   endif
 endif
 
@@ -419,7 +424,7 @@ else ifeq ($(SIMULATOR),vicuna)
     $(EXTRA_COMPILE_FLAGS) -DSIM_VICUNA \
 		-Xlinker -Map=$(MAP)
   endif
-else
+else  # spike, riscv_qemu
 	$(CC) -march=$(RISCV_ARCH) -mabi=$(RISCV_ABI) $(CLANG_ARGS) \
 		$(PROG_SRCS) -o $(ELF) $(PROG_INCS) -O$(OPTIMIZE) $(PROG_DEFS) -g \
     $(EXTRA_COMPILE_FLAGS) \
@@ -461,6 +466,8 @@ ifeq ($(SIMULATOR),spike)
 	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(PK) -s $(ELF)
 else ifeq ($(SIMULATOR),spike_bm)
 	$(SPIKE) --isa=$(SPIKE_ISA) -l --log=$(TRACE) $(ELF)
+else ifeq ($(SIMULATOR),riscv_qemu)
+	$(RISCV_QEMU) -one-insn-per-tb -singlestep -D $(TRACE) -d exec,nochain $(ELF)
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
 	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) $(ETISS_ARGS) --jit.verify=false -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
