@@ -523,6 +523,9 @@ $(OUTP): $(ELF) | $(OUT_DIR)
 ifeq ($(SIMULATOR),spike)
 	set -o pipefail && \
 	$(SPIKE) --isa=$(SPIKE_ISA) $(PK) -s $(ELF) 2>&1 | tee $(OUTP)
+else ifeq ($(SIMULATOR),riscv_qemu)
+	set -o pipefail && \
+	$(RISCV_QEMU) $(ELF) 2>&1 | tee $(OUTP)
 else ifeq ($(SIMULATOR),spike_bm)
 	set -o pipefail && \
 	$(SPIKE) --isa=$(SPIKE_ISA) $(ELF) 2>&1 | tee $(OUTP)
