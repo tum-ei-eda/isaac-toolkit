@@ -453,6 +453,8 @@ endif
 $(DUMP): $(ELF)
 	$(OBJDUMP) -d $(ELF) > $(DUMP)
 
+dump: $(DUMP)
+
 compile: $(ELF) $(DUMP)
 
 SPIKE_ISA ?= $(RISCV_ARCH)_zicntr
