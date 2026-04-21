@@ -231,6 +231,7 @@ MAP := $(BUILD_DIR)/$(PROG).map
 DUMP := $(BUILD_DIR)/$(PROG).dump
 TRACE := $(OUT_DIR)/$(SIMULATOR)_instrs.log
 PERF_TRACE := $(OUT_DIR)/$(SIMULATOR)_perf.log
+MEM_TRACE := $(OUT_DIR)/$(SIMULATOR)_mem.log
 OUTP := $(OUT_DIR)/$(SIMULATOR)_out.log
 TIMING_CSV := $(OUT_DIR)/stage_timings.csv
 CALLGRIND_POS = $(OUT_DIR)/callgrind_pos.out
@@ -349,7 +350,7 @@ measure_load: $(OUT_DIR)
 	$(call time_stage,flow_normalize, $(MAKE) flow_normalize)
 
 clean:
-	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_BOTH) $(CALLGRIND_PC) $(TRACE) $(OUTP)
+	rm -rf $(BUILD_DIR) $(SESS) *.log *.out $(CALLGRAPH_DOT) $(CALLGRAPH_PDF) $(CALLGRIND_POS) $(CALLGRIND_BOTH) $(CALLGRIND_PC) $(TRACE) $(PERF_TRACE) $(MEM_TRACE) $(OUTP)
 
 $(DEST):
 	mkdir -p $(DEST)
@@ -550,7 +551,34 @@ else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 endif
 endif
 
+ifeq ($(SIMULATOR),vicuna)
+$(MEM_TRACE): $(PROG_TXT) | $(OUT_DIR)
+	$(error MEM_TRACE not supported!)
+else
+$(MEM_TRACE): $(ELF) | $(OUT_DIR)
+ifeq ($(SIMULATOR),etiss)
+	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
+	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) $(ETISS_ARGS) --jit.verify=false --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)
+else ifeq ($(SIMULATOR),etiss_perf)
+	@echo "Generating $(OUT_DIR)/custom.ini"
+	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.uArch=$(PERF_MODEL2)"            >> $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
+	(cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)) || true
+else ifeq ($(SIMULATOR),etiss_perf_vicuna)
+	@echo "Generating $(OUT_DIR)/custom.ini"
+	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.uArch=$(PERF_VICUNA_MODEL2)"            >> $(OUT_DIR)/custom.ini
+	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
+	(cd $(OUT_DIR) && VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)) || true
+else
+	$(error MEM_TRACE not supported!)
+endif
+endif
+
 trace: $(TRACE)
+trace_perf: $(PERF_TRACE)
+trace_mem: $(MEM_TRACE)
 run: $(OUTP)
 
 full_flow: $(ELF) $(MAP) $(DUMP) $(TRACE)
@@ -575,12 +603,41 @@ else
 INSTR_TRACE_FRONTEND ?= $(SIMULATOR)
 endif
 
-load_dynamic: $(SESS) $(TRACE)
-# ifeq ($(SIMULATOR),etiss_perf)
+ifeq ($(SIMULATOR),etiss_perf_vicuna)
+PERF_TRACE_FRONTEND ?= etiss_perf
+else
+PERF_TRACE_FRONTEND ?= $(SIMULATOR)
+endif
+
+ifeq ($(SIMULATOR),etiss_perf)
+MEM_TRACE_FRONTEND ?= etiss
+else ifeq ($(SIMULATOR),etiss_perf_vicuna)
+MEM_TRACE_FRONTEND ?= etiss
+else
+MEM_TRACE_FRONTEND ?= $(SIMULATOR)
+endif
+
+load_dynamic_trace: $(SESS) $(TRACE)
 ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
 	python3 -m isaac_toolkit.frontend.instr_trace.$(INSTR_TRACE_FRONTEND) $(TRACE)/asm_trace_*.txt --session $(SESS) $(FORCE_ARG)
 else
 	python3 -m isaac_toolkit.frontend.instr_trace.$(INSTR_TRACE_FRONTEND) $(TRACE) --session $(SESS) $(FORCE_ARG)
+endif
+
+load_dynamic_trace_mem: $(SESS) $(MEM_TRACE)
+	python3 -m isaac_toolkit.frontend.ini.etiss_mem_layout $(ETISS_INI) --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.frontend.mem_trace.$(MEM_TRACE_FRONTEND) $(MEM_TRACE) --session $(SESS) $(FORCE_ARG)
+
+# TODO: perf_trace -> timing_trace
+load_dynamic_trace_perf: $(SESS) $(PERF_TRACE)
+	python3 -m isaac_toolkit.frontend.timing_trace.$(PERF_TRACE_FRONTEND) $(PERF_TRACE) --session $(SESS) $(FORCE_ARG)
+
+ifneq (,$(filter $(SIMULATOR),etiss))
+load_dynamic: load_dynamic_trace load_dynamic_mem_trace
+else ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
+load_dynamic: load_dynamic_trace load_dynamic_mem_trace load_dynamic_perf_trace
+else
+load_dynamic: load_dynamic_trace
 endif
 
 load: load_static load_dynamic
