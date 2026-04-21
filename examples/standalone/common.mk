@@ -189,26 +189,26 @@ else ifeq ($(SIMULATOR),dbt)
     $(error Neither DBT_INSTALL_DIR ($(DBT_INSTALL_DIR)) nor DBT_BUILD_DIR ($(DBT_BUILD_DIR)) exists!)
   endif
 else ifeq ($(SIMULATOR),etiss)
-  ifeq ($(wildcard $(ETISS)),)
+  ifeq ($(shell which $(ETISS)),)
     $(error ETISS not found, please install dependencies first!)
   endif
 else ifeq ($(SIMULATOR),etiss_perf)
-  ifeq ($(wildcard $(ETISS_PERF)),)
+  ifeq ($(shell which $(ETISS_PERF)),)
     $(error ETISS_PERF not found, please install dependencies first!)
   endif
 else ifeq ($(SIMULATOR),etiss_perf_vicuna)
-  ifeq ($(wildcard $(ETISS_PERF_VICUNA)),)
+  ifeq ($(shell which $(ETISS_PERF_VICUNA)),)
     $(error ETISS_PERF_VICUNA not found, please install dependencies first!)
   endif
 else ifeq ($(SIMULATOR),spike)
-  ifeq ($(wildcard $(SPIKE)),)
+  ifeq ($(shell which $(SPIKE)),)
     $(error SPIKE not found, please install dependencies first!)
   endif
   ifeq ($(wildcard $(PK)),)
     $(error PK not found, please install dependencies first!)
   endif
 else ifeq ($(SIMULATOR),spike_bm)
-  ifeq ($(wildcard $(SPIKE)),)
+  ifeq ($(shell which $(SPIKE)),)
     $(error SPIKE not found, please install dependencies first!)
   endif
 else ifeq ($(SIMULATOR),riscv_qemu)
