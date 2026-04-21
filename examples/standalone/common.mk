@@ -660,6 +660,8 @@ flow_analyze:
 
 analyze_static:
 	python3 -m isaac_toolkit.analysis.static.dwarf --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.elf.mem_sections --session $(SESS) $(FORCE_ARG)  # TODO: add to flow
+	python3 -m isaac_toolkit.analysis.static.elf.symbol_table --session $(SESS) $(FORCE_ARG)  # TODO: add to flow
 	python3 -m isaac_toolkit.analysis.static.linker_map --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.static.mem_footprint --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $(SESS) $(FORCE_ARG)
