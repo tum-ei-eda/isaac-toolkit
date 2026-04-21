@@ -100,6 +100,11 @@ MEMORY
 __stack_size     = $MIN_STACK_SIZE;
 __heap_size      = $MIN_HEAP_SIZE;
 
+/* kept for compitibility with get_metrics.py */
+_stack_start     = ORIGIN(RAM) + LENGTH(RAM);
+_heap_start      = _bss_end;
+_heap_end        = _stack_start;
+
 
 SECTIONS
 {
@@ -154,6 +159,7 @@ SECTIONS
   } > RAM
   .bss : {
       *(.bss .bss.*)
+      _bss_end = .;
   } > RAM
   _end = .;
 
