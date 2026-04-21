@@ -92,6 +92,7 @@ def parse_instr_trace(
             )
         )
         dfs += dfs_
+    assert len(dfs) > 0
     df = pd.concat(dfs, axis=0)
     if "instr" in df.columns:
         df["instr"] = df["instr"].astype("category")
