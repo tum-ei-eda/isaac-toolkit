@@ -258,7 +258,14 @@ class MemRange:
         if len(alignments_hist) == 1:
             common_alignment = list(alignments_hist.keys())[0]
         else:
-            raise NotImplementedError("different strides?")
+            print("alignments_hist", alignments_hist)
+            freq_ = 0
+            for align, freq in alignments_hist.items():
+                if freq > freq_:
+                    freq_ = freq
+                    common_alignment = align
+            print("common_alignment", common_alignment)
+            # raise NotImplementedError("different alignments?")
         self.multi_alignments.add(common_alignment)
         if entry.mode == "r":
             self.num_multi_reads += 1
@@ -277,7 +284,17 @@ class MemRange:
                 self.multi_read_strides_per_pc_alignment[entry.pc][common_alignment][common_stride] += 1
                 self.multi_read_strides_per_idx_alignment[entry.idx][common_alignment][common_stride] += 1
             else:
-                raise NotImplementedError("different strides?")
+                freq_ = 0
+                print("strides_hist", strides_hist)
+                for stride, freq in strides_hist.items():
+                    if freq > freq_:
+                        freq_ = freq
+                        common_stride = stride
+                print("common_stride", common_stride)
+                self.multi_read_strides_per_size_alignment[common_size][common_alignment][common_stride] += 1
+                self.multi_read_strides_per_pc_alignment[entry.pc][common_alignment][common_stride] += 1
+                self.multi_read_strides_per_idx_alignment[entry.idx][common_alignment][common_stride] += 1
+                # raise NotImplementedError("different strides?")
             self.num_multi_reads_per_pc[entry.pc] += 1
             self.multi_read_alignments_per_pc[entry.pc][common_alignment] += 1
             self.num_multi_reads_per_idx[entry.idx] += 1
@@ -911,9 +928,14 @@ def collect_mem_metrics(
         # last_idx = None
         idx_count = 0
         current = None
+        i = 0
 
         for row in mem_trace_df.itertuples(index=True):
             # print("row", row)
+            progress = i / len(mem_trace_df)
+            if i % 1000000 == 0:
+                print("progress", progress)
+            i += 1
             if current is not None and current.idx == row.idx and current.pc == row.pc and current.mode == row.mode:
                 assert last_addr is not None
                 stride = row.addr - last_addr
