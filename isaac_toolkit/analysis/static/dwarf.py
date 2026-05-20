@@ -144,11 +144,18 @@ def parse_dwarf(elf_path):
             # TODO: try out actual_path = op.normpath(CU.get_top_DIE().get_full_path())?
             # return posixpath.join(directory, file_entry.name).decode()
             comp_dir = None
+            file_path = None
             top_die = CU.get_top_DIE()
             # print("file_entry.name", file_entry.name)
             if "DW_AT_comp_dir" in top_die.attributes:
                 comp_dir = top_die.attributes["DW_AT_comp_dir"].value.decode()
+            if "DW_AT_name" in top_die.attributes:
+                file_path = top_die.attributes["DW_AT_name"].value.decode()
             # print("comp_dir", comp_dir)
+            # print("file_path", file_path)
+            if file_path:
+                if os.path.isfile(file_path):
+                    return file_path
             directory = lp_header["include_directory"][dir_index].decode()
             # print("diretcory", directory)
             if not posixpath.isabs(directory) and comp_dir is not None:
