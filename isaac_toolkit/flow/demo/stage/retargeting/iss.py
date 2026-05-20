@@ -128,7 +128,7 @@ def handle(args):
         assert not (args.local or args.service)
         docker_override = True
     if args.local:
-        assert not (args.docker or args.servive)
+        assert not (args.docker or args.service)
         docker_override = False
     if args.service:
         assert not (args.local or args.docker)
