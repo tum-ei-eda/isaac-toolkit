@@ -18,6 +18,7 @@
 #
 import re
 import sys
+import shutil
 import itertools
 import random
 from math import ceil
@@ -230,7 +231,15 @@ def run_fake_hls(
         workdir = Path(workdir)
     assert workdir.is_dir()
     # TODO: handle suffix
-    out_dir = workdir / "local" / "fake_hls"
+    if label is None:
+        label = ""
+    subdir = "local"
+    base_dir = workdir / subdir
+    out_dir = (base_dir / "fake_hls") if label == "" else (base_dir / f"fake_hls_{label}")
+    if out_dir.is_dir():
+        assert force, f"Directory already exists: {out_dir}. Use --force or different --label."
+        logger.info("Cleaning up old output dir: %s (--force)", out_dir)
+        shutil.rmtree(out_dir)
     out_dir.mkdir(exist_ok=True, parents=True)
     print("FAKE HLS")
     if strategies is None:
@@ -647,6 +656,7 @@ def handle(args):
         set_name=args.set_name,
         core=args.core,
         strategies=strategies,
+        label=args.label,
         index=args.index,
         force=args.force,
         workdir=args.workdir,
@@ -668,6 +678,7 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--set-name", type=str, default=None)
+    parser.add_argument("--label", default="")
     parser.add_argument("--index", type=str, default=None)
     parser.add_argument("--core", type=str, choices=["cv32e40p"], default=None)
     # parser.add_argument("--strategy", type=str, choices=SUPPORTED_STRATEGIES, default=None)  # TODO: drop
