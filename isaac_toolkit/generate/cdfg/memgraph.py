@@ -38,8 +38,8 @@ def get_command_for_file(compile_commands_df: pd.DataFrame, file: str):
     # print("matches", matches)
     if len(matches) == 0:
         matches = compile_commands_df[compile_commands_df["file_name"] == file]
-    assert len(matches) > 0, "Could not find compile commands for file: {file}"
-    assert len(matches) == 1, "Too many matches during compile commands lookup for file: {file}"
+    assert len(matches) > 0, f"Could not find compile commands for file: {file}"
+    assert len(matches) == 1, f"Too many matches during compile commands lookup for file: {file}"
     command = matches["command"].values[0]
     directory = matches["directory"].values[0]
     return command, directory
