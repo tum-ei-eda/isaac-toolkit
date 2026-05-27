@@ -1,0 +1,220 @@
+#
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import sys
+import logging
+import argparse
+import tempfile
+import subprocess
+from pathlib import Path
+from math import log10, ceil
+from typing import List, Optional, Union
+
+import yaml
+import pandas as pd
+
+from isaac_toolkit.session import Session
+from isaac_toolkit.session.artifact import filter_artifacts, ArtifactFlag
+
+logging.basicConfig(level=logging.DEBUG)  # TODO
+logger = logging.getLogger(__name__)
+
+
+def export_helper(df, dest_dir: Path, base_filename: str, chunk_rows: int = 10000, **kwargs):
+
+    chunks = [df[i : i + chunk_rows].copy() for i in range(0, df.shape[0], chunk_rows)]
+    num_chunks = len(chunks)
+    # print("num_chunks", num_chunks)
+
+    fillcnt = ceil(log10(num_chunks + 1)) + 1
+    # print("fillcnt", fillcnt)
+
+    for k, chunk in enumerate(chunks):
+        out_filename = base_filename + "_" + str(k).zfill(fillcnt) + ".csv"
+        out_path = dest_dir / out_filename
+        chunk.to_csv(out_path, index=False, **kwargs)
+
+
+def export_instr_trace(instr_trace_df, asm_trace_dir, chunk_rows: int = 10000):
+    df = instr_trace_df[["pc", "instr"]].copy()
+    df.rename(columns={"instr": "assembly"}, inplace=True)
+    export_helper(df, asm_trace_dir, "asm_trace", chunk_rows=chunk_rows, sep=";", lineterminator=";\n")
+
+
+def export_timing_trace(timing_trace_df, timing_trace_dir, uarch: str, chunk_rows: int = 10000):
+    base_filename = f"{uarch}_timing"
+    export_helper(timing_trace_df, timing_trace_dir, base_filename, chunk_rows=chunk_rows)
+
+
+def run_trace_analyzer(
+    sess: Session,
+    output: Optional[Union[str, Path]] = None,
+    ranges_yaml: Optional[Union[str, Path]] = None,
+    uarch: str = "CV32E40P",
+    force: bool = False,
+    verbose: bool = False,
+):
+    del force
+    artifacts = sess.artifacts
+
+    instr_trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    assert len(instr_trace_artifacts) == 1
+    instr_trace_artifact = instr_trace_artifacts[0]
+    instr_trace_df = instr_trace_artifact.df
+
+    timing_trace_artifacts = filter_artifacts(artifacts, lambda x: x.attrs.get("kind") == "timing_trace")
+    assert len(timing_trace_artifacts) == 1
+    timing_trace_artifact = timing_trace_artifacts[0]
+    timing_trace_df = timing_trace_artifact.df
+
+    assert ranges_yaml is not None
+    ranges_yaml = Path(ranges_yaml)
+    assert ranges_yaml.is_file()
+    ranges_yaml = ranges_yaml.resolve()
+    assert uarch is not None
+
+    if output is None:
+        output_dir = sess.directory / "output"
+        output_dir.mkdir(exist_ok=True)
+        trace_analyzer_output_dir = output_dir / "trace_analyzer"
+        trace_analyzer_output_dir.mkdir(exist_ok=True)
+    else:
+        trace_analyzer_output_dir = Path(output)
+    assert Path(trace_analyzer_output_dir).is_dir()
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        temp_dir = Path(tmpdirname)
+        asm_trace_dir = temp_dir / "asm_trace"
+        asm_trace_dir.mkdir()
+        export_instr_trace(instr_trace_df, asm_trace_dir)
+        timing_trace_dir = temp_dir / "timing_trace"
+        timing_trace_dir.mkdir()
+        export_timing_trace(timing_trace_df, timing_trace_dir, uarch)
+        print("temp_dir", temp_dir)
+        model_name = "isaacModel"
+        subprocess_kwargs = {}
+        # TODO: error handling
+        if not verbose:
+            subprocess_kwargs["stdout"] = subprocess.DEVNULL
+            subprocess_kwargs["stderr"] = subprocess.DEVNULL
+        import_asm_trace_args = [
+            "python3",
+            "-m",
+            "trace_analyzer.run",  # TODO: PYTHONPATH
+            "import",
+            model_name,
+            f"-i={asm_trace_dir}",
+            "-delim=;",
+        ]
+        print("import_asm_trace_args", " ".join(import_asm_trace_args))
+        subprocess.run(import_asm_trace_args, check=True, cwd=trace_analyzer_output_dir, **subprocess_kwargs)
+        extend_timing_trace_args = [
+            "python3",
+            "-m",
+            "trace_analyzer.run",  # TODO: PYTHONPATH
+            "load",
+            model_name,
+            "extend",
+            f"-pt={timing_trace_dir}",
+        ]
+        print("extend_timing_trace_args", " ".join(extend_timing_trace_args))
+        subprocess.run(extend_timing_trace_args, check=True, cwd=trace_analyzer_output_dir, **subprocess_kwargs)
+        extend_uarch_args = [
+            "python3",
+            "-m",
+            "trace_analyzer.run",  # TODO: PYTHONPATH
+            "load",
+            model_name,
+            "extend",
+            f"-uarch={uarch}",
+        ]
+        print("extend_uarch_args", " ".join(extend_uarch_args))
+        subprocess.run(extend_uarch_args, check=True, cwd=trace_analyzer_output_dir, **subprocess_kwargs)
+        analyze_args = [
+            "python3",
+            "-m",
+            "trace_analyzer.run",  # TODO: PYTHONPATH
+            "load",
+            model_name,
+            "analyze",
+            f"-r={ranges_yaml}",
+            "-t",
+            "-o",
+            str(trace_analyzer_output_dir),
+            "-y",
+            str(trace_analyzer_output_dir),
+        ]
+        print("analyze_args", " ".join(analyze_args))
+        subprocess.run(analyze_args, check=True, cwd=trace_analyzer_output_dir)
+        # TODO: parse metrics?
+        gen_viewer_args = [
+            "python3",
+            "-m",
+            "trace_analyzer.run",  # TODO: PYTHONPATH
+            "load",
+            model_name,
+            "pipeline_viewer",
+            f"-r={ranges_yaml}",
+            "-o",
+            str(trace_analyzer_output_dir),
+        ]
+        print("gen_viewer_args", " ".join(gen_viewer_args))
+        subprocess.run(gen_viewer_args, check=True, cwd=trace_analyzer_output_dir)
+        print("temp_dir", temp_dir)
+        input("!!!")
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    run_trace_analyzer(
+        sess,
+        output=args.output,
+        force=args.force,
+        verbose=args.verbose,
+        ranges_yaml=args.ranges_yaml,
+        uarch=args.uarch,
+    )
+    sess.save()
+
+
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
+    )  # TODO: move to defaults
+    parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--output", default=None)
+    parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--ranges-yaml", type=str, required=True)
+    parser.add_argument("--uarch", type=str, default="CV32E40P")
+    return parser
+
+
+def main(argv):
+    parser = get_parser()
+    args = parser.parse_args(argv)
+    handle(args)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
