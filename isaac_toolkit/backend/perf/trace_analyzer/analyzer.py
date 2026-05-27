@@ -51,14 +51,44 @@ def export_helper(df, dest_dir: Path, base_filename: str, chunk_rows: int = 1000
 
 
 def export_instr_trace(instr_trace_df, asm_trace_dir, chunk_rows: int = 10000):
+    logger.info("Exporting ASM trace to %s...", asm_trace_dir)
     df = instr_trace_df[["pc", "instr"]].copy()
     df.rename(columns={"instr": "assembly"}, inplace=True)
     export_helper(df, asm_trace_dir, "asm_trace", chunk_rows=chunk_rows, sep=";", lineterminator=";\n")
 
 
 def export_timing_trace(timing_trace_df, timing_trace_dir, uarch: str, chunk_rows: int = 10000):
+    logger.info("Exporting timing trace to %s...", timing_trace_dir)
     base_filename = f"{uarch}_timing"
     export_helper(timing_trace_df, timing_trace_dir, base_filename, chunk_rows=chunk_rows)
+
+
+def run_cmd(args, cwd=None, verbose=False):
+    cmd_str = " ".join(args)
+    logger.debug("> %s", cmd_str)
+
+    try:
+        if verbose:
+            subprocess.run(
+                args,
+                check=True,
+                cwd=cwd,
+            )
+        else:
+            subprocess.run(
+                args,
+                check=True,
+                cwd=cwd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+    except subprocess.CalledProcessError as e:
+        logger.error("Command failed with exit code %d: `%s`", e.returncode, cmd_str)
+        if e.stdout:
+            logger.error("Output:")
+            logger.error(e.stdout.strip())
+        sys.exit(e.returncode)
 
 
 def run_trace_analyzer(
@@ -96,6 +126,7 @@ def run_trace_analyzer(
     else:
         trace_analyzer_output_dir = Path(output)
     assert Path(trace_analyzer_output_dir).is_dir()
+    logger.info("Creating output directory %s", trace_analyzer_output_dir)
     with tempfile.TemporaryDirectory() as tmpdirname:
         temp_dir = Path(tmpdirname)
         asm_trace_dir = temp_dir / "asm_trace"
@@ -104,50 +135,52 @@ def run_trace_analyzer(
         timing_trace_dir = temp_dir / "timing_trace"
         timing_trace_dir.mkdir()
         export_timing_trace(timing_trace_df, timing_trace_dir, uarch)
-        print("temp_dir", temp_dir)
+        # print("temp_dir", temp_dir)
+        logger.info("Using temporary directory %s", temp_dir)
         model_name = "isaacModel"
         subprocess_kwargs = {}
         # TODO: error handling
         if not verbose:
             subprocess_kwargs["stdout"] = subprocess.DEVNULL
             subprocess_kwargs["stderr"] = subprocess.DEVNULL
-        import_asm_trace_args = [
+        common_args = [
             "python3",
             "-m",
             "trace_analyzer.run",  # TODO: PYTHONPATH
+        ]
+        import_asm_trace_args = [
+            *common_args,
             "import",
             model_name,
             f"-i={asm_trace_dir}",
             "-delim=;",
         ]
-        print("import_asm_trace_args", " ".join(import_asm_trace_args))
-        subprocess.run(import_asm_trace_args, check=True, cwd=trace_analyzer_output_dir, **subprocess_kwargs)
+        # print("import_asm_trace_args", " ".join(import_asm_trace_args))
+        logger.info("Importing ASM trace into %s model...", model_name)
+        # subprocess.run(import_asm_trace_args, check=True, cwd=trace_analyzer_output_dir, **subprocess_kwargs)
+        run_cmd(import_asm_trace_args, cwd=trace_analyzer_output_dir, verbose=verbose)
         extend_timing_trace_args = [
-            "python3",
-            "-m",
-            "trace_analyzer.run",  # TODO: PYTHONPATH
+            *common_args,
             "load",
             model_name,
             "extend",
             f"-pt={timing_trace_dir}",
         ]
-        print("extend_timing_trace_args", " ".join(extend_timing_trace_args))
-        subprocess.run(extend_timing_trace_args, check=True, cwd=trace_analyzer_output_dir, **subprocess_kwargs)
+        # print("extend_timing_trace_args", " ".join(extend_timing_trace_args))
+        logger.info("Extending %s model with timing trace...", model_name)
+        run_cmd(extend_timing_trace_args, cwd=trace_analyzer_output_dir, verbose=verbose)
         extend_uarch_args = [
-            "python3",
-            "-m",
-            "trace_analyzer.run",  # TODO: PYTHONPATH
+            *common_args,
             "load",
             model_name,
             "extend",
             f"-uarch={uarch}",
         ]
-        print("extend_uarch_args", " ".join(extend_uarch_args))
-        subprocess.run(extend_uarch_args, check=True, cwd=trace_analyzer_output_dir, **subprocess_kwargs)
+        # print("extend_uarch_args", " ".join(extend_uarch_args))
+        logger.info("Extending %s model with %s uArch...", model_name, uarch)
+        run_cmd(extend_uarch_args, cwd=trace_analyzer_output_dir, verbose=verbose)
         analyze_args = [
-            "python3",
-            "-m",
-            "trace_analyzer.run",  # TODO: PYTHONPATH
+            *common_args,
             "load",
             model_name,
             "analyze",
@@ -158,13 +191,12 @@ def run_trace_analyzer(
             "-y",
             str(trace_analyzer_output_dir),
         ]
-        print("analyze_args", " ".join(analyze_args))
-        subprocess.run(analyze_args, check=True, cwd=trace_analyzer_output_dir)
+        # print("analyze_args", " ".join(analyze_args))
+        logger.info("Analyzing %s model... (Output directory: %s)", model_name, trace_analyzer_output_dir)
+        run_cmd(analyze_args, cwd=trace_analyzer_output_dir, verbose=verbose)
         # TODO: parse metrics?
         gen_viewer_args = [
-            "python3",
-            "-m",
-            "trace_analyzer.run",  # TODO: PYTHONPATH
+            *common_args,
             "load",
             model_name,
             "pipeline_viewer",
@@ -172,10 +204,11 @@ def run_trace_analyzer(
             "-o",
             str(trace_analyzer_output_dir),
         ]
-        print("gen_viewer_args", " ".join(gen_viewer_args))
-        subprocess.run(gen_viewer_args, check=True, cwd=trace_analyzer_output_dir)
-        print("temp_dir", temp_dir)
-        input("!!!")
+        # print("gen_viewer_args", " ".join(gen_viewer_args))
+        logger.info(
+            "Generating kanata files for %s model... (Output directory: %s)", model_name, trace_analyzer_output_dir
+        )
+        run_cmd(gen_viewer_args, cwd=trace_analyzer_output_dir, verbose=verbose)
 
 
 def handle(args):
