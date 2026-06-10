@@ -31,7 +31,7 @@ import pandas as pd
 import numpy as np
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TraceArtifact
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 from isaac_toolkit.utils.demangle import unmangle_helper
 
@@ -791,7 +791,7 @@ def collect_trace_bbs(
     }
 
     # pc2bb_artifact = TableArtifact("pc2bb_compat", pc2bb_df, attrs=attrs)
-    pc2bb_artifact = TableArtifact("pc2bb", pc2bb_df, attrs=attrs)
+    pc2bb_artifact = TraceArtifact("pc2bb", pc2bb_df, attrs=attrs)
     sess.add_artifact(pc2bb_artifact, override=force)
 
 
