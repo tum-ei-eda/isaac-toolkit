@@ -24,12 +24,13 @@ import subprocess
 from pathlib import Path
 from math import log10, ceil
 from typing import List, Optional, Union
+from collections import defaultdict
 
 import yaml
 import pandas as pd
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import filter_artifacts, ArtifactFlag
+from isaac_toolkit.session.artifact import filter_artifacts, ArtifactFlag, TableArtifact
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
 logger = logging.getLogger(__name__)
@@ -91,6 +92,20 @@ def run_cmd(args, cwd=None, verbose=False):
         sys.exit(e.returncode)
 
 
+def flatten_metrics(data, parent_key="", sep="_"):
+    flattened = {}
+
+    for key, value in data.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else key
+
+        if isinstance(value, dict):
+            flattened.update(flatten_metrics(value, new_key, sep))
+        else:
+            flattened[new_key] = value
+
+    return flattened
+
+
 def run_trace_analyzer(
     sess: Session,
     output: Optional[Union[str, Path]] = None,
@@ -98,8 +113,10 @@ def run_trace_analyzer(
     uarch: str = "CV32E40P",
     force: bool = False,
     verbose: bool = False,
+    views: bool = False,
+    use_pkl: bool = False,
+    gen_dfs: bool = True,
 ):
-    del force
     artifacts = sess.artifacts
 
     instr_trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
@@ -129,12 +146,22 @@ def run_trace_analyzer(
     logger.info("Creating output directory %s", trace_analyzer_output_dir)
     with tempfile.TemporaryDirectory() as tmpdirname:
         temp_dir = Path(tmpdirname)
-        asm_trace_dir = temp_dir / "asm_trace"
-        asm_trace_dir.mkdir()
-        export_instr_trace(instr_trace_df, asm_trace_dir)
-        timing_trace_dir = temp_dir / "timing_trace"
-        timing_trace_dir.mkdir()
-        export_timing_trace(timing_trace_df, timing_trace_dir, uarch)
+        if use_pkl:
+            # TODO: use compression?
+            # TODO: make sure columns are as expected?
+            asm_trace_dir = temp_dir / "asm_trace.pkl"
+            instr_trace_df_ = instr_trace_df[["pc", "instr"]].copy()
+            instr_trace_df_.rename(columns={"instr": "assembly"}, inplace=True)
+            instr_trace_df_.to_pickle(asm_trace_dir)
+            timing_trace_dir = temp_dir / "timing_trace.pkl"
+            timing_trace_df.to_pickle(timing_trace_dir)
+        else:
+            asm_trace_dir = temp_dir / "asm_trace"
+            asm_trace_dir.mkdir()
+            export_instr_trace(instr_trace_df, asm_trace_dir)
+            timing_trace_dir = temp_dir / "timing_trace"
+            timing_trace_dir.mkdir()
+            export_timing_trace(timing_trace_df, timing_trace_dir, uarch)
         # print("temp_dir", temp_dir)
         logger.info("Using temporary directory %s", temp_dir)
         model_name = "isaacModel"
@@ -204,11 +231,52 @@ def run_trace_analyzer(
             "-o",
             str(trace_analyzer_output_dir),
         ]
-        # print("gen_viewer_args", " ".join(gen_viewer_args))
-        logger.info(
-            "Generating kanata files for %s model... (Output directory: %s)", model_name, trace_analyzer_output_dir
-        )
-        run_cmd(gen_viewer_args, cwd=trace_analyzer_output_dir, verbose=verbose)
+        if gen_dfs:
+            with open(ranges_yaml, "r") as f:
+                ranges_data = yaml.safe_load(f)
+            # print("ranges_data", ranges_data)
+            ranges = []
+            for i, entry in enumerate(ranges_data["ranges"]):
+                range_name = entry[0]
+                new = (i, range_name)
+                ranges.append(new)
+            # print("ranges", ranges)
+            analysis_rows = defaultdict(list)
+            for range_idx, range_name in ranges:
+                fname = f"{model_name}_{range_name}_analysis.yaml"
+                analysis_yaml_file = trace_analyzer_output_dir / fname
+                assert analysis_yaml_file.is_file()
+                with open(analysis_yaml_file, "r") as f:
+                    analysis_data = yaml.safe_load(f)
+                # print("analysis_data", analysis_data)
+                for key, metrics in analysis_data.items():
+                    # print("key", key)
+                    if key == "metadata":
+                        continue
+                    flattened_metrics = flatten_metrics(metrics)
+                    # print("flattened_metrics", flattened_metrics)
+                    # TODO: add ranges df in addition to yaml?
+                    row = {"range_name": range_name, **flattened_metrics}
+                    analysis_rows[key].append(row)
+            # print("analysis_rows", analysis_rows)
+            for key, rows in analysis_rows.items():
+                analysis_df = pd.DataFrame(rows)
+                analysis_attrs = {
+                    "instr_trace": instr_trace_artifact.name,
+                    "timing_trace": timing_trace_artifact.name,
+                    "kind": "analysis",
+                    "group": key,
+                    "by": __name__,
+                }
+                analysis_artifact = TableArtifact(f"analysis_{key}", analysis_df, attrs=analysis_attrs)
+                sess.add_artifact(analysis_artifact, override=force)
+
+        if views:
+            # print("gen_viewer_args", " ".join(gen_viewer_args))
+            logger.info(
+                "Generating kanata files for %s model... (Output directory: %s)", model_name, trace_analyzer_output_dir
+            )
+            run_cmd(gen_viewer_args, cwd=trace_analyzer_output_dir, verbose=verbose)
 
 
 def handle(args):
@@ -223,6 +291,9 @@ def handle(args):
         verbose=args.verbose,
         ranges_yaml=args.ranges_yaml,
         uarch=args.uarch,
+        views=args.views,
+        use_pkl=args.use_pkl,
+        gen_dfs=args.gen_dfs,
     )
     sess.save()
 
@@ -238,6 +309,9 @@ def get_parser():
     parser.add_argument("--output", default=None)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--views", action="store_true")
+    parser.add_argument("--use-pkl", action="store_true")
+    parser.add_argument("--gen-dfs", action="store_true")
     parser.add_argument("--ranges-yaml", type=str, required=True)
     parser.add_argument("--uarch", type=str, default="CV32E40P")
     return parser
