@@ -31,7 +31,7 @@ import pandas as pd
 import numpy as np
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TraceArtifact
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TraceArtifact, TableArtifact
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 from isaac_toolkit.utils.demangle import unmangle_helper
 
