@@ -10,6 +10,7 @@ isaac\_toolkit.analysis.dynamic.trace.instr\_operands
    
       analyze_instr_operands
       ceil
+      collect_operands
       filter_artifacts
       get_logger
       get_parser
