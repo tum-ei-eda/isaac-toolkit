@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>isaac_toolkit.builder.standalone.common &mdash; ISAAC Toolkit 0.5.7 documentation</title>
+  <title>isaac_toolkit.builder.standalone.registry &mdash; ISAAC Toolkit 0.5.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="isaac_toolkit.builder.standalone.etiss" href="isaac_toolkit.builder.standalone.etiss.html" />
-    <link rel="prev" title="isaac_toolkit.builder.standalone.cli" href="isaac_toolkit.builder.standalone.cli.html" /> 
+    <link rel="next" title="isaac_toolkit.builder.standalone.riscv" href="isaac_toolkit.builder.standalone.riscv.html" />
+    <link rel="prev" title="isaac_toolkit.builder.standalone.etiss_perf_vicuna" href="isaac_toolkit.builder.standalone.etiss_perf_vicuna.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -91,9 +91,9 @@
           <li class="breadcrumb-item"><a href="isaac_toolkit.html">isaac_toolkit</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.builder.html">isaac_toolkit.builder</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.builder.standalone.html">isaac_toolkit.builder.standalone</a></li>
-      <li class="breadcrumb-item active">isaac_toolkit.builder.standalone.common</li>
+      <li class="breadcrumb-item active">isaac_toolkit.builder.standalone.registry</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/isaac_toolkit.builder.standalone.common.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/isaac_toolkit.builder.standalone.registry.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -101,27 +101,51 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-isaac_toolkit.builder.standalone.common">
-<span id="isaac-toolkit-builder-standalone-common"></span><h1>isaac_toolkit.builder.standalone.common<a class="headerlink" href="#module-isaac_toolkit.builder.standalone.common" title="Link to this heading"></a></h1>
+  <section id="module-isaac_toolkit.builder.standalone.registry">
+<span id="isaac-toolkit-builder-standalone-registry"></span><h1>isaac_toolkit.builder.standalone.registry<a class="headerlink" href="#module-isaac_toolkit.builder.standalone.registry" title="Link to this heading"></a></h1>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_logger</span></code>()</p></td>
-<td><p>Helper function which return the main isaac-toolkit logger while ensuring that is is properly initialized.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_build_artifacts</span></code>(sess, dest_dir, program)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">invoke_etiss_builder</span></code>(sess, make_dir[, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_compile_metrics</span></code>(sess, compile_metrics, ...)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">invoke_etiss_perf_builder</span></code>(sess, make_dir[, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_disass</span></code>(sess, input_file[, force])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">invoke_etiss_perf_vicuna_builder</span></code>(sess, make_dir)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_elf</span></code>(sess, input_file[, force])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">invoke_spike_bm_builder</span></code>(sess, make_dir[, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_linker_map</span></code>(sess, input_file[, force])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">invoke_spike_builder</span></code>(sess, make_dir[, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">invoke_vicuna_builder</span></code>(sess, make_dir[, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">lookup_simulator</span></code>(name)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_etiss_args</span></code>(args)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_etiss_perf_args</span></code>(args)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_etiss_perf_vicuna_args</span></code>(args)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_spike_args</span></code>(args)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_spike_bm_args</span></code>(args)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_vicuna_args</span></code>(args)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_simulator</span></code>(name, parse_func, invoke_func)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -129,13 +153,22 @@
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">MetricsArtifact</span></code>(name[, df, path, flags, ...])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ETISSPerfStandaloneBuilder</span></code>(make_dir[, name])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code>(*args, **kwargs)</p></td>
-<td><p>PurePath subclass that can make system calls.</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ETISSPerfVicunaStandaloneBuilder</span></code>(make_dir[, ...])</p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code>(session_dir, config)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ETISSStandaloneBuilder</span></code>(make_dir[, name])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpikeBMStandaloneBuilder</span></code>(make_dir, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpikeStandaloneBuilder</span></code>(make_dir, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">VicunaStandaloneBuilder</span></code>(make_dir[, name])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -146,8 +179,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="isaac_toolkit.builder.standalone.cli.html" class="btn btn-neutral float-left" title="isaac_toolkit.builder.standalone.cli" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="isaac_toolkit.builder.standalone.etiss.html" class="btn btn-neutral float-right" title="isaac_toolkit.builder.standalone.etiss" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="isaac_toolkit.builder.standalone.etiss_perf_vicuna.html" class="btn btn-neutral float-left" title="isaac_toolkit.builder.standalone.etiss_perf_vicuna" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="isaac_toolkit.builder.standalone.riscv.html" class="btn btn-neutral float-right" title="isaac_toolkit.builder.standalone.riscv" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

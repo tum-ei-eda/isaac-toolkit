@@ -18,5 +18,6 @@ isaac\_toolkit.builder.standalone
    registry
    riscv
    spike
+   spike_bm
    standalone
    vicuna

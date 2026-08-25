@@ -1,0 +1,36 @@
+isaac\_toolkit.builder.standalone.registry
+==========================================
+
+.. automodule:: isaac_toolkit.builder.standalone.registry
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      invoke_etiss_builder
+      invoke_etiss_perf_builder
+      invoke_etiss_perf_vicuna_builder
+      invoke_spike_bm_builder
+      invoke_spike_builder
+      invoke_vicuna_builder
+      lookup_simulator
+      parse_etiss_args
+      parse_etiss_perf_args
+      parse_etiss_perf_vicuna_args
+      parse_spike_args
+      parse_spike_bm_args
+      parse_vicuna_args
+      register_simulator
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ETISSPerfStandaloneBuilder
+      ETISSPerfVicunaStandaloneBuilder
+      ETISSStandaloneBuilder
+      SpikeBMStandaloneBuilder
+      SpikeStandaloneBuilder
+      VicunaStandaloneBuilder
+   

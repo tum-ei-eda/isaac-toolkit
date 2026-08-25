@@ -1,0 +1,28 @@
+isaac\_toolkit.builder.standalone.cli
+=====================================
+
+.. automodule:: isaac_toolkit.builder.standalone.cli
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      add_common_args
+      add_prog_args
+      get_logger
+      handle
+      handle_coremark
+      handle_custom
+      handle_embench
+      lookup_simulator
+      parse_override_args
+      set_log_level
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+   
