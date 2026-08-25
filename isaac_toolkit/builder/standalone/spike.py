@@ -34,8 +34,8 @@ from isaac_toolkit.logging import get_logger
 
 # from .standalone import StandaloneBuilder
 
-from .riscv import RISCVStandaloneBuilder, add_riscv_args, parse_riscv_args
-from .common import load_build_artifacts
+from isaac_toolkit.builder.standalone.riscv import RISCVStandaloneBuilder, add_riscv_args, parse_riscv_args
+from isaac_toolkit.builder.standalone.common import load_build_artifacts
 
 # from .cli import add_common_args, add_prog_args
 
