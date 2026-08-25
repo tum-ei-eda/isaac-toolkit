@@ -1,0 +1,33 @@
+isaac\_toolkit.backend.perf.trace\_analyzer.analyzer
+====================================================
+
+.. automodule:: isaac_toolkit.backend.perf.trace_analyzer.analyzer
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      ceil
+      export_helper
+      export_instr_trace
+      export_timing_trace
+      filter_artifacts
+      flatten_metrics
+      get_parser
+      handle
+      log10
+      main
+      run_cmd
+      run_trace_analyzer
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+      TableArtifact
+      defaultdict
+   

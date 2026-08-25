@@ -27,5 +27,6 @@ isaac\_toolkit.analysis.dynamic.trace.trace\_bbs
       Path
       Session
       TableArtifact
+      TraceArtifact
       defaultdict
    

@@ -10,4 +10,6 @@ isaac\_toolkit.backend.perf.trace\_analyzer
    :toctree:
    :recursive:
 
+   analyzer
    ranges
+   windows
