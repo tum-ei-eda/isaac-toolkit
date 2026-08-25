@@ -1,0 +1,62 @@
+O3, vectorized, unrolled
+#instrs=58
+   1032a:	c22027f3          	csrr	a5,vlenb
+   1032e:	08c78793          	addi	a5,a5,140
+   10332:	c2202773          	csrr	a4,vlenb
+   10336:	0c0a7057          	vsetvli	zero,s4,e8,m1,ta,ma
+   1033a:	403ad613          	srai	a2,s5,0x3
+   1033e:	978a                	add	a5,a5,sp
+   10340:	970a                	add	a4,a4,sp
+   10342:	02078207          	vle8.v	v4,(a5)
+   10346:	020d8287          	vle8.v	v5,(s11)
+   1034a:	00e607b3          	add	a5,a2,a4
+   1034e:	020d0107          	vle8.v	v2,(s10)
+   10352:	007af313          	andi	t1,s5,7
+   10356:	020b8087          	vle8.v	v1,(s7)
+   1035a:	4705                	li	a4,1
+   1035c:	006715b3          	sll	a1,a4,t1
+   10360:	00b78623          	sb	a1,12(a5)
+   10364:	02048307          	vle8.v	v6,(s1)
+   10368:	02088187          	vle8.v	v3,(a7)
+   1036c:	26220157          	vand.vv	v2,v2,v4
+   10370:	261280d7          	vand.vv	v1,v1,v5
+   10374:	0c047057          	vsetvli	zero,s0,e8,m1,ta,ma
+   10378:	020c0207          	vle8.v	v4,(s8)
+   1037c:	020c8287          	vle8.v	v5,(s9)
+   10380:	08000593          	li	a1,128
+   10384:	0c05f057          	vsetvli	zero,a1,e8,m1,ta,ma
+   10388:	263301d7          	vand.vv	v3,v3,v6
+   1038c:	2e1100d7          	vxor.vv	v1,v1,v2
+   10390:	0c007757          	vsetvli	a4,zero,e8,m1,ta,ma
+   10394:	5e003157          	vmv.v.i	v2,0
+   10398:	08047057          	vsetvli	zero,s0,e8,m1,tu,ma
+   1039c:	964e                	add	a2,a2,s3
+   1039e:	26520157          	vand.vv	v2,v5,v4
+   103a2:	0c05f057          	vsetvli	zero,a1,e8,m1,ta,ma
+   103a6:	2e1180d7          	vxor.vv	v1,v1,v3
+   103aa:	02810187          	vl1r.v	v3,(sp)
+   103ae:	0c007957          	vsetvli	s2,zero,e8,m1,ta,ma
+   103b2:	00064503          	lbu	a0,0(a2)
+   103b6:	0a85                	addi	s5,s5,1
+   103b8:	154b0b13          	addi	s6,s6,340
+   103bc:	0e21a157          	vredxor.vs	v2,v2,v3
+   103c0:	0c0a7057          	vsetvli	zero,s4,e8,m1,ta,ma
+   103c4:	0e11a0d7          	vredxor.vs	v1,v1,v3
+   103c8:	422025d7          	vmv.x.s	a1,v2
+   103cc:	421027d7          	vmv.x.s	a5,v1
+   103d0:	8fad                	xor	a5,a5,a1
+   103d2:	0ff7f793          	zext.b	a5,a5
+   103d6:	0047d593          	srli	a1,a5,0x4
+   103da:	8fad                	xor	a5,a5,a1
+   103dc:	0027d593          	srli	a1,a5,0x2
+   103e0:	8dbd                	xor	a1,a1,a5
+   103e2:	0015d793          	srli	a5,a1,0x1
+   103e6:	8fad                	xor	a5,a5,a1
+   103e8:	8b85                	andi	a5,a5,1
+   103ea:	006797b3          	sll	a5,a5,t1
+   103ee:	8fc9                	or	a5,a5,a0
+   103f0:	00f60023          	sb	a5,0(a2)
+   103f4:	30000793          	li	a5,768
+   103f8:	eefa9fe3          	bne	s5,a5,102f6 <syndrome+0x96>
+
+manual fuse vand+vxor
