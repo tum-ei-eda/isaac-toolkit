@@ -258,13 +258,13 @@ class MemRange:
         if len(alignments_hist) == 1:
             common_alignment = list(alignments_hist.keys())[0]
         else:
-            print("alignments_hist", alignments_hist)
+            # print("alignments_hist", alignments_hist)
             freq_ = 0
             for align, freq in alignments_hist.items():
                 if freq > freq_:
                     freq_ = freq
                     common_alignment = align
-            print("common_alignment", common_alignment)
+            # print("common_alignment", common_alignment)
             # raise NotImplementedError("different alignments?")
         self.multi_alignments.add(common_alignment)
         if entry.mode == "r":
@@ -285,12 +285,12 @@ class MemRange:
                 self.multi_read_strides_per_idx_alignment[entry.idx][common_alignment][common_stride] += 1
             else:
                 freq_ = 0
-                print("strides_hist", strides_hist)
+                # print("strides_hist", strides_hist)
                 for stride, freq in strides_hist.items():
                     if freq > freq_:
                         freq_ = freq
                         common_stride = stride
-                print("common_stride", common_stride)
+                # print("common_stride", common_stride)
                 self.multi_read_strides_per_size_alignment[common_size][common_alignment][common_stride] += 1
                 self.multi_read_strides_per_pc_alignment[entry.pc][common_alignment][common_stride] += 1
                 self.multi_read_strides_per_idx_alignment[entry.idx][common_alignment][common_stride] += 1
@@ -895,7 +895,7 @@ def collect_mem_metrics(
     #     # input("!")
     # TODO: don't save!
     addrs = mem_trace_df[["addr", "mode", "pc", "bytes"]].values
-    print("len(addrs)", len(addrs))
+    # print("len(addrs)", len(addrs))
     import multiprocessing as mp
     import os
 
@@ -1164,7 +1164,7 @@ def collect_mem_metrics(
     mem_access_by_pc = []
     # results4_ = []
     # results4__ = []
-    pc_to_idxs = mem_trace_df.groupby("pc")["idx"].apply(lambda x: list(set(list(x)))).to_dict()
+    # pc_to_idxs = mem_trace_df.groupby("pc")["idx"].apply(lambda x: list(set(list(x)))).to_dict()
     for r in mems:
         # print("mem", r)
         # print("strides", r.strides)
@@ -1180,7 +1180,7 @@ def collect_mem_metrics(
         }
         for pc in r.pcs:
             # print("pc", pc)
-            idxs = pc_to_idxs[pc]
+            # idxs = pc_to_idxs[pc]
             # num_idxs = len(idxs)
             # print("idxs", idxs, len(idxs))
             # TODO: ignore align
@@ -1292,23 +1292,6 @@ def collect_mem_metrics(
                         "strides": r.multi_strides_per_pc_alignment(pc, align),
                     }
                     multi_mem_access_by_pc.append(temp_)
-                    # temp__ = {
-                    #     **temp_,
-                    #     "num_idxs": num_idxs,
-                    #     "num_reads_per_idx": temp_["num_reads"] / num_idxs if temp_["num_reads"] is not None else None,
-                    #     "num_writes_per_idx": temp_["num_writes"] / num_idxs if temp_["num_writes"] is not None else None,
-                    #     "read_bytes_per_idx": temp_["read_bytes"] / num_idxs if temp_["read_bytes"] is not None else None,
-                    #     "written_bytes_per_idx": (
-                    #         temp_["written_bytes"] / num_idxs if temp_["written_bytes"] is not None else None
-                    #     ),
-                    # }
-                    # # TODO: make optional
-                    # results4_.append(temp__)
-                    # if (temp__["read_bytes_per_idx"] is not None and temp__["read_bytes_per_idx"] > 5.0) or (
-                    #     temp__["written_bytes_per_idx"] and temp__["written_bytes_per_idx"] > 5.0
-                    # ):
-                    #     results4__.append(temp__)
-                    # # results4__.append(temp__)
         multi_mem_access_by_pc_df = pd.DataFrame(multi_mem_access_by_pc)
 
     # by idx

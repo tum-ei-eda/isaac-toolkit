@@ -108,6 +108,7 @@ def invoke_etiss_perf_vicuna_builder(
     dest_dir.mkdir(exist_ok=True, parents=True)
 
     compile_metrics = builder.build(dest_dir=dest_dir, verbose=verbose, overrides=overrides)
+    del compile_metrics
 
     if load:
         load_build_artifacts(sess, dest_dir, program, force=force)
