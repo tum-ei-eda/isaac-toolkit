@@ -1,0 +1,2 @@
+# gcc -fPIC -shared mem_plugin.c -o mem_plugin.so -I/work/git/colabs/minres/qemu/build/qemu-bundle/usr/local/include -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -lglib-2.0
+/work/git/colabs/minres/qemu/build/riscv32-linux-user/qemu-riscv32 -plugin mem_plugin.so,callback=true,haddr=true -D log123 -d plugin results_qemu/build/coremark.elf
