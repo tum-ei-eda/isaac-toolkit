@@ -10,6 +10,8 @@ isaac\_toolkit.analysis.dynamic.mem\_trace.metrics
    
       analyze_mem_trace
       collect_mem_metrics
+      dataclass
+      field
       filter_artifacts
       get_parser
       handle
@@ -26,10 +28,12 @@ isaac\_toolkit.analysis.dynamic.mem\_trace.metrics
    .. autosummary::
    
       ArtifactFlag
+      Counter
       FrozenMemRange
       MemRange
       Path
       Session
       TableArtifact
+      TraceItem
       defaultdict
    

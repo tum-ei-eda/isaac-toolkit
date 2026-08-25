@@ -25,6 +25,7 @@ isaac\_toolkit.session.artifact
       InstrTraceArtifact
       IntFlag
       M2ISARArtifact
+      MetricsArtifact
       Path
       PythonArtifact
       SourceArtifact

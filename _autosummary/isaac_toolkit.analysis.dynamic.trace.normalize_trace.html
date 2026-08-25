@@ -55,12 +55,14 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.arch.html">isaac_toolkit.arch</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.backend.html">isaac_toolkit.backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.builder.html">isaac_toolkit.builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.eval.html">isaac_toolkit.eval</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.flow.html">isaac_toolkit.flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.frontend.html">isaac_toolkit.frontend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.generate.html">isaac_toolkit.generate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.logging.html">isaac_toolkit.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.report.html">isaac_toolkit.report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.runner.html">isaac_toolkit.runner</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.session.html">isaac_toolkit.session</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.utils.html">isaac_toolkit.utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.version.html">isaac_toolkit.version</a></li>
@@ -107,31 +109,34 @@
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_entries</span></code>(rows, elf_path)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">disassemble_word</span></code>(md, pc, word[, size, ...])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">detect_riscv_instr_size</span></code>(bytecode)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_artifacts</span></code>(artifacts, func)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">disassemble_word</span></code>(md, pc, word[, size, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_disassembler</span></code>(elf_path)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_artifacts</span></code>(artifacts, func)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_disassembler</span></code>(elf_path)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>(args)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(argv)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>(args)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_trace</span></code>(sess[, output, force])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(argv)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parallel_dict_builder</span></code>(rows, elf_path[, nprocs])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_trace</span></code>(sess[, output, force])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">worker</span></code>(row_chunk, elf_path)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parallel_dict_builder</span></code>(rows, elf_path[, nprocs])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">worker</span></code>(row_chunk, elf_path)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>

@@ -9,6 +9,7 @@ isaac\_toolkit.analysis.dynamic.trace.normalize\_trace
    .. autosummary::
    
       build_entries
+      detect_riscv_instr_size
       disassemble_word
       filter_artifacts
       get_disassembler

@@ -29,6 +29,7 @@ isaac\_toolkit.session.session
       InstrTraceArtifact
       IsaacConfig
       M2ISARArtifact
+      MetricsArtifact
       Path
       PythonArtifact
       Session

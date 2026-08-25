@@ -1,0 +1,22 @@
+isaac\_toolkit.builder.standalone
+=================================
+
+.. automodule:: isaac_toolkit.builder.standalone
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   cli
+   common
+   etiss
+   etiss_perf
+   etiss_perf_vicuna
+   registry
+   riscv
+   spike
+   standalone
+   vicuna

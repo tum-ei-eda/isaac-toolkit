@@ -1,0 +1,23 @@
+isaac\_toolkit.frontend.perf\_trace.vicuna
+==========================================
+
+.. automodule:: isaac_toolkit.frontend.perf_trace.vicuna
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_parser
+      handle
+      load_perf_trace
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Path
+      Session
+      TraceArtifact
+   

@@ -9,7 +9,7 @@ isaac\_toolkit.report.sess\_mem\_usage
    .. autosummary::
    
       format_size
-      generate_sess_mem_usage
+      generate_sess_mem_usage_report
       get_artifact_size
       get_file_size
       get_parser

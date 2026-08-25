@@ -1,0 +1,20 @@
+isaac\_toolkit.builder.standalone.standalone
+============================================
+
+.. automodule:: isaac_toolkit.builder.standalone.standalone
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_logger
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ISAACBuilder
+      Path
+      StandaloneBuilder
+   
