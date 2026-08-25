@@ -16,9 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
 import os
-import argparse
 from pathlib import Path
 
 from isaac_toolkit.session import Session
@@ -26,7 +24,7 @@ from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.cli.utils import parse_override_args
 
 # from .etiss import parse_etiss_args
-from .registry import lookup_simulator
+from isaac_toolkit.runner.standalone.registry import lookup_simulator
 
 logger = get_logger()
 

@@ -16,15 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
-import argparse
 import subprocess
 from typing import Optional, Union, List
 from pathlib import Path
 
 from isaac_toolkit.logging import get_logger
 
-from ..builder import ISAACBuilder
+from isaac_toolkit.builder.builder import ISAACBuilder
 
 logger = get_logger()
 

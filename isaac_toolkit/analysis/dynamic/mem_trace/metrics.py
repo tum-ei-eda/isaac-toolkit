@@ -579,14 +579,6 @@ class MemRange:
             )
         )
 
-    def strides_per_size_alignment(self, size, align):
-        return sorted(
-            list(
-                set(self.read_strides_per_size_alignment.get(size, {}).get(align, {}).keys())
-                | set(self.write_strides_per_size_alignment.get(size, {}).get(align, {}).keys())
-            )
-        )
-
     def multi_strides_per_pc_alignment(self, pc, align):
         return sorted(
             list(

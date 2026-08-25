@@ -24,7 +24,6 @@ from typing import List, Union
 from pathlib import Path
 
 import pandas as pd
-import numpy as np
 
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import TraceArtifact

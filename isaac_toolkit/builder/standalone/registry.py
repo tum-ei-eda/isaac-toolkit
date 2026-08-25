@@ -19,7 +19,11 @@
 
 from .etiss import ETISSStandaloneBuilder, invoke_etiss_builder, parse_etiss_args
 from .etiss_perf import ETISSPerfStandaloneBuilder, invoke_etiss_perf_builder, parse_etiss_perf_args
-from .etiss_perf_vicuna import ETISSPerfVicunaStandaloneBuilder, invoke_etiss_perf_vicuna_builder, parse_etiss_perf_vicuna_args
+from .etiss_perf_vicuna import (
+    ETISSPerfVicunaStandaloneBuilder,
+    invoke_etiss_perf_vicuna_builder,
+    parse_etiss_perf_vicuna_args,
+)
 from .vicuna import VicunaStandaloneBuilder, invoke_vicuna_builder, parse_vicuna_args
 from .spike import SpikeStandaloneBuilder, invoke_spike_builder, parse_spike_args
 from .spike_bm import SpikeBMStandaloneBuilder, invoke_spike_bm_builder, parse_spike_bm_args
