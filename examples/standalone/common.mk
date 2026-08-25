@@ -83,6 +83,10 @@ ETISS_PERF ?= $(INSTALL_DIR)/etiss_perf/bin/run_helper.sh
 ETISS_PERF_INI ?= $(PERF_SIM_DIR)/simulator/ini/common.ini
 ETISS_PERF_INI2 ?= $(PERF_SIM_DIR)/simulator/ini/$(PERF_MODEL3).ini
 
+ETISS_PERF_INI_ARGS := \
+    $(if $(wildcard $(ETISS_PERF_INI)),-i$(ETISS_PERF_INI),) \
+    $(if $(wildcard $(ETISS_PERF_INI2)),-i$(ETISS_PERF_INI2),)
+
 FIVP_SDK_DIR ?= /path/to/fivp-sdk
 FIVP_SDK_TARGET ?= ri5cy
 
@@ -113,6 +117,10 @@ PERF_VICUNA_MODEL3 ?= $(PERF_VICUNA_MODEL)
 ETISS_PERF_VICUNA_INI ?= $(PERF_SIM_VICUNA_DIR)/simulator/ini/common.ini
 ETISS_PERF_VICUNA_INI2 ?= $(PERF_SIM_VICUNA_DIR)/simulator/ini/$(PERF_VICUNA_MODEL3).ini
 
+ETISS_PERF_VICUNA_INI_ARGS := \
+    $(if $(wildcard $(ETISS_PERF_VICUNA_INI)),-i$(ETISS_PERF_VICUNA_INI),) \
+    $(if $(wildcard $(ETISS_PERF_VICUNA_INI2)),-i$(ETISS_PERF_VICUNA_INI2),)
+
 VICUNA_UTILS_DIR ?= $(abspath ../vicuna_utils)
 VICUNA_ROOT ?= /path/to/vicuna
 VICUNA_EXE ?= $(VICUNA_ROOT)/build_model/build/verilated_model
@@ -130,6 +138,8 @@ ETISS_ARCH ?= RV$(RISCV_XLEN)IMACFDV_zvl$(VLEN)b
     else
         PERF_TRACE_MODEL ?= AssemblyTrace_RV$(RISCV_XLEN)
     endif
+else ifeq ($(SIMULATOR),etiss_perf)
+    PERF_TRACE_MODEL ?= AssemblyTrace_RV$(RISCV_XLEN)
 endif
 ETISS_ARGS :=
 ifneq ($(ETISS_ARCH),)
@@ -473,7 +483,7 @@ else ifeq ($(SIMULATOR),riscv_qemu)
 	$(RISCV_QEMU) -one-insn-per-tb -singlestep -D $(TRACE) -d exec,nochain $(ELF)
 else ifeq ($(SIMULATOR),etiss)
 	# $(ETISS) $(ELF) -i$(ETISS_INI) -pPrintInstruction | grep "^0x00000000" > $(TRACE)
-	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) $(ETISS_ARGS) --jit.verify=false -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR) --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
+	cd $(OUT_DIR) && $(ETISS) -i$(ETISS_INI) --vp.elf_file=$(ELF) $(ETISS_ARGS) --jit.verify=false -pPrintInstruction --plugin.printinstruction.print_to_file=true --etiss.output_path_prefix=$(OUT_DIR)/ --jit.type=$(ETISS_JIT)JIT && mv $(OUT_DIR)/instr_trace.csv $(TRACE)
 else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
@@ -491,7 +501,7 @@ else ifeq ($(SIMULATOR),etiss_perf)
 	mkdir $(TRACE)
 	# cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
 	# cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
-	(cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT) || true
+	(cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) $(ETISS_PERF_INI_ARGS) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT) || true
 else ifeq ($(SIMULATOR),etiss_perf_vicuna)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
@@ -509,7 +519,7 @@ else ifeq ($(SIMULATOR),etiss_perf_vicuna)
 	mkdir $(TRACE)
 	# cd $(OUT_DIR) && $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
 	# cd $(OUT_DIR) && $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT
-	(cd $(OUT_DIR) && VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT) || true
+	(cd $(OUT_DIR) && VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_PERF_VICUNA_INI_ARGS) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT) || true
 else ifneq (,$(filter $(SIMULATOR),tgc dbt))
 	cd $(OUT_DIR) && $(TGC_SIM) --backend $(TGC_BACKEND) -f $(ELF) -p $(TGC_PCTRACE)=$(TGC_YAML) && mv output.trc $(TRACE)  # TODO: move to OUT_DIR
 endif
@@ -538,7 +548,7 @@ else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "plugin.perfEst.uArch=$(PERF_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
 	set -o pipefail && \
-	($(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)) || true
+	($(ETISS_PERF) $(ELF) $(ETISS_ARGS) $(ETISS_PERF_INI_ARGS) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)) || true
 	# $(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
 	# $(ETISS_PERF) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
 else ifeq ($(SIMULATOR),etiss_perf_vicuna)
@@ -547,7 +557,7 @@ else ifeq ($(SIMULATOR),etiss_perf_vicuna)
 	@echo "plugin.perfEst.uArch=$(PERF_VICUNA_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
 	set -o pipefail && \
-	(VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)) || true
+	(VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) $(ETISS_PERF_VICUNA_INI_ARGS) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)) || true
 	# $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
 	# $(ETISS_PERF_VICUNA) $(ELF) $(ETISS_ARGS) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) --jit.type=$(ETISS_JIT)JIT 2>&1 | tee $(OUTP)
 else ifneq (,$(filter $(SIMULATOR),tgc dbt))
@@ -569,13 +579,13 @@ else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.uArch=$(PERF_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
-	(cd $(OUT_DIR) && $(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)) || true
+	cd $(OUT_DIR) && ($(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true || true) && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)
 else ifeq ($(SIMULATOR),etiss_perf_vicuna)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.uArch=$(PERF_VICUNA_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
-	(cd $(OUT_DIR) && VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)) || true
+	cd $(OUT_DIR) && (VLEN=$(VLEN) VLANE_WIDTH=$(VLANE_WIDTH) $(ETISS_PERF_VICUNA) $(ELF) -i$(ETISS_PERF_VICUNA_INI) -i$(ETISS_PERF_VICUNA_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true || true) && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)
 else
 	$(error MEM_TRACE not supported!)
 endif
@@ -638,9 +648,9 @@ load_dynamic_trace_perf: $(SESS) $(PERF_TRACE)
 	python3 -m isaac_toolkit.frontend.timing_trace.$(PERF_TRACE_FRONTEND) $(PERF_TRACE) --session $(SESS) $(FORCE_ARG)
 
 ifneq (,$(filter $(SIMULATOR),etiss))
-load_dynamic: load_dynamic_trace load_dynamic_mem_trace
+load_dynamic: load_dynamic_trace load_dynamic_trace_mem
 else ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
-load_dynamic: load_dynamic_trace load_dynamic_mem_trace load_dynamic_perf_trace
+load_dynamic: load_dynamic_trace load_dynamic_trace_mem load_dynamic_trace_perf
 else
 load_dynamic: load_dynamic_trace
 endif
