@@ -23,7 +23,7 @@ import tempfile
 import subprocess
 from pathlib import Path
 from math import log10, ceil
-from typing import List, Optional, Union
+from typing import Optional, Union
 from collections import defaultdict
 
 import yaml
