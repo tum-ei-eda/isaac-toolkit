@@ -284,7 +284,7 @@ def run_fake_hls(
     verbose: bool = False,
     cleanup: bool = False,
 ):
-    del sess, label
+    del sess
     assert workdir is not None
     if not isinstance(workdir, Path):
         workdir = Path(workdir)
@@ -316,8 +316,8 @@ def run_fake_hls(
     with open(index_file, "r") as f:
         index_data = yaml.safe_load(f)
     candidates = index_data["candidates"]
-    # num_candidates = len(candidates)
-    print("candidates", candidates, len(candidates))
+    num_candidates = len(candidates)
+    print("candidates", candidates, num_candidates)
     sharing_groups = defaultdict(list)
     first_stage = 2
     for i, candidate in enumerate(candidates):

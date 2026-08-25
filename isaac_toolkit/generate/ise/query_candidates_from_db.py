@@ -79,32 +79,38 @@ def get_unique_maxmisos(maxmisos):
 
 
 def get_func_query(session, stage, func_name):
-    return Query(f"""MATCH p0=(n00:INSTR)-[r01:DFG]->(n01:INSTR)
+    return Query(
+        f"""MATCH p0=(n00:INSTR)-[r01:DFG]->(n01:INSTR)
         WHERE n00.func_name = '{func_name}'
         AND n00.session = "{session}"
         AND n00.stage = {stage}
         AND n01.name != "PHI" AND n01.name != "G_PHI"
         RETURN p0
-        """)
+        """
+    )
 
 
 def get_bbs_query(session, stage, func_name):
-    return Query(f"""MATCH (n00:INSTR)
+    return Query(
+        f"""MATCH (n00:INSTR)
         WHERE n00.func_name = '{func_name}'
         AND n00.session = "{session}"
         AND n00.stage = {stage}
         RETURN n00.bb_id as bb_id, count(*) as num_instrs
         ORDER BY bb_id
-        """)
+        """
+    )
 
 
 def get_update_nodes_query(maxmiso_idx, maxmiso_nodes, factor=1):
     size = len(maxmiso_nodes)
-    return Query(f"""
+    return Query(
+        f"""
         MATCH (n:INSTR)
         WHERE id(n) IN {maxmiso_nodes}
         SET n.maxmiso_idx = {maxmiso_idx}, n.maxmiso_factor = {factor}, n.maxmiso_size = {size};
-        """)
+        """
+    )
 
 
 def query_candidates_from_db(

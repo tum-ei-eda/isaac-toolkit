@@ -394,6 +394,7 @@ def get_parser():
         choices=["critical", "error", "warning", "info", "debug"],
     )  # TODO: move to defaults
     parser.add_argument("--verbose", action="store_true", help="Enable verbose console output")
+
     return parser
 
 
