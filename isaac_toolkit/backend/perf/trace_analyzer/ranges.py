@@ -76,7 +76,7 @@ def generate_ranges_yaml(
     print("per_bb_trace_df", per_bb_trace_df)
 
     merged_df = pd.merge(per_bb_trace_df, unique_bbs_df, how="inner", left_index=True, right_index=True)
-    KEEP_COLS = ["bb_call", "trace_idx", "num_instrs", "size", "func", "func_bb_idx"]
+    KEEP_COLS = ["bb_call", "bb_end_trace_idx", "num_instrs", "size", "func", "func_bb_idx"]
     if sort_by is not None:
         KEEP_COLS.append(sort_by)
         merged_df.sort_values(sort_by, inplace=True, ascending=sort_ascending)
@@ -87,11 +87,11 @@ def generate_ranges_yaml(
 
     for bb_idx, bb_row in merged_df.iterrows():
         func = bb_row.func
-        start = bb_row.trace_idx
         num_instrs = bb_row.num_instrs
+        end = bb_row.bb_end_trace_idx
+        start = end - (num_instrs - 1)
         func_bb_idx = bb_row.func_bb_idx
         call = bb_row.bb_call
-        end = start + num_instrs - 1
         # name = f"{func}@bb{func_bb_idx}-BB{bb_idx}-I{call}"
         # TODO: add func_bb_idx to artifact!
         name = f"bb{func_bb_idx}@{func}-BB{bb_idx}-I{call}"

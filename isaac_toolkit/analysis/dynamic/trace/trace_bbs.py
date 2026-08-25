@@ -31,7 +31,7 @@ import pandas as pd
 import numpy as np
 
 from isaac_toolkit.session import Session
-from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TableArtifact
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, TraceArtifact, TableArtifact
 from isaac_toolkit.arch.riscv import riscv_branch_instrs, riscv_return_instrs
 from isaac_toolkit.utils.demangle import unmangle_helper
 
@@ -346,7 +346,7 @@ def collect_bbs_new(trace_df, mapping):
     bb_idx_ = inverse_idx
     bb_idx_arr = np.empty(len(first_pcs), dtype=np.int32)
     bb_call_arr = np.empty(len(first_pcs), dtype=np.int32)
-    trace_idx_arr = np.array(bb_end_indices, dtype=np.int32)
+    bb_end_trace_idx_arr = np.array(bb_end_indices, dtype=np.int32)
     unique_bb_freq = defaultdict(int)
 
     for unique_bb_idx in range(len(unique_hashes)):
@@ -368,19 +368,19 @@ def collect_bbs_new(trace_df, mapping):
         unique_bb_freq[unique_bb_idx] += 1
         bb_idx_arr[idx] = unique_bb_idx
         bb_call_arr[idx] = bb_call
-        trace_idx_arr[idx] = bb_end_indices[idx]
+        bb_end_trace_idx_arr[idx] = bb_end_indices[idx]
 
     # --- Convert to DataFrames ---
     bb_trace_df = pd.DataFrame(
         {
             "bb_idx": bb_idx_arr,  # .astype("category"),
             "bb_call": bb_call_arr.astype(np.uint32),
-            "trace_idx": trace_idx_arr.astype(np.uint32),
+            "bb_end_trace_idx": bb_end_trace_idx_arr.astype(np.uint32),
         }
     )
     bb_trace_df["bb_idx"] = bb_trace_df["bb_idx"].astype("category")
     bb_trace_df["bb_call"] = pd.to_numeric(bb_trace_df["bb_call"], downcast="unsigned")
-    bb_trace_df["trace_idx"] = pd.to_numeric(bb_trace_df["trace_idx"], downcast="unsigned")
+    bb_trace_df["bb_end_trace_idx"] = pd.to_numeric(bb_trace_df["bb_end_trace_idx"], downcast="unsigned")
 
     unique_bbs_df = pd.DataFrame(unique_bbs, columns=["first_pc", "last_pc", "num_instrs", "size", "end_instr", "func"])
     unique_bbs_df["freq"] = [unique_bb_freq[i] for i in range(len(unique_bbs))]
@@ -791,7 +791,7 @@ def collect_trace_bbs(
     }
 
     # pc2bb_artifact = TableArtifact("pc2bb_compat", pc2bb_df, attrs=attrs)
-    pc2bb_artifact = TableArtifact("pc2bb", pc2bb_df, attrs=attrs)
+    pc2bb_artifact = TraceArtifact("pc2bb", pc2bb_df, attrs=attrs)
     sess.add_artifact(pc2bb_artifact, override=force)
 
 
