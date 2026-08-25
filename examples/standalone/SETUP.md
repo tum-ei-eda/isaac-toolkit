@@ -68,7 +68,7 @@ or similar.
 
 ```sh
 # prebuilt
-./scripts/download_helper.sh $INSTALL_DIR/etiss_perf etiss_perf v0.11.2
+./scripts/download_helper.sh $INSTALL_DIR/etiss_perf etiss_perf main_etiss_v0.11.2
 ./scripts/setup_etiss_examples.sh $INSTALL_DIR/etiss_perf
 
 # from source:
