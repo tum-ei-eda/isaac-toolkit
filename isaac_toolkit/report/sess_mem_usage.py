@@ -58,7 +58,7 @@ def format_size(size: float, raw: bool = False):
     return natural_size
 
 
-def generate_sess_mem_usage(
+def generate_sess_mem_usage_report(
     sess, output=None, fmt="md", detailed=False, portable=False, style=False, topk=10, force=False, raw=False
 ):
     # Determine output dir
@@ -128,7 +128,7 @@ def handle(args):
     session_dir = Path(args.session)
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
-    generate_sess_mem_usage(
+    generate_sess_mem_usage_report(
         sess,
         output=args.out,
         fmt=args.fmt,
@@ -143,7 +143,7 @@ def handle(args):
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="Generate runtime report from ISAAC session.")
+    parser = argparse.ArgumentParser(description="Generate mem usage report from ISAAC session.")
     parser.add_argument(
         "--log",
         default="info",

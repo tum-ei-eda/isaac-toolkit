@@ -1,0 +1,94 @@
+#
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+from typing import Union, List
+from pathlib import Path
+
+import pandas as pd
+
+from isaac_toolkit.session import Session
+from isaac_toolkit.session.artifact import MetricsArtifact
+
+from isaac_toolkit.logging import get_logger
+from isaac_toolkit.frontend.elf.riscv import load_elf
+from isaac_toolkit.frontend.linker_map import load_linker_map
+from isaac_toolkit.frontend.disass.objdump import load_disass
+
+# from isaac_toolkit.frontend.compile_commands.json import load_compile_commands_json
+
+logger = get_logger()
+
+
+def load_build_artifacts(
+    sess: Session,
+    dest_dir: Union[str, Path],
+    program: str,
+    force: bool = False,
+    # progress: bool = False,
+):
+    dest_dir = Path(dest_dir)
+    assert dest_dir.is_dir(), f"Missing: {dest_dir}"
+    build_dir = dest_dir / "build"
+    assert build_dir.is_dir(), f"Missing: {build_dir}"
+
+    elf_file = build_dir / f"{program}.elf"
+    linker_map_file = build_dir / f"{program}.map"
+    disass_file = build_dir / f"{program}.dump"
+
+    if elf_file.is_file():
+        load_elf(sess, elf_file, force=force)
+    else:
+        logger.warning("Skipping missing ELF: %s", elf_file)
+    if linker_map_file:
+        load_linker_map(sess, linker_map_file, force=force)
+    else:
+        logger.warning("Skipping missing linker map file: %s", linker_map_file)
+    if disass_file:
+        load_disass(sess, disass_file, force=force)
+    else:
+        logger.warning("Skipping missing disass file: %s", disass_file)
+    # load_compile_commands_json(sess, compile_commands_file, force=force)
+
+
+def load_compile_metrics(
+    sess: Session,
+    compile_metrics: Union[dict, List[dict]],
+    program: str,
+    simulator: str,
+    force: bool = False,
+    # progress: bool = False,
+):
+    print("load_compile_metrics")
+    if isinstance(compile_metrics, dict):
+        metrics_df = pd.DataFrame([compile_metrics])
+    else:
+        assert isinstance(compile_metrics, list)
+        assert len(compile_metrics) > 0
+        assert isinstance(compile_metrics[0], dict)
+        metrics_df = pd.DataFrame(compile_metrics)
+
+    attrs = {
+        "simulator": simulator,
+        "program": program,
+        "kind": "compile_metrics",
+        "by": __name__,
+    }
+    metrics_artifact = MetricsArtifact("compile_metrics", metrics_df, attrs=attrs)
+    print("metrics_artifact", metrics_artifact)
+    sess.add_artifact(metrics_artifact, override=force)

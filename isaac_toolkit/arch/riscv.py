@@ -58,3 +58,25 @@ riscv_branch_instrs = [
     # "c.jalr",  # return if  rs1=x1
 ]
 riscv_return_instrs = ["jalr", "cjalr", "cjr", "c.jr", "c.jalr", "ret", "mret", "sret", "uret"]  # TODO
+
+
+def detect_riscv_instr_size(bytecode):  # TODO: move to riscv utils
+    major_opcode = bytecode & 0b1111111
+    bits10 = major_opcode & 0b11
+    bits432 = (major_opcode >> 2) & 0b111
+    bits65 = (major_opcode >> 5) & 0b11
+    if bits10 != 0b11:
+        return 16
+    if bits432 != 0b111:
+        return 32
+    if bits65 == 0b00:
+        return 48
+    elif bits65 == 0b01:
+        return 64
+    elif bits65 == 0b10:
+        return 48
+    elif bits65 == 0b11:
+        raise NotImplementedError("Encoding size >=80b not supported")
+        return ">=80"
+    assert False, "Should not be reached"
+    return 0

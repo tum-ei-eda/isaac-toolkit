@@ -16,33 +16,151 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+# import time
+import sys
+import argparse
+from pathlib import Path
+from typing import Optional
+
 import pandas as pd
-from tqdm import tqdm
 
-input_file = "/workspaces/isaac-toolkit/examples/standalone/coremark/log"
+from isaac_toolkit.session import Session
+from isaac_toolkit.session.artifact import InstrTraceArtifact, TraceArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
+from .utils import parse_instr_trace, DEFAULT_CHUNK_SIZE
 
-dfs = []
-# 'with' context works in pandas >= 1.4 for TextFileReader
-with pd.read_csv(
-    input_file,
-    sep="@",
-    header=None,
-    chunksize=2**22,  # ~4 million lines per chunk
-    # chunksize=2**20,  # ~4 million lines per chunk
-    engine="python",
-) as reader:
-    for df in tqdm(reader, disable=False):
-        # print("A", df.head())
-        # df is a DataFrame chunk
-        # e.g., extract PCs here
-        pcs_chunk = df[0].str.extract(r"\[(?:[^/]+/){1}([^/]+)/")[0].apply(lambda x: int(x, 16))
-        pcs_chunk = pcs_chunk.astype("category")
+logger = get_logger()
 
-        # print("B", pcs_chunk.head(), len(pcs_chunk), pcs_chunk.dtypes, pcs_chunk.memory_usage())
-        # process pcs_chunk or append to list
-        dfs.append(pcs_chunk)
 
-full_df = pd.concat(dfs)
-full_df = full_df.astype("category")
+def process_riscv_qemu_trace_df(df, operands: bool = False):
+    # print("df", df.head())
+    # remove ":" from trace_id
+    df["trace_id"] = df["trace_id"].str.rstrip(":").astype(int)
+    trace_ids = df["trace_id"].unique()
+    # print("trace_ids", trace_ids)
+    assert len(trace_ids) == 1
+    # convert host PC
+    df["host_pc"] = df["host_pc"].apply(lambda x: int(x, 16))
+    # strip brackets
+    packed = df["packed"].str.strip("[]")
+    # split the packed field into 4 columns
+    df[["flags", "pc", "unknown", "extra"]] = packed.str.split("/", expand=True)
+    # convert hex → int (vectorized)
+    for col in ["flags", "pc", "unknown", "extra"]:
+        df[col] = df[col].apply(lambda x: int(x, 16))
+    # df["pc"] = df["pc"].apply(lambda x: int(x, 0))
+    df["pc"] = pd.to_numeric(df["pc"])
+    # df[["instr", "rest"]] = df["rest"].str.split(" # ", n=1, expand=True)
+    # df["instr"] = df["instr"].apply(lambda x: x.strip())
+    # df["instr"] = df["instr"].astype("category")
+    # df[["bytecode", "operands"]] = df["rest"].str.split(" ", n=1, expand=True)
 
-# print("FULL", full_df.head(), len(full_df), full_df.dtypes, full_df.memory_usage())
+    # def detect_size(bytecode):
+    #     if bytecode[:2] == "0x":
+    #         return len(bytecode[2:]) // 2
+    #     elif bytecode[:2] == "0b":
+    #         return len(bytecode[2:]) // 8
+    #     else:
+    #         assert len(set(bytecode)) == 2
+    #         return len(bytecode) // 8
+
+    # df["size"] = df["bytecode"].apply(detect_size)
+    # df["size"] = df["size"].astype("category")
+    # df["bytecode"] = df["bytecode"].apply(
+    #     lambda x: (int(x, 16) if "0x" in x else (int(x, 2) if "0b" in x else int(x, 2)))
+    # )
+    # df["bytecode"] = pd.to_numeric(df["bytecode"])
+
+    df.drop(columns=["trace", "trace_id", "flags", "extra", "symbol", "host_pc", "packed", "unknown"], inplace=True)
+    # print("df2", df.head())
+    return df
+
+
+def load_instr_trace(
+    sess: Session,
+    input_file: Path,
+    force: bool = False,
+    operands: bool = False,
+    progress: bool = False,
+    num_workers: Optional[int] = None,
+    executor: str = "process_pool",
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+):
+    logger.info("Loading RISC-V QEMU intruction trace...")
+    assert input_file.is_file(), f"File not found: {input_file}"
+    name = input_file.name
+
+    df = parse_instr_trace(
+        input_file,
+        process_riscv_qemu_trace_df,
+        num_workers=num_workers,
+        progress=progress,
+        chunk_size=chunk_size,
+        executor=executor,
+        sep=r"\s+",
+        names=["trace", "trace_id", "host_pc", "packed", "symbol"],
+        operands=operands,
+        header=None,
+    )
+
+    attrs = {
+        "simulator": "riscv_qemu",
+        "cpu_arch": "unknown",
+        "by": "isaac_toolkit.frontend.instr_trace.riscv_qemu",
+    }
+    if operands:
+        operands_trace_df = df[["instr", "operands"]]
+        df.drop(columns=["operands"], inplace=True)
+        operands_artifact = TraceArtifact("operands_trace", operands_trace_df, attrs=attrs)
+        sess.add_artifact(operands_artifact, override=force)
+    artifact = InstrTraceArtifact(name, df, attrs=attrs)
+    sess.add_artifact(artifact, override=force)
+
+
+def handle(args):
+    assert args.session is not None
+    session_dir = Path(args.session)
+    assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+    sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
+    input_file = Path(args.file)
+    load_instr_trace(
+        sess,
+        input_file,
+        force=args.force,
+        operands=args.operands,
+        progress=args.progress,
+        executor=args.executor,
+        num_workers=args.parallel,
+        chunk_size=args.chunk_size,
+    )
+    sess.save()
+
+
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file")
+    parser.add_argument(
+        "--log",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
+    )  # TODO: move to defaults
+    parser.add_argument("--session", "--sess", "-s", type=str, required=True)
+    parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--operands", action="store_true")
+    parser.add_argument("--progress", action="store_true")
+    parser.add_argument("--executor", type=str, choices=["process_pool", "thread_pool"], default="process_pool")
+    parser.add_argument("--parallel", type=int, default=None)
+    parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
+    return parser
+
+
+def main(argv):
+    parser = get_parser()
+    args = parser.parse_args(argv)
+    handle(args)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

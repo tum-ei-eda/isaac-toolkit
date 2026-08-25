@@ -1,0 +1,199 @@
+#
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import os
+import sys
+import shutil
+from abc import ABC, abstractmethod
+import argparse
+from typing import Optional, Union, List
+from pathlib import Path
+
+from isaac_toolkit.session import Session
+
+# from isaac_toolkit.session.artifact import FileArtifact
+from isaac_toolkit.logging import get_logger, set_log_level
+
+from .standalone import StandaloneBuilder, add_common_args
+
+logger = get_logger()
+
+
+class ISAACBuilder(ABC):
+
+    @abstractmethod
+    def build(dest_dir: Union[str, Path], verbose: bool = False):
+        raise NotImplementedError
+
+
+class StandaloneBuilder(ISAACBuilder):
+    def __init__(
+        self,
+        make_dir: Union[str, Path],
+        simulator: str,
+        toolchain: str = "gcc",
+        optimize: Optional[str] = None,
+    ):
+        self.make_dir = Path(make_dir)
+        assert self.make_dir.is_dir()
+        self.simulator = simulator
+        self.toolchain = toolchain
+        self.optimize = optimize
+
+    def get_extra_args(self):
+        return {}
+
+    def build(self, dest_dir: Union[str, Path], make_target: str = "compile", verbose: bool = False):
+        assert dest_dir is not None
+        args = ["make", "-C", self.make_dir, make_target]
+        args.append(f"DEST={dest_dir}")
+        args.append(f"SIMULATOR={self.simulator}")
+        if self.toolchain is not None:
+            args.append(f"TOOLCHAIN={self.toolchain}")
+        if self.optimize is not None:
+            args.append(f"OPTIMIZE={self.optimize}")
+        extra_args = self.get_extra_args()
+        if extra_args:
+            args += extra_args
+        command = " ".join(map(str, args))
+        print(f"> {command}")
+        input("!")
+
+
+class CoreMarkBuilder(StandaloneBuilder):
+
+    def __init__(
+        self,
+        simulator: str,
+        toolchain: str = "gcc",
+        optimize: Optional[str] = None,
+        coremark_iterations: Optional[int] = None,
+        coremark_example_dir: Optional[str] = None,
+    ):
+        if coremark_example_dir is None:
+            default_coremark_example_dir = None
+            examples_dir = os.environ.get("EXAMPLES_DIR")
+            if examples_dir is not None:
+                standalone_examples_dir = os.environ.get("STANDALONE_EXAMPLES_DIR", Path(examples_dir) / "standalone")
+                if standalone_examples_dir is not None:
+                    default_coremark_example_dir = Path(standalone_examples_dir) / "coremark"
+            coremark_example_dir = os.environ.get("COREMARK_EXAMPLE_DIR", default_coremark_example_dir)
+        assert coremark_example_dir is not None, "Please define COREMARK_EXAMPLE_DIR"
+        assert Path(coremark_example_dir).is_dir(), f"Missing: {coremark_example_dir}"
+        super().__init__(coremark_example_dir, simulator, toolchain=toolchain, optimize=optimize)
+        self.coremark_iterations = coremark_iterations
+
+    def get_extra_args(self):
+        extras = {}
+        if self.coremark_iterations is not None:
+            extras["COREMARK_ITERATIONS"] = self.coremark_iterations
+        extra_args = [f"{k}={v}" for k, v in extras.items()]
+        return extra_args
+
+
+def invoke_coremark_builder(
+    sess: Session,
+    simulator: str,
+    toolchain: str = "gcc",
+    optimize: Optional[str] = None,
+    coremark_iterations: Optional[int] = None,
+    dest_dir: Optional[str] = None,
+    label: Optional[str] = None,
+    verbose: bool = False,
+    force: bool = False,
+    load: bool = False,
+    cleanup: bool = False,
+):
+    # TODO: docker support
+    # TODO: allow debug?
+    logger.info("Building coremark example...")
+
+    builder = CoreMarkBuilder(simulator, toolchain=toolchain, optimize=optimize)
+
+    if label is None:
+        # TODO: add timestamp?
+        label = "coremark-build"
+
+    if dest_dir is not None:
+        dest_dir = Path(dest_dir)
+    else:
+        assert sess is not None
+        sess_dir = sess.directory
+        dest_dir = sess_dir / "temp"
+    if dest_dir.is_dir():
+        assert force, "Destination directory already exists. Use --force to override."
+        shutil.rmtree(dest_dir)
+    dest_dir.mkdir(exist_ok=True)
+
+    builder.build(dest_dir=dest_dir, verbose=verbose)
+
+    if load:
+        raise NotImplementedError("load")
+    if cleanup:
+        raise NotImplementedError("cleanup")
+
+    # attrs = {
+    #     "by": __name__,
+    #     "kind": "",
+    # }
+    # initializer_artifact = FileArtifact(name, input_file, attrs=attrs)
+    # sess.add_artifact(initializer_artifact, override=force)
+
+
+def handle(args):
+    sess = None
+    if args.session is not None:
+        session_dir = Path(args.session)
+        assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
+        sess = Session.from_dir(session_dir)
+    set_log_level(console_level=args.log, file_level=args.log)
+    invoke_coremark_builder(
+        sess,
+        args.simulator,
+        toolchain=args.toolchain,
+        optimize=args.optimize,
+        label=args.label,
+        dest_dir=args.dest,
+        verbose=args.verbose,
+        load=args.load,
+        cleanup=args.cleanup,
+        force=args.force,
+    )
+    sess.save()
+
+
+
+def add_coremark_args(parser):
+    parser.add_argument("--coremark-iterations", "--iter", type=int, default=None)
+
+
+def get_parser():
+    parser = argparse.ArgumentParser()
+    add_common_args(parser)
+    add_coremark_args(parser)
+    return parser
+
+
+def main(argv):
+    parser = get_parser()
+    args = parser.parse_args(argv)
+    handle(args)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

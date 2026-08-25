@@ -44,6 +44,7 @@ class ArtifactFlag(IntFlag):
     PYTHON = auto()
     DISASS = auto()
     TRACE = auto()
+    METRICS = auto()
 
 
 def filter_artifacts(artifacts, func):
@@ -177,6 +178,7 @@ class FileArtifact(Artifact):
         if dest.resolve() == self.path.resolve():
             return
         shutil.copyfile(self.path, dest)
+        self.path = dest  # ?
 
 
 class ElfArtifact(FileArtifact):
@@ -332,6 +334,13 @@ class TraceArtifact(TableArtifact):
     @property
     def flags(self):
         return super().flags | ArtifactFlag.TRACE
+
+
+class MetricsArtifact(TableArtifact):
+
+    @property
+    def flags(self):
+        return super().flags | ArtifactFlag.METRICS
 
 
 class InstrTraceArtifact(TraceArtifact):

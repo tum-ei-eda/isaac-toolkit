@@ -44,10 +44,19 @@ def load_instr_trace(
     progress: bool = False,
 ):
     logger.info("Loading ETISS (new) instruction trace...")
-    assert len(input_files) > 0
-    name = input_files[0].name
+    if isinstance(input_files, list):
+        assert len(input_files) > 0
+    else:
+        assert isinstance(input_files, (str, Path))
+        if Path(input_files).is_dir():
+            input_files = list(input_files.glob("asm_trace_*.txt"))
+            assert len(input_files) > 0
+        else:
+            input_files = [input_files]
+    input_files = list(map(Path, input_files))
     # sort input files by name
     sorted_files = sorted(input_files, key=lambda x: x.name)
+    name = sorted_files[0].name
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
     for input_file in sorted_files:

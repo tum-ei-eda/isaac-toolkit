@@ -32,7 +32,7 @@ logger = logging.getLogger()
 
 
 def generate_reports(sess, output=None, fmt="md", detailed=False, portable=False, style=False, topk=10, force=False):
-    logger.info("Reporting RVF Demo results...")
+    logger.info("Reporting Example Demo results...")
     generate_runtime_report(
         sess,
         output=output,

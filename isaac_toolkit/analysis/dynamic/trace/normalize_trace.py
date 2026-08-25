@@ -41,6 +41,7 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.constants import SH_FLAGS
 
 from isaac_toolkit.session import Session
+from isaac_toolkit.arch.riscv import detect_riscv_instr_size
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, InstrTraceArtifact
 
 logging.basicConfig(level=logging.DEBUG)  # TODO
@@ -200,31 +201,38 @@ def normalize_trace(
             isa = "riscv"  # TODO: support other ISAs
             assert isa == "riscv"
 
-            def detect_riscv_instr_size(bytecode):  # TODO: move to riscv utils
-                major_opcode = bytecode & 0b1111111
-                bits10 = major_opcode & 0b11
-                bits432 = (major_opcode >> 2) & 0b111
-                bits65 = (major_opcode >> 5) & 0b11
-                if bits10 != 0b11:
-                    return 16
-                if bits432 != 0b111:
-                    return 32
-                if bits65 == 0b00:
-                    return 48
-                elif bits65 == 0b01:
-                    return 64
-                elif bits65 == 0b10:
-                    return 48
-                elif bits65 == 0b11:
-                    raise NotImplementedError("Encoding size >=80b not supported")
-                    return ">=80"
-                assert False, "Should not be reached"
-                return 0
-
             trace_df["size"] = trace_df["bytecode"].apply(detect_riscv_instr_size)
         else:
             # TODO: detect from major opcode or elf?
-            raise NotImplementedError("size")
+            # raise NotImplementedError("size")
+            assert elf_artifact is not None
+            md = get_disassembler(elf_artifact.path)
+            fetcher = ELFInstructionFetcher(elf_artifact.path)
+            # print("trace_df", trace_df.head())
+            unique_pc = trace_df.drop_duplicates(subset=["pc"])[["pc"]]
+            unique_pc["bytecode_lo"] = unique_pc.apply(lambda x: fetcher.read_word_at_pc(x["pc"], size=2), axis=1)
+            assert all(unique_pc["bytecode_lo"].notna()), "Unable to get all bytecodes"
+            unique_pc["size"] = unique_pc["bytecode_lo"].apply(detect_riscv_instr_size)
+            unique_pc["size"] = unique_pc["size"] // 8
+            # print("unique_pc1", unique_pc)
+            # input("!")
+            unique_pc["bytecode"] = unique_pc.apply(lambda x: fetcher.read_word_at_pc(x["pc"], size=x["size"]), axis=1)
+            # print("unique_pc2", unique_pc)
+            # input("!")
+            unique_pc["bytecode"] = pd.to_numeric(unique_pc["bytecode"], downcast="unsigned")
+            unique_pc["bytecode"] = unique_pc["bytecode"].astype("category")
+            # print("unique_pc3", unique_pc)
+            # input("!")
+            if not has_instr:
+                logger.info("Filling missing column: instr")
+                unique_pc["instr"] = unique_pc.apply(disassemble_row, axis=1)
+                unique_pc["instr"] = unique_pc["instr"].astype("category")
+                has_instr = True
+            # print("unique_pc4", unique_pc)
+            # input("!")
+            unique_pc.drop(columns=["bytecode_lo"], inplace=True)
+            trace_df = trace_df.merge(unique_pc, on=["pc"], how="left")
+            has_bytecode = True
         has_size = True
 
     if not has_instr:
