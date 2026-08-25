@@ -91,6 +91,7 @@ def handle(args, extra_args):
 
     # set_log_level(console_level=args.log, file_level=args.log)
     overrides = parse_override_args(args)
+    del overrides  # TODO!
 
     run_full_mlonmcu_flow(
         sess,
