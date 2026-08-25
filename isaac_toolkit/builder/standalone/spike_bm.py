@@ -42,17 +42,17 @@ from isaac_toolkit.builder.standalone.common import load_build_artifacts
 logger = get_logger()
 
 
-class SpikeStandaloneBuilder(RISCVStandaloneBuilder):
+class SpikeBMStandaloneBuilder(RISCVStandaloneBuilder):
 
     def __init__(
         self,
         make_dir: Union[str, Path],
         **kwargs,
     ):
-        super().__init__(make_dir, "spike", **kwargs)
+        super().__init__(make_dir, "spike_bm", **kwargs)
 
 
-def invoke_spike_builder(
+def invoke_spike_bm_builder(
     sess: Session,
     make_dir: Union[str, Path],
     program: str = "unknown",
@@ -74,10 +74,10 @@ def invoke_spike_builder(
 ):
     # TODO: docker support
     # TODO: allow debug?
-    logger.info("Building Spike program...")
+    logger.info("Building SpikeBM program...")
 
-    # runner = SpikeStandaloneBuilder(make_dir, jit=jit, toolchain=toolchain, optimize=optimize)
-    builder = SpikeStandaloneBuilder(
+    # runner = SpikeBMStandaloneBuilder(make_dir, jit=jit, toolchain=toolchain, optimize=optimize)
+    builder = SpikeBMStandaloneBuilder(
         make_dir,
         arch=arch,
         abi=abi,
@@ -90,7 +90,7 @@ def invoke_spike_builder(
 
     if label is None:
         # TODO: add timestamp?
-        label = f"{program}-spike-build"
+        label = f"{program}-spike_bm-build"
 
     if dest_dir is not None:
         dest_dir = Path(dest_dir)
@@ -104,7 +104,7 @@ def invoke_spike_builder(
     dest_dir.mkdir(exist_ok=True, parents=True)
 
     compile_metrics = builder.build(dest_dir=dest_dir, verbose=verbose, overrides=overrides)
-    del compile_metrics
+    del compile_metrics  # TODO
 
     if load:
         load_build_artifacts(sess, dest_dir, program, force=force)
@@ -116,12 +116,12 @@ def invoke_spike_builder(
         # shutil.rmtree(dest_dir / "out")
 
 
-def add_spike_args(parser):
-    spike_group = parser.add_argument_group("spike options")
-    del spike_group
+def add_spike_bm_args(parser):
+    spike_bm_group = parser.add_argument_group("spike_bm options")
+    del spike_bm_group
 
 
-def parse_spike_args(args):
+def parse_spike_bm_args(args):
     ret = parse_riscv_args(args)
     return ret
 
@@ -131,9 +131,9 @@ def get_parser():
 
     parser = argparse.ArgumentParser()
     add_common_args(parser)
-    parser.set_defaults(simulator="spike")
+    parser.set_defaults(simulator="spike_bm")
     add_riscv_args(parser)
-    add_spike_args(parser)
+    add_spike_bm_args(parser)
     add_prog_args(parser)
     return parser
 
