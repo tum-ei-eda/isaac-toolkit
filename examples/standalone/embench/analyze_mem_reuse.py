@@ -1,6 +1,7 @@
 import sys
+from collections import defaultdict
+
 import pandas as pd
-import numpy as np
 
 # --- Load trace ---
 assert len(sys.argv) == 3
@@ -25,7 +26,6 @@ idx2mode = {}
 # idx2addrs = {}
 idx2addrs_bytes = {}
 
-from collections import defaultdict
 
 overlap_counts = defaultdict(int)
 
@@ -94,7 +94,10 @@ for idx, pc_df_ in pc_df.groupby("idx"):
                     pcs_str = f"PC {hex(pc)} [Execs: {pc_execs}]"
                 else:
                     pcs_str = f"PCs {hex(pc_)} -> {hex(pc)}"
-                to_print = f"Found {mode_str} overlap of size {overlap_size} ({overlap_size_rel*100:.1f}%) for {pcs_str} @ {idxs_str}, {rows_str}"
+                to_print = (
+                    f"Found {mode_str} overlap of size {overlap_size} "
+                    f"({overlap_size_rel*100:.1f}%) for {pcs_str} @ {idxs_str}, {rows_str}"
+                )
                 print(to_print)
                 if overlap_size_rel != 1.0:
                     input("%")
