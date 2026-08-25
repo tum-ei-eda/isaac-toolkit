@@ -18,7 +18,9 @@
 #
 import re
 import sys
+import shutil
 import itertools
+import math
 import random
 from math import ceil
 
@@ -54,6 +56,29 @@ DEFAULT_STRATEGIES = ["all"]
 # ]
 
 
+def split_strategies(s: str):
+    parts = []
+    current = []
+    depth = 0
+
+    for c in s:
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+
+        if c == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+        else:
+            current.append(c)
+
+    if current:
+        parts.append("".join(current).strip())
+
+    return parts
+
+
 def parse_strategy_string(strategy_str: str):
     """
     Example:
@@ -62,7 +87,8 @@ def parse_strategy_string(strategy_str: str):
     random(n=5)
     all(limit=100,shuffle=true)
     """
-    pattern = r"(\w+)(?:\((.*)\))?"
+    # pattern = r"(\w+)(?:\((.*)\))?"
+    pattern = r"^([a-zA-Z_]\w*)(?:\((.*)\))?$"
     match = re.match(pattern, strategy_str.strip())
     if not match:
         raise ValueError(f"Invalid strategy format: {strategy_str}")
@@ -120,8 +146,27 @@ def generate_variants(sg_schedules, strategy_strings):
             shuffle = kwargs.get("shuffle", False)
 
             per_sg_indices = [list(range(len(sg_schedules[sg]))) for sg in sg_ids]
-
-            product = list(itertools.product(*per_sg_indices))
+            if shuffle:
+                per_sg_indices = random.sample([random.sample(x, len(x)) for x in per_sg_indices], len(per_sg_indices))
+            # print("per_sg_indices", per_sg_indices, len(per_sg_indices))
+            # max_len = max([len(x) for x in per_sg_indices])
+            # print("max_len", max_len)
+            # est_num_combs_ = max_len ** len(per_sg_indices)
+            # print("est_num_combs_", est_num_combs_)
+            MAX_COMBINATIONS = 1_000_000
+            est_num_combs = math.prod(len(x) for x in per_sg_indices)
+            # print("est_num_combs", est_num_combs)
+            if est_num_combs > MAX_COMBINATIONS:
+                logger.warning(
+                    "Estimated number of combinations (%d) exceeds MAX_COMBINATIONS (%d)! Limiting results...",
+                    est_num_combs,
+                    MAX_COMBINATIONS,
+                )
+                product_iter = itertools.product(*per_sg_indices)
+                limited_product = itertools.islice(product_iter, MAX_COMBINATIONS)
+                product = list(limited_product)
+            else:
+                product = list(itertools.product(*per_sg_indices))
 
             if shuffle:
                 random.shuffle(product)
@@ -197,7 +242,22 @@ def generate_variants(sg_schedules, strategy_strings):
 
                 per_sg_topk.append([idx for idx, _ in ranked[:topk]])
 
-            product = list(itertools.product(*per_sg_topk))
+            if shuffle:
+                per_sg_topk = random.sample([random.sample(x, len(x)) for x in per_sg_topk], len(per_sg_topk))
+            MAX_COMBINATIONS = 1_000_000
+            est_num_combs = math.prod(len(x) for x in per_sg_topk)
+            # print("est_num_combs", est_num_combs)
+            if est_num_combs > MAX_COMBINATIONS:
+                logger.warning(
+                    "Estimated number of combinations (%d) exceeds MAX_COMBINATIONS (%d)! Limiting results...",
+                    est_num_combs,
+                    MAX_COMBINATIONS,
+                )
+                product_iter = itertools.product(*per_sg_topk)
+                limited_product = itertools.islice(product_iter, MAX_COMBINATIONS)
+                product = list(limited_product)
+            else:
+                product = list(itertools.product(*per_sg_topk))
 
             for local_idx, combo in enumerate(product):
                 variant = {sg: sol for sg, sol in zip(sg_ids, combo)}
@@ -224,13 +284,21 @@ def run_fake_hls(
     verbose: bool = False,
     cleanup: bool = False,
 ):
-    del sess, label
+    del sess
     assert workdir is not None
     if not isinstance(workdir, Path):
         workdir = Path(workdir)
     assert workdir.is_dir()
     # TODO: handle suffix
-    out_dir = workdir / "local" / "fake_hls"
+    if label is None:
+        label = ""
+    subdir = "local"
+    base_dir = workdir / subdir
+    out_dir = (base_dir / "fake_hls") if label == "" else (base_dir / f"fake_hls_{label}")
+    if out_dir.is_dir():
+        assert force, f"Directory already exists: {out_dir}. Use --force or different --label."
+        logger.info("Cleaning up old output dir: %s (--force)", out_dir)
+        shutil.rmtree(out_dir)
     out_dir.mkdir(exist_ok=True, parents=True)
     print("FAKE HLS")
     if strategies is None:
@@ -248,8 +316,8 @@ def run_fake_hls(
     with open(index_file, "r") as f:
         index_data = yaml.safe_load(f)
     candidates = index_data["candidates"]
-    # num_candidates = len(candidates)
-    print("candidates", candidates, len(candidates))
+    num_candidates = len(candidates)
+    print("candidates", candidates, num_candidates)
     sharing_groups = defaultdict(list)
     first_stage = 2
     for i, candidate in enumerate(candidates):
@@ -640,13 +708,15 @@ def handle(args):
     if strategies is not None:
         # assert strategy is None
         assert isinstance(strategies, str)
-        strategies = strategies.split(",")
+        # strategies = strategies.split(",")
+        strategies = split_strategies(strategies)
         # assert all(x in SUPPORTED_STRATEGIES for x in strategies)
     run_fake_hls(
         sess,
         set_name=args.set_name,
         core=args.core,
         strategies=strategies,
+        label=args.label,
         index=args.index,
         force=args.force,
         workdir=args.workdir,
@@ -668,6 +738,7 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--set-name", type=str, default=None)
+    parser.add_argument("--label", default="")
     parser.add_argument("--index", type=str, default=None)
     parser.add_argument("--core", type=str, choices=["cv32e40p"], default=None)
     # parser.add_argument("--strategy", type=str, choices=SUPPORTED_STRATEGIES, default=None)  # TODO: drop

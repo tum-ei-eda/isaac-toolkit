@@ -19,8 +19,8 @@
 import sys
 import yaml
 import pickle
-import argparse
 import logging
+import argparse
 import multiprocessing
 from typing import Optional, Union, List
 from pathlib import Path

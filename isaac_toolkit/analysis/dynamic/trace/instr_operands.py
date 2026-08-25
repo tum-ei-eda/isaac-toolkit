@@ -34,6 +34,47 @@ from isaac_toolkit.logging import get_logger, set_log_level
 logger = get_logger()
 
 
+def collect_operands(instr_trace_df, operands_trace_df):
+    if operands_trace_df is not None:
+        assert "operands" in operands_trace_df.columns
+        if "instr" in operands_trace_df.columns:
+            temp_df = operands_trace_df[["instr", "operands"]]
+        else:
+            assert instr_trace_df is not None
+            assert len(instr_trace_df) == len(operands_trace_df)
+            assert "instr" in instr_trace_df.columns
+            temp_df = instr_trace_df[["instr"]]
+            temp_df = temp_df.merge(operands_trace_df[["operands"]])
+    else:
+        assert instr_trace_df is not None
+        assert "operands" in instr_trace_df
+        assert "instr" in instr_trace_df
+        temp_df = instr_trace_df[["instr", "operands"]]
+
+    instrs_operands = defaultdict(list)
+    for row in temp_df.itertuples(index=False):
+        # pc = row.pc
+        instr = row.instr
+        instr = instr.strip()  # TODO: fix in frontend
+        operands = row.operands
+        instr_operands = instrs_operands[instr].append(operands)
+    del temp_df
+    operands_data = []
+    operand_names = set()
+    for instr, instr_operands in instrs_operands.items():
+        for operands in instr_operands:
+            operand_names |= set(operands.keys())
+            operands_data.append({"instr": instr, **operands})
+    operands_df = pd.DataFrame(operands_data)
+    del operands_data
+    operands_df["instr"] = operands_df["instr"].astype("category")
+    for op in operand_names:
+        operands_df[op] = operands_df[op].astype("UInt32")
+        # TODO: for smaller immediates, use smaller types?
+
+    return operands_df
+
+
 def analyze_instr_operands(
     sess: Session,
     force: bool = False,
@@ -47,25 +88,51 @@ def analyze_instr_operands(
 ):
     logger.info("Analyzing instruction operands...")
     artifacts = sess.artifacts
-    trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
-    assert len(trace_artifacts) == 1
-    trace_artifact = trace_artifacts[0]
-    operands_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "operands")
-    assert len(operands_artifacts) == 1
-    operands_artifact = operands_artifacts[0]
+
+    instr_trace_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.INSTR_TRACE)
+    instr_trace_df = None
+    if len(instr_trace_artifacts):
+        assert len(instr_trace_artifacts) == 1
+        instr_trace_artifact = instr_trace_artifacts[0]
+        instr_trace_df = instr_trace_artifact.df.copy()
+
+    operands_trace_artifacts = filter_artifacts(
+        artifacts, lambda x: x.flags & ArtifactFlag.TRACE and x.name == "operands_trace"
+    )
+    operands_trace_df = None
+    if operands_trace_artifacts:
+        assert len(operands_trace_artifacts) == 1
+        operands_trace_artifact = operands_trace_artifacts[0]
+        operands_trace_df = operands_trace_artifact.df.copy()
     # filter_instrs = "addi"
     # filter_operands = "imm"
 
-    assert len(trace_artifact.df) == len(operands_artifact.df)
-    operands_df = pd.concat([trace_artifact.df[["instr"]], operands_artifact.df], axis=1).copy()
+    # if operands_trace_df is not None:
+    #     if "instr" not in operands_trace_df.columns:
+    #         assert instr_trace_df is not None
+    #         assert len(instr_trace_artifact.df) == len(operands_trace_artifact.df)
+    #         operands_df = pd.concat([instr_trace_artifact.df[["instr"]], operands_trace_artifact.df], axis=1).copy()
+    # else:
+    #     assert instr_trace_df is not None
+    #     assert "instr" in instr_trace_df.columns
+    #     operands_df = instr_trace_df
+    #     raise NotImplementedError
 
+    # attrs = {
+    #     "instr_trace": instr_trace_artifact.name if instr_trace_df is not None else None,
+    #     "operands_trace": operands_trace_artifact.name if operands_trace_df is not None else None,
+    #     "kind": "table",
+    #     "by": __name__,
+    # }
     attrs2 = {
-        "trace": trace_artifact.name,
+        "instr_trace": instr_trace_artifact.name if instr_trace_df is not None else None,
+        "operands_trace": operands_trace_artifact.name if operands_trace_df is not None else None,
         "kind": "histogram",
         "by": __name__,
     }
-
-    del trace_artifact
+    del instr_trace_artifact, instr_trace_artifacts
+    del operands_trace_artifact, operands_trace_artifacts
+    operands_df = collect_operands(instr_trace_df, operands_trace_df)
 
     operand_names = sorted([x for x in operands_df.columns if x != "instr"])
 
