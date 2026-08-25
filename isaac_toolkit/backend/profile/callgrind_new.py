@@ -111,7 +111,7 @@ def build_call_trace(function_trace_df, event_names):
             # print("end2")
 
     call_trace_df = pd.DataFrame(call_records)
-    print("ctdf", call_trace_df)
+    # print("ctdf", call_trace_df)
 
     # Aggregate duplicates (same caller/callee/pc)
     agg_dict = {"calls": "sum"}
@@ -119,7 +119,7 @@ def build_call_trace(function_trace_df, event_names):
     #     agg_dict[ev] = "sum"
 
     call_trace_df = call_trace_df.groupby(["caller", "callee", "call_pc"], as_index=False).agg(agg_dict)
-    print("ctdf", call_trace_df)
+    # print("ctdf", call_trace_df)
 
     return call_trace_df
 
@@ -133,12 +133,12 @@ def callgrind_format_get_inclusive_cost(
     # total_cost = 0
     inclusive_cost_dict = defaultdict(lambda: defaultdict(list))
     prev_bb_idx = None
-    print("P", time.time())
-    print("bb_trace_df.head()", bb_trace_df.head())
-    print("unique_bbs_df.head()", unique_bbs_df.head())
-    unique_bbs_records = unique_bbs_df.to_records(index=False)
-    print("len(unique_bbs_records)", len(unique_bbs_records))
-    print("len(unique_bbs_df)", len(unique_bbs_df))
+    # print("P", time.time())
+    # print("bb_trace_df.head()", bb_trace_df.head())
+    # print("unique_bbs_df.head()", unique_bbs_df.head())
+    # unique_bbs_records = unique_bbs_df.to_records(index=False)
+    # print("len(unique_bbs_records)", len(unique_bbs_records))
+    # print("len(unique_bbs_df)", len(unique_bbs_df))
 
     # call_stack: [A, B]
     # [Given] bb_stack: [[bb1, bb2, bb3], [bb4, bb5, bb6]]

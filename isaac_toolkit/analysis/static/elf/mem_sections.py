@@ -39,7 +39,7 @@ def parse_elf(elf_path):
 
         data = []
         for s in elffile.iter_sections():
-            print("s", s, dir(s))
+            # print("s", s, dir(s))
             name = s.name
             data_size = s.data_size
             new = {"name": name, "data_size": data_size}

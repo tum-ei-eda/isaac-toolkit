@@ -51,10 +51,10 @@ def parse_elf(elf_path):
             name = sym.name
             sz = sym.entry["st_size"]
             val = sym.entry["st_value"]
-            print("ty", ty)
-            print("name", name)
-            print("sz", sz)
-            print("val", val)
+            # print("ty", ty)
+            # print("name", name)
+            # print("sz", sz)
+            # print("val", val)
             new = {"name": name, "type": ty, "size": sz, "value": val}
             data.append(new)
         symbol_table_df = pd.DataFrame(data)
