@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>isaac_toolkit.analysis.dynamic.histogram.pc &mdash; ISAAC Toolkit 0.5.7 documentation</title>
+  <title>isaac_toolkit.analysis.dynamic.mem_reuse &mdash; ISAAC Toolkit 0.5.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="isaac_toolkit.analysis.dynamic.mem_reuse" href="isaac_toolkit.analysis.dynamic.mem_reuse.html" />
-    <link rel="prev" title="isaac_toolkit.analysis.dynamic.histogram.opcode_per_llvm_bb" href="isaac_toolkit.analysis.dynamic.histogram.opcode_per_llvm_bb.html" /> 
+    <link rel="next" title="isaac_toolkit.analysis.dynamic.mem_trace" href="isaac_toolkit.analysis.dynamic.mem_trace.html" />
+    <link rel="prev" title="isaac_toolkit.analysis.dynamic.histogram.pc" href="isaac_toolkit.analysis.dynamic.histogram.pc.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -90,10 +90,9 @@
           <li class="breadcrumb-item"><a href="isaac_toolkit.html">isaac_toolkit</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.html">isaac_toolkit.analysis</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.dynamic.html">isaac_toolkit.analysis.dynamic</a></li>
-          <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.dynamic.histogram.html">isaac_toolkit.analysis.dynamic.histogram</a></li>
-      <li class="breadcrumb-item active">isaac_toolkit.analysis.dynamic.histogram.pc</li>
+      <li class="breadcrumb-item active">isaac_toolkit.analysis.dynamic.mem_reuse</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/isaac_toolkit.analysis.dynamic.histogram.pc.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/isaac_toolkit.analysis.dynamic.mem_reuse.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -101,28 +100,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-isaac_toolkit.analysis.dynamic.histogram.pc">
-<span id="isaac-toolkit-analysis-dynamic-histogram-pc"></span><h1>isaac_toolkit.analysis.dynamic.histogram.pc<a class="headerlink" href="#module-isaac_toolkit.analysis.dynamic.histogram.pc" title="Link to this heading"></a></h1>
+  <section id="module-isaac_toolkit.analysis.dynamic.mem_reuse">
+<span id="isaac-toolkit-analysis-dynamic-mem-reuse"></span><h1>isaac_toolkit.analysis.dynamic.mem_reuse<a class="headerlink" href="#module-isaac_toolkit.analysis.dynamic.mem_reuse" title="Link to this heading"></a></h1>
+<p>Create persistent nearest memory-reuse data from a memory trace.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">collect_pcs</span></code>(trace_df)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyze_mem_reuse</span></code>(df[, pcs, ...])</p></td>
+<td><p>Find the nearest prior event sharing an <code class="docutils literal notranslate"><span class="pre">(address,</span> <span class="pre">bytes)</span></code> access.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_pc_hist</span></code>(sess[, force])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">collect_mem_reuse_artifact</span></code>(sess[, force, ...])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_artifacts</span></code>(artifacts, func)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>([argv])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>(args)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(argv)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_critical_bb_pcs</span></code>(unique_bbs, topk)</p></td>
+<td><p>Return PCs and BB indices for the hottest static BBs by dynamic instruction weight.</p></td>
 </tr>
 </tbody>
 </table>
@@ -149,8 +146,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="isaac_toolkit.analysis.dynamic.histogram.opcode_per_llvm_bb.html" class="btn btn-neutral float-left" title="isaac_toolkit.analysis.dynamic.histogram.opcode_per_llvm_bb" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="isaac_toolkit.analysis.dynamic.mem_reuse.html" class="btn btn-neutral float-right" title="isaac_toolkit.analysis.dynamic.mem_reuse" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="isaac_toolkit.analysis.dynamic.histogram.pc.html" class="btn btn-neutral float-left" title="isaac_toolkit.analysis.dynamic.histogram.pc" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="isaac_toolkit.analysis.dynamic.mem_trace.html" class="btn btn-neutral float-right" title="isaac_toolkit.analysis.dynamic.mem_trace" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

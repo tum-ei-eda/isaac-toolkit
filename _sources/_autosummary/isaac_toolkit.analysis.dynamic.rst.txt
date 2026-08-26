@@ -11,6 +11,7 @@ isaac\_toolkit.analysis.dynamic
    :recursive:
 
    histogram
+   mem_reuse
    mem_trace
    perf
    profile
