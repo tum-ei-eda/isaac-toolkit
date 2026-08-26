@@ -82,6 +82,7 @@ PERF_SIM_DIR ?= $(PERF_SIM_WORKSPACE_DIR)/etiss-perf-sim
 ETISS_PERF ?= $(INSTALL_DIR)/etiss_perf/bin/run_helper.sh
 ETISS_PERF_INI ?= $(PERF_SIM_DIR)/simulator/ini/common.ini
 ETISS_PERF_INI2 ?= $(PERF_SIM_DIR)/simulator/ini/$(PERF_MODEL3).ini
+NUM_WINDOWS ?= 200
 
 ETISS_PERF_INI_ARGS := \
     $(if $(wildcard $(ETISS_PERF_INI)),-i$(ETISS_PERF_INI),) \
@@ -240,7 +241,11 @@ endif
 MAP := $(BUILD_DIR)/$(PROG).map
 DUMP := $(BUILD_DIR)/$(PROG).dump
 TRACE := $(OUT_DIR)/$(SIMULATOR)_instrs.log
-PERF_TRACE := $(OUT_DIR)/$(SIMULATOR)_perf.log
+ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
+  PERF_TRACE := $(TRACE)
+else
+  PERF_TRACE := $(OUT_DIR)/$(SIMULATOR)_perf.log
+endif
 MEM_TRACE := $(OUT_DIR)/$(SIMULATOR)_mem.log
 OUTP := $(OUT_DIR)/$(SIMULATOR)_out.log
 TIMING_CSV := $(OUT_DIR)/stage_timings.csv
@@ -269,7 +274,7 @@ endef
 
 .PHONY: all clean init compile run \
         load_static load_dynamic load \
-        analyze_static analyze_dynamic analyze \
+        analyze_static analyze_dynamic analyze_perf analyze \
         visualize_static visualize_dynamic visualize \
         profile profile_pc profile_pos profile_both \
         callgraph kcachegrind kcachegrind_pc kcachegrind_pos \
@@ -290,6 +295,7 @@ measure: $(OUT_DIR)
 	$(call time_stage,normalize, $(MAKE) normalize)
 	$(call time_stage,analyze_static, $(MAKE) analyze_static)
 	$(call time_stage,analyze_dynamic, $(MAKE) analyze_dynamic)
+	$(call time_stage,analyze_perf, $(MAKE) analyze_perf)
 	$(call time_stage,visualize_static, $(MAKE) visualize_static)
 	$(call time_stage,visualize_dynamic, $(MAKE) visualize_dynamic)
 	$(call time_stage,report, $(MAKE) report)
@@ -579,7 +585,7 @@ else ifeq ($(SIMULATOR),etiss_perf)
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.uArch=$(PERF_MODEL2)"            >> $(OUT_DIR)/custom.ini
 	@echo "plugin.perfEst.print=0"                         >> $(OUT_DIR)/custom.ini
-	cd $(OUT_DIR) && ($(ETISS_PERF) $(ELF) -i$(ETISS_PERF_INI) -i$(ETISS_PERF_INI2) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true || true) && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)
+	cd $(OUT_DIR) && ($(ETISS_PERF) $(ELF) $(ETISS_PERF_INI_ARGS) -i$(ETISS_INI) -i$(OUT_DIR)/custom.ini --jit.type=$(ETISS_JIT)JIT --simple_mem_system.print_dbus_access=true --simple_mem_system.print_to_file=true || true) && mv $(OUT_DIR)/dBusAccess.csv $(MEM_TRACE)
 else ifeq ($(SIMULATOR),etiss_perf_vicuna)
 	@echo "Generating $(OUT_DIR)/custom.ini"
 	@echo "[Plugin PerformanceEstimatorPlugin]"            >  $(OUT_DIR)/custom.ini
@@ -645,7 +651,7 @@ load_dynamic_trace_mem: $(SESS) $(MEM_TRACE)
 
 # TODO: perf_trace -> timing_trace
 load_dynamic_trace_perf: $(SESS) $(PERF_TRACE)
-	python3 -m isaac_toolkit.frontend.timing_trace.$(PERF_TRACE_FRONTEND) $(PERF_TRACE) --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.frontend.timing_trace.$(PERF_TRACE_FRONTEND) $(PERF_TRACE)/$(PERF_MODEL_UPPER)_timing*.csv --session $(SESS) $(FORCE_ARG)
 
 ifneq (,$(filter $(SIMULATOR),etiss))
 load_dynamic: load_dynamic_trace load_dynamic_trace_mem
@@ -684,7 +690,18 @@ analyze_dynamic:
 	# python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.dynamic.trace.trace_bbs --session $(SESS) $(FORCE_ARG)
 
-analyze: analyze_static analyze_dynamic
+analyze_perf:
+ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
+	python3 -m isaac_toolkit.backend.perf.trace_analyzer.ranges --sess $(SESS) $(FORCE_ARG) --sort-by runtime_weight --topk 10
+	python3 -m isaac_toolkit.backend.perf.trace_analyzer.windows --sess $(SESS) $(FORCE_ARG) --num-windows $(NUM_WINDOWS)
+	python3 -m isaac_toolkit.backend.perf.trace_analyzer.analyzer --sess $(SESS) $(FORCE_ARG) --ranges-yaml $(SESS)/output/ranges.yml --uarch=$(PERF_MODEL_UPPER) --use-pkl --gen-dfs
+	python3 -m isaac_toolkit.backend.perf.trace_analyzer.analyzer --sess $(SESS) $(FORCE_ARG) --ranges-yaml $(SESS)/output/windows.yml --uarch=$(PERF_MODEL_UPPER) --use-pkl --gen-dfs
+	python3 -m isaac_toolkit.backend.perf.trace_analyzer.analyzer --sess $(SESS) $(FORCE_ARG) --ranges-yaml $(SESS)/output/windows.yml --uarch=$(PERF_MODEL_UPPER) --use-pkl
+else
+	echo "Skipping "analyze_perf for non ETISS Perf sim"
+endif
+
+analyze: analyze_static analyze_dynamic analyze_perf
 
 flow_visualize:
 	python3 -m isaac_toolkit.flow.rvf.stage.visualize --session $(SESS) $(FORCE_ARG)
