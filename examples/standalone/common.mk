@@ -5,7 +5,8 @@ DEST ?= $(abspath .)
 SESS ?= $(DEST)/sess
 BUILD_DIR ?= $(DEST)/build
 OUT_DIR ?= $(DEST)/out
-RISCV_PREFIX ?= $(INSTALL_DIR)/rv32im_ilp32
+RISCV_SUBDIR ?= rv32im_ilp32
+RISCV_PREFIX ?= $(INSTALL_DIR)/$(RISCV_SUBDIR)
 RISCV_NAME ?= riscv32-unknown-elf
 SYSROOT ?= $(RISCV_PREFIX)/$(RISCV_NAME)
 
@@ -692,13 +693,14 @@ analyze_dynamic:
 
 analyze_perf:
 ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
+	python3 -m isaac_toolkit.analysis.dynamic.perf.bb_cost --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.backend.perf.trace_analyzer.ranges --sess $(SESS) $(FORCE_ARG) --sort-by runtime_weight --topk 10
 	python3 -m isaac_toolkit.backend.perf.trace_analyzer.windows --sess $(SESS) $(FORCE_ARG) --num-windows $(NUM_WINDOWS)
 	python3 -m isaac_toolkit.backend.perf.trace_analyzer.analyzer --sess $(SESS) $(FORCE_ARG) --ranges-yaml $(SESS)/output/ranges.yml --uarch=$(PERF_MODEL_UPPER) --use-pkl --gen-dfs
 	python3 -m isaac_toolkit.backend.perf.trace_analyzer.analyzer --sess $(SESS) $(FORCE_ARG) --ranges-yaml $(SESS)/output/windows.yml --uarch=$(PERF_MODEL_UPPER) --use-pkl --gen-dfs
 	python3 -m isaac_toolkit.backend.perf.trace_analyzer.analyzer --sess $(SESS) $(FORCE_ARG) --ranges-yaml $(SESS)/output/windows.yml --uarch=$(PERF_MODEL_UPPER) --use-pkl
 else
-	echo "Skipping "analyze_perf for non ETISS Perf sim"
+	echo "Skipping analyze_perf for non ETISS Perf simulator..."
 endif
 
 analyze: analyze_static analyze_dynamic analyze_perf
@@ -721,6 +723,9 @@ flow_report:
 
 report:
 	python3 -m isaac_toolkit.report.report_runtime --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --portable --style --topk $(REPORT_TOPK)
+	python3 -m isaac_toolkit.report.report_perf --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --style --topk $(REPORT_TOPK)
+	python3 -m isaac_toolkit.report.report_sess_disk_usage --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --portable --style --topk $(REPORT_TOPK)
+	python3 -m isaac_toolkit.report.report_sess_mem_usage --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --portable --style --topk $(REPORT_TOPK)
 
 flow_profile:
 	python3 -m isaac_toolkit.flow.rvf.stage.profile --session $(SESS) $(FORCE_ARG)

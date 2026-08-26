@@ -26,8 +26,8 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.session import get_table_artifact_ext
 from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.session.config import ArtifactsSettings
-from isaac_toolkit.report.sess_mem_usage import get_artifact_size
-from isaac_toolkit.report.sess_disk_usage import get_file_size
+from isaac_toolkit.report.report_sess_mem_usage import get_artifact_size
+from isaac_toolkit.report.report_sess_disk_usage import get_file_size
 
 
 def handle(args):
