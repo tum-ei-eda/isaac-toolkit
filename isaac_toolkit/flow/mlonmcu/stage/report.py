@@ -54,9 +54,7 @@ def generate_reports(sess, output=None, fmt="md", detailed=False, portable=False
         topk=topk,
         force=force,
     )
-    generate_mem_footprint_report(
-        sess, output=output, fmt=fmt, detailed=detailed, style=style, topk=topk, force=force
-    )
+    generate_mem_footprint_report(sess, output=output, fmt=fmt, detailed=detailed, style=style, topk=topk, force=force)
     generate_sess_disk_usage_report(
         sess,
         output=output,

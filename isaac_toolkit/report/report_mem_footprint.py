@@ -37,7 +37,12 @@ def _load_table(sess: Session, name: str):
 
 
 def load_code_size_dfs(sess: Session):
-    return _load_table(sess, "mem_sections"), _load_table(sess, "mem_footprint")
+    return (
+        _load_table(sess, "mem_sections"),
+        _load_table(sess, "mem_footprint"),
+        _load_table(sess, "disass"),
+        _load_table(sess, "unique_bbs"),
+    )
 
 
 def classify_section(name: str) -> str:
@@ -84,7 +89,52 @@ def generate_function_table(functions: pd.DataFrame, topk: int = 10) -> pd.DataF
     if "Share" not in result:
         total = result["Bytes"].sum()
         result["Share"] = result["Bytes"] / total if total else 0.0
-    return result[["Function", "Bytes", "Share"]].sort_values("Bytes", ascending=False).head(topk).reset_index(drop=True)
+    return (
+        result[["Function", "Bytes", "Share"]].sort_values("Bytes", ascending=False).head(topk).reset_index(drop=True)
+    )
+
+
+def generate_instruction_size_table(disass: pd.DataFrame) -> pd.DataFrame:
+    """Summarize RISC-V instruction widths from their encoded low bits."""
+    if disass is None or disass.empty or "bytecode" not in disass:
+        return pd.DataFrame(columns=["InstructionBytes", "Instructions", "CodeBytes", "InstructionShare"])
+    encodings = pd.to_numeric(disass["bytecode"], errors="coerce").dropna().astype("uint64")
+    sizes = encodings.map(lambda encoding: 4 if encoding & 0b11 == 0b11 else 2)
+    result = sizes.value_counts().sort_index().rename_axis("InstructionBytes").rename("Instructions").reset_index()
+    result["CodeBytes"] = result["InstructionBytes"] * result["Instructions"]
+    result["InstructionShare"] = result["Instructions"] / result["Instructions"].sum()
+    return result
+
+
+def generate_largest_bb_table(unique_bbs: pd.DataFrame, topk: int = 10) -> pd.DataFrame:
+    if unique_bbs is None or unique_bbs.empty:
+        return pd.DataFrame()
+    result = unique_bbs.reset_index(names="bb_idx").rename(
+        columns={
+            "func": "Function",
+            "first_pc": "Start",
+            "last_pc": "End",
+            "size": "Bytes",
+            "num_instrs": "Instructions",
+            "freq": "DynamicInvocations",
+        }
+    )
+    result["BytesPerInstruction"] = result["Bytes"] / result["Instructions"]
+    columns = [
+        column
+        for column in (
+            "bb_idx",
+            "Function",
+            "Start",
+            "End",
+            "Bytes",
+            "Instructions",
+            "BytesPerInstruction",
+            "DynamicInvocations",
+        )
+        if column in result
+    ]
+    return result[columns].sort_values(["Bytes", "Instructions"], ascending=False).head(topk).reset_index(drop=True)
 
 
 def _markdown_table(df: pd.DataFrame) -> str:
@@ -93,6 +143,11 @@ def _markdown_table(df: pd.DataFrame) -> str:
     display = df.copy()
     if "Share" in display:
         display["Share"] = display["Share"].map(lambda value: f"{value:.2%}")
+    if "InstructionShare" in display:
+        display["InstructionShare"] = display["InstructionShare"].map(lambda value: f"{value:.2%}")
+    for column in ("Start", "End"):
+        if column in display:
+            display[column] = display[column].map(lambda value: f"`{hex(int(value))}`")
     return size_df_to_markdown(display, cols=[column for column in display if column == "Bytes"])
 
 
@@ -102,30 +157,60 @@ def _html_table(df: pd.DataFrame, title: str) -> str:
     display = df.copy()
     if "Share" in display:
         display["Share"] = display["Share"].map(lambda value: f"{value:.2%}")
+    if "InstructionShare" in display:
+        display["InstructionShare"] = display["InstructionShare"].map(lambda value: f"{value:.2%}")
+    for column in ("Start", "End"):
+        if column in display:
+            display[column] = display[column].map(lambda value: hex(int(value)))
     table = size_df_to_html(display, cols=[column for column in display if column == "Bytes"], title=title)
     return table.replace("<table id=", "<table border='1' class='dataframe dataframe' id=")
 
 
 def generate_mem_footprint_report(sess, output=None, fmt="md", detailed=False, style=False, topk=10, force=False):
     del force
-    sections, functions = load_code_size_dfs(sess)
-    if sections is None and functions is None:
+    sections, functions, disass, unique_bbs = load_code_size_dfs(sess)
+    if all(frame is None for frame in (sections, functions, disass, unique_bbs)):
         return None
     summary = generate_code_size_summary(sections, functions)
     section_table = generate_section_table(sections, topk=topk)
     function_table = generate_function_table(functions, topk=topk)
+    instruction_sizes = generate_instruction_size_table(disass)
+    largest_bbs = generate_largest_bb_table(unique_bbs, topk=topk)
     out_dir = Path(output) if output else sess.directory / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if fmt in ("md", "txt"):
-        parts = ["# Code Size Report", "## Summary", _markdown_table(summary), "## Largest Functions", _markdown_table(function_table)]
+        parts = [
+            "# Code Size Report",
+            "## Summary",
+            _markdown_table(summary),
+            "## Instruction Sizes",
+            _markdown_table(instruction_sizes),
+            "## Largest Functions",
+            _markdown_table(function_table),
+            "## Largest Basic Blocks",
+            _markdown_table(largest_bbs),
+        ]
         if detailed:
             parts.extend(("## Largest ELF Sections", _markdown_table(section_table)))
         body = "\n\n".join(parts) + "\n"
         outfile = out_dir / f"mem_footprint_report.{fmt if fmt == 'txt' else 'md'}"
         outfile.write_text(body, encoding="utf-8")
     elif fmt in ("html", "pdf"):
-        parts = ["<html><head>", JUPYTER_CSS if style else "", "</head><body>", "<h1>Code Size Report</h1>", "<h2>Summary</h2>", _html_table(summary, "Code-size summary"), "<h2>Largest Functions</h2>", _html_table(function_table, "Largest functions")]
+        parts = [
+            "<html><head>",
+            JUPYTER_CSS if style else "",
+            "</head><body>",
+            "<h1>Code Size Report</h1>",
+            "<h2>Summary</h2>",
+            _html_table(summary, "Code-size summary"),
+            "<h2>Instruction Sizes</h2>",
+            _html_table(instruction_sizes, "Instruction sizes"),
+            "<h2>Largest Functions</h2>",
+            _html_table(function_table, "Largest functions"),
+            "<h2>Largest Basic Blocks</h2>",
+            _html_table(largest_bbs, "Largest basic blocks"),
+        ]
         if detailed:
             parts.extend(("<h2>Largest ELF Sections</h2>", _html_table(section_table, "Largest ELF sections")))
         parts.append("</body></html>")

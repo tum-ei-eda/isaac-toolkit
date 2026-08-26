@@ -4,6 +4,8 @@ from isaac_toolkit.report.report_mem_footprint import (
     classify_section,
     generate_code_size_summary,
     generate_function_table,
+    generate_instruction_size_table,
+    generate_largest_bb_table,
 )
 
 
@@ -37,3 +39,31 @@ def test_function_table_derives_share_when_missing():
 
     assert result["Function"].tolist() == ["large", "small"]
     assert result["Share"].tolist() == [0.75, 0.25]
+
+
+def test_instruction_widths_are_derived_from_riscv_encoding():
+    disass = pd.DataFrame({"bytecode": [0x0001, 0x8082, 0x00000013, 0x00008067]})
+
+    result = generate_instruction_size_table(disass).set_index("InstructionBytes")
+
+    assert result.loc[2, "Instructions"] == 2
+    assert result.loc[4, "Instructions"] == 2
+    assert result["CodeBytes"].sum() == 12
+
+
+def test_largest_basic_blocks_include_instruction_density():
+    bbs = pd.DataFrame(
+        {
+            "first_pc": [0x100, 0x200],
+            "last_pc": [0x106, 0x20E],
+            "num_instrs": [3, 5],
+            "size": [8, 16],
+            "func": ["small", "large"],
+            "freq": [4, 2],
+        }
+    )
+
+    result = generate_largest_bb_table(bbs)
+
+    assert result["Function"].tolist() == ["large", "small"]
+    assert result["BytesPerInstruction"].tolist() == [3.2, 8 / 3]
