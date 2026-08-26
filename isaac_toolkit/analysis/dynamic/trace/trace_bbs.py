@@ -313,6 +313,10 @@ def collect_bbs_new(trace_df, mapping):
     # --- Combine into a mask marking BB ends ---
     mask = is_branch_return.copy()
     mask[:-1] |= irregular_step
+    # The final instruction always terminates the final dynamic basic block.
+    # Without this, the tail after the last branch/irregular PC transition is
+    # silently absent from bb_trace (and cannot receive profiling costs).
+    mask[-1] = True
 
     # --- Indices of BB ends ---
     bb_end_indices = np.where(mask)[0]

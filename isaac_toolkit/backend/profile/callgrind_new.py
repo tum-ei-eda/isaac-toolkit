@@ -19,7 +19,6 @@
 from typing import Dict, List, Set, Tuple, Optional, Union
 
 import bisect
-import time
 
 import sys
 import logging
@@ -185,12 +184,12 @@ def callgrind_format_get_inclusive_cost(
             depth = len(call_stack)
             new_ = [func, depth, first_pc, last_pc, np.zeros(len(event_names), dtype=np.int64)]
             function_trace.append(new_)
-            bb_stack.append([bb_idx])
+            bb_stack.append([(bb_idx, i)])
         elif bb_funcs[prev_bb_idx] == func:
             # jalr doesn't necessarily mean return
             # 0x2ac8, jalr, memset -> 0x2ae8, memset
             # print("append bb_stack")
-            bb_stack[-1].append(bb_idx)
+            bb_stack[-1].append((bb_idx, i))
         # elif prev_bb.end_instr in return_instrs:
         # elif prev_bb.end_instr in riscv_return_instrs:
         elif bb_end_instrs[prev_bb_idx] in riscv_return_instrs or bb_num_instrs[prev_bb_idx] == 1:
@@ -201,10 +200,10 @@ def callgrind_format_get_inclusive_cost(
                 call_stack.append(func)
                 depth = len(call_stack)
                 # metrics_vec = [event_arrays[ev][bb_idx] for ev in event_names]
-                metrics_vec = event_arrays[:, bb_idx]
+                metrics_vec = event_arrays[:, i]
                 new_ = [func, depth, first_pc, last_pc, metrics_vec]
                 function_trace.append(new_)
-                bb_stack.append([bb_idx])
+                bb_stack.append([(bb_idx, i)])
                 # print("append call_stack + bb_stack 2")
                 continue
 
@@ -214,7 +213,8 @@ def callgrind_format_get_inclusive_cost(
             for j in range(diff):
                 # cost_vec = [0] * len(event_names)
                 cost_vec = np.zeros(len(event_names), dtype=np.int64)
-                callee_first_bb_idx = bb_stack[-1][0][0] if isinstance(bb_stack[-1][0], list) else bb_stack[-1][0]
+                first_entry = bb_stack[-1][0]
+                callee_first_bb_idx = first_entry[0][0] if isinstance(first_entry, list) else first_entry[0]
                 for bb_stack_elem in bb_stack[-1]:
                     # print("bb_stack_elem", bb_stack_elem)
                     if not isinstance(bb_stack_elem, list):
@@ -222,16 +222,17 @@ def callgrind_format_get_inclusive_cost(
                         # bb_metrics = bb_cost_trace_df.iloc[bb_stack_elem]
                         # metrics_vec = [int(bb_metrics[ev]) for ev in event_names]
                         # metrics_vec = [event_arrays[ev][bb_stack_elem] for ev in event_names]
-                        metrics_vec = event_arrays[:, bb_stack_elem]
+                        _, invocation_idx = bb_stack_elem
+                        metrics_vec = event_arrays[:, invocation_idx]
                         # cost_vec = [c + m for c, m in zip(cost_vec, metrics_vec)]
                         cost_vec = cost_vec + metrics_vec
                     else:
                         # recursive case: [bb_idx, subroutine_cost_vec]
-                        callee_bb_idx, sub_cost_vec = bb_stack_elem
+                        (callee_bb_idx, callee_invocation_idx), sub_cost_vec = bb_stack_elem
                         # bb_metrics = bb_cost_trace_df.iloc[callee_bb_idx]
                         # metrics_vec = [int(bb_metrics[ev]) for ev in event_names]
                         # metrics_vec = [event_arrays[ev][callee_bb_idx] for ev in event_names]
-                        metrics_vec = event_arrays[:, callee_bb_idx]
+                        metrics_vec = event_arrays[:, callee_invocation_idx]
                         # cost_vec = [c + m + s for c, m, s in zip(cost_vec, metrics_vec, sub_cost_vec)]
                         cost_vec = cost_vec + metrics_vec + sub_cost_vec
 
@@ -245,17 +246,17 @@ def callgrind_format_get_inclusive_cost(
 
                 caller = bb_stack[-1][-1]
                 if isinstance(caller, list):
-                    caller_bb_idx, caller_cost_vec = caller
+                    (caller_bb_idx, caller_invocation_idx), caller_cost_vec = caller
                     # record the inclusive cost of the callee relative to caller
                     inclusive_cost_dict[bb_last_pc[caller_bb_idx]][bb_first_pc[callee_first_bb_idx]].append(cost_vec)
                     # update caller’s accumulated cost vector
                     # bb_stack[-1][-1][1] = [c + v for c, v in zip(caller_cost_vec, cost_vec)]
                     bb_stack[-1][-1][1] = caller_cost_vec + cost_vec
                 else:
-                    caller_bb_idx = caller
+                    caller_bb_idx, caller_invocation_idx = caller
                     inclusive_cost_dict[bb_last_pc[caller_bb_idx]][bb_first_pc[callee_first_bb_idx]].append(cost_vec)
                     # replace scalar with [bb_idx, cost_vec]
-                    bb_stack[-1][-1] = [caller_bb_idx, cost_vec]
+                    bb_stack[-1][-1] = [(caller_bb_idx, caller_invocation_idx), cost_vec]
 
                 # When callee function returns, it jumps to the start of the "next" basic block
                 # in caller function. For example:
@@ -265,11 +266,11 @@ def callgrind_format_get_inclusive_cost(
                 # 0x6b4  ... <--- return to function A
                 if j == diff - 1:
                     # print("append bb stack")
-                    bb_stack[-1].append(bb_idx)
+                    bb_stack[-1].append((bb_idx, i))
 
         cost_vec_old = function_trace[-1][-1]
         # metrics_vec = [event_arrays[ev][bb_idx] for ev in event_names]
-        metrics_vec = event_arrays[:, bb_idx]
+        metrics_vec = event_arrays[:, i]
         # cost_vec_new = [c + m for c, m in zip(cost_vec_old, metrics_vec)]
         cost_vec_new = cost_vec_old + metrics_vec
         function_trace[-1][-1] = cost_vec_new
@@ -320,19 +321,33 @@ def callgrind_format_converter(
     event_names: List[str] = ["Ir", "Cycles"],
     # event_names: List[str] = ["Ir"],
     pcs_hist_df=None,
+    bb_cost_df=None,
 ):
     """
     Generate a callgrind-compatible profile.
     Supports pc-only, line-only, or combined instr+line mode.
     """
-    bb_cost_trace_df = pd.DataFrame()
-    bb_cost_trace_df["Ir"] = bb_trace_df.merge(unique_bbs_df, how="left", left_on="bb_idx", right_index=True)[
-        "num_instrs"
-    ]
-    bb_cost_trace_df["Cycles"] = bb_cost_trace_df["Ir"] * 2
+    if bb_cost_df is None:
+        bb_cost_trace_df = pd.DataFrame()
+        bb_cost_trace_df["Ir"] = bb_trace_df.merge(unique_bbs_df, how="left", left_on="bb_idx", right_index=True)[
+            "num_instrs"
+        ]
+        event_names = ["Ir"]
+    else:
+        bb_cost_trace_df = bb_cost_df.reset_index(drop=True)
+        if len(bb_cost_trace_df) != len(bb_trace_df):
+            raise ValueError("bb_cost and bb_trace must have one row per BB invocation")
+        event_names = [
+            name
+            for name in ("Ir", "Cycles", "StallCycles", "BranchMispredicts", "L1IMisses", "L1DMisses")
+            if name in bb_cost_trace_df
+        ]
     # print("bb_cost_trace_df", bb_cost_trace_df)
     # event_arrays = {ev: bb_cost_trace_df[ev].to_numpy() for ev in event_names}
     event_arrays = np.vstack([bb_cost_trace_df[ev].to_numpy() for ev in event_names])
+    bb_cost_with_idx = bb_cost_trace_df.copy()
+    bb_cost_with_idx["bb_idx"] = bb_trace_df["bb_idx"].astype("int64").to_numpy()
+    bb_event_totals = bb_cost_with_idx.groupby("bb_idx", observed=True)[event_names].sum()
 
     inclusive_cost_dict = callgrind_format_get_inclusive_cost(
         bb_trace_df, unique_bbs_df, event_names=event_names, event_arrays=event_arrays
@@ -372,13 +387,26 @@ def callgrind_format_converter(
             # exec_rows = np.where(bb_trace_arr == bb_idx)[0]
 
             # for row_idx in exec_rows:
-            matching = pcs_hist_df[pcs_hist_df["pc"].isin(range(pc_start, pc_end + 2, 2))]
-            # print("matching", matching)
-            for row in matching.itertuples():
-                pc = row.pc
-                count = row.count
-                metrics_vec = np.array([count, count * 2])
+            pcs = sorted(pc for pc in trace_pcs if pc_start <= pc <= pc_end)
+            if not pcs:
+                continue
+            totals = bb_event_totals.loc[bb_idx].to_numpy(dtype=np.int64)
+            executions = int(totals[event_names.index("Ir")] // len(pcs)) if "Ir" in event_names else 0
+            for pc in pcs:
+                metrics_vec = np.zeros(n_events, dtype=np.int64)
+                if "Ir" in event_names:
+                    metrics_vec[event_names.index("Ir")] = executions
+                if "Cycles" in event_names:
+                    metrics_vec[event_names.index("Cycles")] = executions
                 position_cost_dict[pc] += metrics_vec
+            # Non-instruction and excess cycle costs are attributed to the BB
+            # terminator, matching the boundary ownership used by bb_cost.
+            assigned = np.zeros(n_events, dtype=np.int64)
+            if "Ir" in event_names:
+                assigned[event_names.index("Ir")] = executions * len(pcs)
+            if "Cycles" in event_names:
+                assigned[event_names.index("Cycles")] = executions * len(pcs)
+            position_cost_dict[pcs[-1]] += totals - assigned
             # if True:
             #     # metrics_vec = np.array([event_arrays[ev][row_idx] for ev in event_names], dtype=np.int64)
             #     # metrics_vec = event_arrays[:, row_idx]
@@ -568,6 +596,9 @@ def generate_callgrind_output(
     pc2locs_artifact = pc2locs_artifacts[0]
     pc2locs_df = pc2locs_artifact.df
 
+    bb_cost_artifacts = filter_artifacts(artifacts, lambda x: x.name == "bb_cost")
+    bb_cost_df = bb_cost_artifacts[0].df if len(bb_cost_artifacts) == 1 else None
+
     def helper(pc2locs_df):
         df_ = pc2locs_df.explode("locs")
         df_.reset_index(inplace=True)
@@ -630,6 +661,7 @@ def generate_callgrind_output(
         elf_file_path=elf_file_path,
         unmangle_names=unmangle_names,
         pcs_hist_df=pcs_hist_df,
+        bb_cost_df=bb_cost_df,
     )
     # print("Z", time.time())
 

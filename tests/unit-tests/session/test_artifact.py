@@ -24,7 +24,6 @@ from isaac_toolkit.session.artifact import (
     filter_artifacts,
 )
 
-
 FOO_ARTIFACT = PythonArtifact("foo", data=[])
 BAR_ARTIFACT = PythonArtifact("bar", data=[], attrs={"key": "val"})
 BAZ_ARTIFACT = PythonArtifact("baz", data=[], flags=ArtifactFlag.TABLE)

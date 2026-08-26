@@ -31,7 +31,7 @@ from .report_utils import (
     save_pdf_report,
     JUPYTER_CSS,
 )
-from .sess_disk_usage import size_df_to_markdown, size_df_to_html, get_file_size
+from .report_sess_disk_usage import size_df_to_markdown, size_df_to_html, get_file_size
 
 
 def get_artifact_size(artifact):
