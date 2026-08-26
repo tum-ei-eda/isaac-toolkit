@@ -107,7 +107,7 @@ def generate_sess_disk_usage_report(
     if topk is not None:
         artifacts_df = artifacts_df.iloc[:topk]
 
-    print("Sorted Artifacts DF", artifacts_df)
+    # print("Sorted Artifacts DF", artifacts_df)
 
     if fmt in ("md", "txt"):
         content = "# Session Disk Usage Report\n\n"

@@ -54,7 +54,7 @@ def generate_ranges_yaml(
     assert len(unique_bbs_artifacts) == 1
     unique_bbs_artifact = unique_bbs_artifacts[0]
     unique_bbs_df = unique_bbs_artifact.df.copy()
-    print("unique_bbs_df", unique_bbs_df)
+    # print("unique_bbs_df", unique_bbs_df)
     # unique_bbs_df
 
     if filter_funcs is not None and len(filter_funcs) > 0:
@@ -67,13 +67,13 @@ def generate_ranges_yaml(
         unique_bbs_df.sort_values(sort_by, inplace=True, ascending=sort_ascending)
     if topk is not None:
         unique_bbs_df = unique_bbs_df.iloc[:topk]
-    print("unique_bbs_df", unique_bbs_df)
+    # print("unique_bbs_df", unique_bbs_df)
 
-    print("bb_trace_df", bb_trace_df)
+    # print("bb_trace_df", bb_trace_df)
     # TODO: expose strategy for selecting which call (first, last, first+last, random, single, multiple,...)
     # per_bb_trace_df = bb_trace_df.groupby("bb_idx").first()
     per_bb_trace_df = bb_trace_df.groupby("bb_idx").last()
-    print("per_bb_trace_df", per_bb_trace_df)
+    # print("per_bb_trace_df", per_bb_trace_df)
 
     merged_df = pd.merge(per_bb_trace_df, unique_bbs_df, how="inner", left_index=True, right_index=True)
     KEEP_COLS = ["bb_call", "bb_end_trace_idx", "num_instrs", "size", "func", "func_bb_idx"]
@@ -81,7 +81,7 @@ def generate_ranges_yaml(
         KEEP_COLS.append(sort_by)
         merged_df.sort_values(sort_by, inplace=True, ascending=sort_ascending)
     merged_df = merged_df[KEEP_COLS]
-    print("merged_df", merged_df)
+    # print("merged_df", merged_df)
 
     ranges_data = []
 
