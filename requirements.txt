@@ -4,6 +4,7 @@ pyelftools
 pandas>=2.1
 dacite
 matplotlib
+plotly
 leb128
 fastparquet
 pyarrow

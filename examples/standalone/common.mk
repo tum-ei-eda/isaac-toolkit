@@ -276,7 +276,7 @@ endef
 .PHONY: all clean init compile run \
         load_static load_dynamic load \
         analyze_static analyze_dynamic analyze_perf analyze \
-        visualize_static visualize_dynamic visualize \
+        visualize_static visualize_dynamic visualize_perf visualize \
         profile profile_pc profile_pos profile_both \
         callgraph kcachegrind kcachegrind_pc kcachegrind_pos \
 	function_trace flamegraph mermaid cachegrind lcov \
@@ -299,6 +299,7 @@ measure: $(OUT_DIR)
 	$(call time_stage,analyze_perf, $(MAKE) analyze_perf)
 	$(call time_stage,visualize_static, $(MAKE) visualize_static)
 	$(call time_stage,visualize_dynamic, $(MAKE) visualize_dynamic)
+	$(call time_stage,visualize_perf, $(MAKE) visualize_perf)
 	$(call time_stage,report, $(MAKE) report)
 	# $(call time_stage,profile_pos, $(MAKE) profile_pos)
 	# $(call time_stage,profile_pc, $(MAKE) profile_pc)
@@ -716,7 +717,16 @@ visualize_static:
 visualize_dynamic:
 	python3 -m isaac_toolkit.visualize.pie.runtime --session $(SESS) --legend $(FORCE_ARG)
 
-visualize: visualize_static visualize_dynamic
+visualize_perf:
+ifneq (,$(filter $(SIMULATOR),etiss_perf etiss_perf_vicuna))
+	python3 -m isaac_toolkit.visualize.mem_access --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.visualize.mem_reuse --session $(SESS) --max-idx-distance 1000 $(FORCE_ARG)
+	python3 -m isaac_toolkit.visualize.window_metrics --session $(SESS) --groups performance,cache --plot-type heatmap-multi --normalize --group-prefixes $(FORCE_ARG)
+else
+	echo "Skipping performance visualizations for non ETISS Perf simulator..."
+endif
+
+visualize: visualize_static visualize_dynamic visualize_perf
 
 flow_report:
 	python3 -m isaac_toolkit.flow.rvf.stage.report --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --portable --style --topk $(REPORT_TOPK)

@@ -136,7 +136,6 @@ def summarize_bb_costs(costs: pd.DataFrame, distribution: pd.DataFrame) -> pd.Da
 
 
 def collect_bb_cost_artifacts(sess: Session, force: bool = False):
-    print("collect_bb_cost_artifacts")
     bb_artifacts = filter_artifacts(sess.artifacts, lambda x: x.name == "bb_trace")
     timing_artifacts = filter_artifacts(
         sess.artifacts, lambda x: x.flags & ArtifactFlag.TRACE and x.attrs.get("kind") == "timing_trace"
@@ -146,9 +145,6 @@ def collect_bb_cost_artifacts(sess: Session, force: bool = False):
     bb_artifact, timing_artifact = bb_artifacts[0], timing_artifacts[0]
     costs, distribution = collect_bb_costs(bb_artifact.df, timing_artifact.df)
     stats = summarize_bb_costs(costs, distribution)
-    print("costs", costs)
-    print("distribution", distribution)
-    print("stats", stats)
     attrs = {"bb_trace": bb_artifact.name, "timing_trace": timing_artifact.name, "by": __name__}
     sess.add_artifact(TableArtifact("bb_cost", costs, attrs={**attrs, "kind": "bb_cost"}), override=force)
     sess.add_artifact(
