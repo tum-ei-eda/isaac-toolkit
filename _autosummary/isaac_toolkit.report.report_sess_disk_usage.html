@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>isaac_toolkit.analysis.dynamic.perf.metrics &mdash; ISAAC Toolkit 0.5.7 documentation</title>
+  <title>isaac_toolkit.report.report_sess_disk_usage &mdash; ISAAC Toolkit 0.5.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="isaac_toolkit.analysis.dynamic.perf.rvv" href="isaac_toolkit.analysis.dynamic.perf.rvv.html" />
-    <link rel="prev" title="isaac_toolkit.analysis.dynamic.perf.bb_cost" href="isaac_toolkit.analysis.dynamic.perf.bb_cost.html" /> 
+    <link rel="next" title="isaac_toolkit.report.report_sess_mem_usage" href="isaac_toolkit.report.report_sess_mem_usage.html" />
+    <link rel="prev" title="isaac_toolkit.report.report_runtime" href="isaac_toolkit.report.report_runtime.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,11 +48,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="isaac_toolkit.html">isaac_toolkit</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.algorithm.html">isaac_toolkit.algorithm</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="isaac_toolkit.analysis.html">isaac_toolkit.analysis</a><ul class="current">
-<li class="toctree-l4 current"><a class="reference internal" href="isaac_toolkit.analysis.dynamic.html">isaac_toolkit.analysis.dynamic</a></li>
-<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.analysis.static.html">isaac_toolkit.analysis.static</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.analysis.html">isaac_toolkit.analysis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.arch.html">isaac_toolkit.arch</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.backend.html">isaac_toolkit.backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.builder.html">isaac_toolkit.builder</a></li>
@@ -61,7 +57,14 @@
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.frontend.html">isaac_toolkit.frontend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.generate.html">isaac_toolkit.generate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.logging.html">isaac_toolkit.logging</a></li>
-<li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.report.html">isaac_toolkit.report</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="isaac_toolkit.report.html">isaac_toolkit.report</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_perf.html">isaac_toolkit.report.report_perf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_runtime.html">isaac_toolkit.report.report_runtime</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">isaac_toolkit.report.report_sess_disk_usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_sess_mem_usage.html">isaac_toolkit.report.report_sess_mem_usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_utils.html">isaac_toolkit.report.report_utils</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.runner.html">isaac_toolkit.runner</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.session.html">isaac_toolkit.session</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.utils.html">isaac_toolkit.utils</a></li>
@@ -88,12 +91,10 @@
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.html">isaac_toolkit</a></li>
-          <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.html">isaac_toolkit.analysis</a></li>
-          <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.dynamic.html">isaac_toolkit.analysis.dynamic</a></li>
-          <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.dynamic.perf.html">isaac_toolkit.analysis.dynamic.perf</a></li>
-      <li class="breadcrumb-item active">isaac_toolkit.analysis.dynamic.perf.metrics</li>
+          <li class="breadcrumb-item"><a href="isaac_toolkit.report.html">isaac_toolkit.report</a></li>
+      <li class="breadcrumb-item active">isaac_toolkit.report.report_sess_disk_usage</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/isaac_toolkit.analysis.dynamic.perf.metrics.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/isaac_toolkit.report.report_sess_disk_usage.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -101,24 +102,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-isaac_toolkit.analysis.dynamic.perf.metrics">
-<span id="isaac-toolkit-analysis-dynamic-perf-metrics"></span><h1>isaac_toolkit.analysis.dynamic.perf.metrics<a class="headerlink" href="#module-isaac_toolkit.analysis.dynamic.perf.metrics" title="Link to this heading"></a></h1>
+  <section id="module-isaac_toolkit.report.report_sess_disk_usage">
+<span id="isaac-toolkit-report-report-sess-disk-usage"></span><h1>isaac_toolkit.report.report_sess_disk_usage<a class="headerlink" href="#module-isaac_toolkit.report.report_sess_disk_usage" title="Link to this heading"></a></h1>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">collect_perf_metrics</span></code>(timing_df)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_size</span></code>(size[, raw])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">collect_perf_metrics_seq</span></code>(timing_df)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_sess_disk_usage_report</span></code>(sess[, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_artifacts</span></code>(artifacts, func)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_directory_size</span></code>(path)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_file_size</span></code>(path)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_perf_metrics</span></code>(sess[, force])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code>()</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>(args)</p></td>
@@ -127,21 +128,24 @@
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(argv)</p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_pdf_report</span></code>(html_str, out_path)</p></td>
+<td><p>Convert HTML string into PDF file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">size_df_to_html</span></code>(df[, cols, raw, title])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">size_df_to_markdown</span></code>(df[, cols, raw])</p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactFlag</span></code>(value)</p></td>
-<td><p>An enumeration.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code>(*args, **kwargs)</p></td>
 <td><p>PurePath subclass that can make system calls.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code>(session_dir, config)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableArtifact</span></code>(name[, df, path, flags, ...])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code>(session_dir, config)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -152,8 +156,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="isaac_toolkit.analysis.dynamic.perf.bb_cost.html" class="btn btn-neutral float-left" title="isaac_toolkit.analysis.dynamic.perf.bb_cost" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="isaac_toolkit.analysis.dynamic.perf.rvv.html" class="btn btn-neutral float-right" title="isaac_toolkit.analysis.dynamic.perf.rvv" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="isaac_toolkit.report.report_runtime.html" class="btn btn-neutral float-left" title="isaac_toolkit.report.report_runtime" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="isaac_toolkit.report.report_sess_mem_usage.html" class="btn btn-neutral float-right" title="isaac_toolkit.report.report_sess_mem_usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -10,5 +10,6 @@ isaac\_toolkit.analysis.dynamic.perf
    :toctree:
    :recursive:
 
+   bb_cost
    metrics
    rvv

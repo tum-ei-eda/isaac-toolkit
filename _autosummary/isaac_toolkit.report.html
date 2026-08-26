@@ -19,7 +19,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="isaac_toolkit.report.report_runtime" href="isaac_toolkit.report.report_runtime.html" />
+    <link rel="next" title="isaac_toolkit.report.report_perf" href="isaac_toolkit.report.report_perf.html" />
     <link rel="prev" title="isaac_toolkit.logging" href="isaac_toolkit.logging.html" /> 
 </head>
 
@@ -58,10 +58,11 @@
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.generate.html">isaac_toolkit.generate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.logging.html">isaac_toolkit.logging</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">isaac_toolkit.report</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_perf.html">isaac_toolkit.report.report_perf</a></li>
 <li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_runtime.html">isaac_toolkit.report.report_runtime</a></li>
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_sess_disk_usage.html">isaac_toolkit.report.report_sess_disk_usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_sess_mem_usage.html">isaac_toolkit.report.report_sess_mem_usage</a></li>
 <li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_utils.html">isaac_toolkit.report.report_utils</a></li>
-<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.sess_disk_usage.html">isaac_toolkit.report.sess_disk_usage</a></li>
-<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.sess_mem_usage.html">isaac_toolkit.report.sess_mem_usage</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.runner.html">isaac_toolkit.runner</a></li>
@@ -105,17 +106,20 @@
 <p class="rubric">Modules</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="isaac_toolkit.report.report_runtime.html#module-isaac_toolkit.report.report_runtime" title="isaac_toolkit.report.report_runtime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">report_runtime</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="isaac_toolkit.report.report_perf.html#module-isaac_toolkit.report.report_perf" title="isaac_toolkit.report.report_perf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">report_perf</span></code></a></p></td>
+<td><p>Generate reports from dynamic pipeline/basic-block cost artifacts.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="isaac_toolkit.report.report_runtime.html#module-isaac_toolkit.report.report_runtime" title="isaac_toolkit.report.report_runtime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">report_runtime</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="isaac_toolkit.report.report_utils.html#module-isaac_toolkit.report.report_utils" title="isaac_toolkit.report.report_utils"><code class="xref py py-obj docutils literal notranslate"><span class="pre">report_utils</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="isaac_toolkit.report.report_sess_disk_usage.html#module-isaac_toolkit.report.report_sess_disk_usage" title="isaac_toolkit.report.report_sess_disk_usage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">report_sess_disk_usage</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="isaac_toolkit.report.report_sess_mem_usage.html#module-isaac_toolkit.report.report_sess_mem_usage" title="isaac_toolkit.report.report_sess_mem_usage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">report_sess_mem_usage</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="isaac_toolkit.report.report_utils.html#module-isaac_toolkit.report.report_utils" title="isaac_toolkit.report.report_utils"><code class="xref py py-obj docutils literal notranslate"><span class="pre">report_utils</span></code></a></p></td>
 <td><p>Utilities to generate Reports.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="isaac_toolkit.report.sess_disk_usage.html#module-isaac_toolkit.report.sess_disk_usage" title="isaac_toolkit.report.sess_disk_usage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sess_disk_usage</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="isaac_toolkit.report.sess_mem_usage.html#module-isaac_toolkit.report.sess_mem_usage" title="isaac_toolkit.report.sess_mem_usage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sess_mem_usage</span></code></a></p></td>
-<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -126,7 +130,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="isaac_toolkit.logging.html" class="btn btn-neutral float-left" title="isaac_toolkit.logging" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="isaac_toolkit.report.report_runtime.html" class="btn btn-neutral float-right" title="isaac_toolkit.report.report_runtime" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="isaac_toolkit.report.report_perf.html" class="btn btn-neutral float-right" title="isaac_toolkit.report.report_perf" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

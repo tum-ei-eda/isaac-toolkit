@@ -1,7 +1,7 @@
-isaac\_toolkit.report.sess\_mem\_usage
-======================================
+isaac\_toolkit.report.report\_sess\_disk\_usage
+===============================================
 
-.. automodule:: isaac_toolkit.report.sess_mem_usage
+.. automodule:: isaac_toolkit.report.report_sess_disk_usage
 
    
    .. rubric:: Functions
@@ -9,8 +9,8 @@ isaac\_toolkit.report.sess\_mem\_usage
    .. autosummary::
    
       format_size
-      generate_sess_mem_usage_report
-      get_artifact_size
+      generate_sess_disk_usage_report
+      get_directory_size
       get_file_size
       get_parser
       handle
@@ -23,9 +23,6 @@ isaac\_toolkit.report.sess\_mem\_usage
 
    .. autosummary::
    
-      FileArtifact
       Path
-      PythonArtifact
       Session
-      TableArtifact
    

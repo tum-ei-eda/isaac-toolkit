@@ -1,0 +1,27 @@
+isaac\_toolkit.report.report\_perf
+==================================
+
+.. automodule:: isaac_toolkit.report.report_perf
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      filter_artifacts
+      generate_perf_report
+      generate_perf_summary
+      generate_top_bb_perf
+      get_parser
+      load_perf_dfs
+      main
+      save_pdf_report
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+   
