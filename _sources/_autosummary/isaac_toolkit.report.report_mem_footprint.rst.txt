@@ -1,0 +1,33 @@
+isaac\_toolkit.report.report\_mem\_footprint
+============================================
+
+.. automodule:: isaac_toolkit.report.report_mem_footprint
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      classify_section
+      filter_artifacts
+      generate_code_size_summary
+      generate_function_table
+      generate_instruction_size_table
+      generate_largest_bb_table
+      generate_mem_footprint_report
+      generate_section_table
+      get_parser
+      load_code_size_dfs
+      main
+      save_pdf_report
+      size_df_to_html
+      size_df_to_markdown
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Session
+   

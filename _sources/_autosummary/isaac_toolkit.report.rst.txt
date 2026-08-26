@@ -10,6 +10,7 @@ isaac\_toolkit.report
    :toctree:
    :recursive:
 
+   report_mem_footprint
    report_perf
    report_runtime
    report_sess_disk_usage

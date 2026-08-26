@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>isaac_toolkit.report.report_utils &mdash; ISAAC Toolkit 0.5.7 documentation</title>
+  <title>isaac_toolkit.report.report_mem_footprint &mdash; ISAAC Toolkit 0.5.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="isaac_toolkit.runner" href="isaac_toolkit.runner.html" />
-    <link rel="prev" title="isaac_toolkit.report.report_sess_mem_usage" href="isaac_toolkit.report.report_sess_mem_usage.html" /> 
+    <link rel="next" title="isaac_toolkit.report.report_perf" href="isaac_toolkit.report.report_perf.html" />
+    <link rel="prev" title="isaac_toolkit.report" href="isaac_toolkit.report.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -58,12 +58,12 @@
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.generate.html">isaac_toolkit.generate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.logging.html">isaac_toolkit.logging</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="isaac_toolkit.report.html">isaac_toolkit.report</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_mem_footprint.html">isaac_toolkit.report.report_mem_footprint</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">isaac_toolkit.report.report_mem_footprint</a></li>
 <li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_perf.html">isaac_toolkit.report.report_perf</a></li>
 <li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_runtime.html">isaac_toolkit.report.report_runtime</a></li>
 <li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_sess_disk_usage.html">isaac_toolkit.report.report_sess_disk_usage</a></li>
 <li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_sess_mem_usage.html">isaac_toolkit.report.report_sess_mem_usage</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">isaac_toolkit.report.report_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="isaac_toolkit.report.report_utils.html">isaac_toolkit.report.report_utils</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="isaac_toolkit.runner.html">isaac_toolkit.runner</a></li>
@@ -93,9 +93,9 @@
           <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.html">isaac_toolkit</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.report.html">isaac_toolkit.report</a></li>
-      <li class="breadcrumb-item active">isaac_toolkit.report.report_utils</li>
+      <li class="breadcrumb-item active">isaac_toolkit.report.report_mem_footprint</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/isaac_toolkit.report.report_utils.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/isaac_toolkit.report.report_mem_footprint.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -103,37 +103,67 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-isaac_toolkit.report.report_utils">
-<span id="isaac-toolkit-report-report-utils"></span><h1>isaac_toolkit.report.report_utils<a class="headerlink" href="#module-isaac_toolkit.report.report_utils" title="Link to this heading"></a></h1>
-<p>Utilities to generate Reports.</p>
+  <section id="module-isaac_toolkit.report.report_mem_footprint">
+<span id="isaac-toolkit-report-report-mem-footprint"></span><h1>isaac_toolkit.report.report_mem_footprint<a class="headerlink" href="#module-isaac_toolkit.report.report_mem_footprint" title="Link to this heading"></a></h1>
+<p>Generate code-size reports from static-analysis artifacts.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode_image_base64</span></code>(path)</p></td>
-<td><p>Convert image into bas64 for HTML embedding.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">classify_section</span></code>(name)</p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_hex</span></code>(x)</p></td>
-<td><p>Convert addresses into hexadecimal.</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_artifacts</span></code>(artifacts, func)</p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">monospace_addresses_html</span></code>(val)</p></td>
-<td><p>Wrap hex addresses into HTML code tags.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_code_size_summary</span></code>(sections, functions)</p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">monospace_addresses_md</span></code>(val)</p></td>
-<td><p>Wrap hex addresses into Markdown code tags.</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_function_table</span></code>(functions[, topk])</p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_pdf_report</span></code>(html_str, out_path)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_instruction_size_table</span></code>(disass)</p></td>
+<td><p>Summarize RISC-V instruction widths from their encoded low bits.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_largest_bb_table</span></code>(unique_bbs[, topk])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_mem_footprint_report</span></code>(sess[, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_section_table</span></code>(sections[, topk])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_code_size_dfs</span></code>(sess)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>([argv])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_pdf_report</span></code>(html_str, out_path)</p></td>
 <td><p>Convert HTML string into PDF file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">size_df_to_html</span></code>(df[, cols, raw, title])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">size_df_to_markdown</span></code>(df[, cols, raw])</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">HTML</span></code>([guess, filename, url, file_obj, ...])</p></td>
-<td><p>HTML document parsed by tinyhtml5.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactFlag</span></code>(value)</p></td>
+<td><p>An enumeration.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code>(*args, **kwargs)</p></td>
 <td><p>PurePath subclass that can make system calls.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code>(session_dir, config)</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -143,8 +173,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="isaac_toolkit.report.report_sess_mem_usage.html" class="btn btn-neutral float-left" title="isaac_toolkit.report.report_sess_mem_usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="isaac_toolkit.runner.html" class="btn btn-neutral float-right" title="isaac_toolkit.runner" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="isaac_toolkit.report.html" class="btn btn-neutral float-left" title="isaac_toolkit.report" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="isaac_toolkit.report.report_perf.html" class="btn btn-neutral float-right" title="isaac_toolkit.report.report_perf" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
