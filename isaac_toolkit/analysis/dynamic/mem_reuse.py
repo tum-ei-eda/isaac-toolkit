@@ -28,7 +28,14 @@ from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 
 REUSE_COLUMNS = [
-    "previous_idx", "idx", "idx_distance", "previous_pc", "pc", "mode", "overlap_accesses", "overlap_fraction"
+    "previous_idx",
+    "idx",
+    "idx_distance",
+    "previous_pc",
+    "pc",
+    "mode",
+    "overlap_accesses",
+    "overlap_fraction",
 ]
 
 

@@ -49,9 +49,7 @@ def create_mem_reuse_figure(reuse):
     )
 
 
-def visualize_mem_reuse(
-    sess, output=None, pcs=None, max_idx_distance=1000, modes=None, max_points=50000, force=False
-):
+def visualize_mem_reuse(sess, output=None, pcs=None, max_idx_distance=1000, modes=None, max_points=50000, force=False):
     artifacts = filter_artifacts(
         sess.artifacts, lambda artifact: artifact.flags & ArtifactFlag.TABLE and artifact.name == "mem_reuse"
     )
@@ -87,9 +85,7 @@ def main(argv=None):
     parser.add_argument("--force", "-f", action="store_true")
     args = parser.parse_args(argv)
     sess = Session.from_dir(Path(args.session))
-    visualize_mem_reuse(
-        sess, args.out, args.pcs, args.max_idx_distance, args.modes, args.max_points, args.force
-    )
+    visualize_mem_reuse(sess, args.out, args.pcs, args.max_idx_distance, args.modes, args.max_points, args.force)
 
 
 if __name__ == "__main__":
