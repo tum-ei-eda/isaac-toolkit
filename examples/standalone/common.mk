@@ -724,6 +724,7 @@ flow_report:
 report:
 	python3 -m isaac_toolkit.report.report_runtime --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --portable --style --topk $(REPORT_TOPK)
 	python3 -m isaac_toolkit.report.report_perf --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --style --topk $(REPORT_TOPK)
+	python3 -m isaac_toolkit.report.report_mem_footprint --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --style --topk $(REPORT_TOPK)
 	python3 -m isaac_toolkit.report.report_sess_disk_usage --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --portable --style --topk $(REPORT_TOPK)
 	python3 -m isaac_toolkit.report.report_sess_mem_usage --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --portable --style --topk $(REPORT_TOPK)
 
