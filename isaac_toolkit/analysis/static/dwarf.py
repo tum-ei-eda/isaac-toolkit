@@ -204,22 +204,17 @@ def parse_dwarf(elf_path):
                 logger.warning("  DWARF info is missing a line program for this CU")
                 continue
 
-            # CU_name = CU.get_top_DIE().attributes["DW_AT_name"].value.decode("utf-8")
-            actual_path = os.path.normpath(CU.get_top_DIE().get_full_path())
-            # print("actual_path", actual_path)
-
             for entry in line_program.get_entries():
-                if entry.state:
+                if entry.state and not entry.state.end_sequence:
                     pc = entry.state.address
                     line = entry.state.line
-                    # print("line", line)
-                    # pc_to_source_line_mapping[CU_name].append((pc, line))
-                    pc_to_source_line_mapping[actual_path].append((pc, line))
+                    if line is None:
+                        continue
+                    source_file = os.path.normpath(lpe_filename(line_program, entry.state.file))
+                    pc_to_source_line_mapping[source_file].append((pc, line))
 
-            # if CU_name in pc_to_source_line_mapping:
-            if actual_path in pc_to_source_line_mapping:
-                # pc_to_source_line_mapping[CU_name].sort(key=lambda x: x[0])
-                pc_to_source_line_mapping[actual_path].sort(key=lambda x: x[0])
+        for pc_lines in pc_to_source_line_mapping.values():
+            pc_lines.sort(key=lambda x: x[0])
     return func2pcs_data, srcFile_func_dict, pc_to_source_line_mapping
 
 
