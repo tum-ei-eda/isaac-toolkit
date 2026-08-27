@@ -31,7 +31,7 @@ import yaml
 from isaac_toolkit.frontend.compile_commands.json import load_compile_commands_json
 from isaac_toolkit.frontend.disass.objdump import load_disass
 from isaac_toolkit.frontend.elf.riscv import load_elf
-from isaac_toolkit.frontend.instr_trace.etiss_new import load_instr_trace as load_etiss_instr_trace
+from isaac_toolkit.frontend.instr_trace.etiss import load_instr_trace as load_etiss_instr_trace
 from isaac_toolkit.frontend.linker_map import load_linker_map
 from isaac_toolkit.frontend.mem_trace.etiss import load_mem_trace
 from isaac_toolkit.frontend.perf_trace.etiss_perf import load_perf_trace
@@ -65,9 +65,21 @@ def _enable_tracing(data: dict) -> dict:
             if feature not in features:
                 features.append(feature)
         config["log_instrs.to_file"] = True
-        config["etiss.experimental_print_to_file"] = True
+        # config["etiss.experimental_print_to_file"] = True
     else:
         raise ValueError(f"--trace is not implemented for MLonMCU target '{target}'")
+    return data
+
+
+def _enable_mlif_debug_symbols(data: dict) -> dict:
+    """Return a copy with debug symbols enabled for every MLIF run."""
+    data = copy.deepcopy(data)
+    for run in data.get("runs", []):
+        platform_names = run.get("platform_names") or []
+        if isinstance(platform_names, str):
+            platform_names = [platform_names]
+        if "mlif" in platform_names:
+            run.setdefault("config", {})["mlif.debug_symbols"] = 1
     return data
 
 
@@ -116,13 +128,12 @@ def _import_static_artifacts(sess: Session, run_dir: Path, force: bool) -> None:
 
 def _import_trace_artifacts(sess: Session, run_dir: Path, target: Optional[str], force: bool) -> None:
     if target and target.startswith("etiss"):
-        instr_files = sorted(run_dir.glob("instr_trace*.csv"))
-        if not instr_files:
-            instr_files = sorted(run_dir.glob("asm_trace_*.txt"))
-        if not instr_files:
+        instr_file = run_dir / f"{target}_instrs.log"
+        if not instr_file.is_file():
             instr_files = sorted(run_dir.glob("*_instrs.log"))
-        if instr_files:
-            load_etiss_instr_trace(sess, instr_files, force=force)
+            instr_file = instr_files[0] if len(instr_files) == 1 else None
+        if instr_file is not None and instr_file.is_file():
+            load_etiss_instr_trace(sess, instr_file, force=force)
         else:
             logger.warning("MLonMCU produced no ETISS instruction trace")
 
@@ -151,6 +162,7 @@ def run_mlonmcu_initializer(
     initializer_file = Path(initializer_file).resolve()
     data = _load_initializer(initializer_file)
     data = _resolve_model_paths(data, Path.cwd())
+    data = _enable_mlif_debug_symbols(data)
     if trace:
         data = _enable_tracing(data)
     target = data["runs"][0].get("target_name")

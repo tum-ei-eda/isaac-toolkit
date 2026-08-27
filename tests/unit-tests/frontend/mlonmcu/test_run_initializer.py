@@ -11,7 +11,22 @@ def test_enable_etiss_tracing_does_not_mutate_source():
     assert source["runs"][0]["feature_names"] == ["cfu_wca"]
     assert traced["runs"][0]["feature_names"] == ["cfu_wca", "log_instrs", "trace"]
     assert traced["runs"][0]["config"]["log_instrs.to_file"] is True
-    assert traced["runs"][0]["config"]["etiss.experimental_print_to_file"] is True
+    assert "etiss.experimental_print_to_file" not in traced["runs"][0]["config"]
+
+
+def test_enable_mlif_debug_symbols():
+    source = {
+        "runs": [
+            {"platform_names": ["mlif"], "config": {"mlif.debug_symbols": 0}},
+            {"platform_names": ["tvm"], "config": {}},
+        ]
+    }
+
+    configured = run_initializer._enable_mlif_debug_symbols(source)
+
+    assert source["runs"][0]["config"]["mlif.debug_symbols"] == 0
+    assert configured["runs"][0]["config"]["mlif.debug_symbols"] == 1
+    assert "mlif.debug_symbols" not in configured["runs"][1]["config"]
 
 
 def test_run_initializer_imports_outputs(tmp_path, monkeypatch):
@@ -25,6 +40,7 @@ def test_run_initializer_imports_outputs(tmp_path, monkeypatch):
                     {
                         "target_name": "etiss_rv32",
                         "model_name": "model.tar",
+                        "platform_names": ["mlif"],
                         "feature_names": [],
                         "config": {},
                     }
@@ -41,6 +57,7 @@ def test_run_initializer_imports_outputs(tmp_path, monkeypatch):
         effective_initializer = Path(command[command.index("--initializer") + 1])
         effective_data = yaml.safe_load(effective_initializer.read_text(encoding="utf-8"))
         assert effective_data["runs"][0]["model_name"] == str(model.resolve())
+        assert effective_data["runs"][0]["config"]["mlif.debug_symbols"] == 1
         output = Path(command[command.index("--dest") + 1])
         run_dir = output / "runs" / "0"
         run_dir.mkdir(parents=True)
@@ -81,3 +98,19 @@ def test_find_run_directory_ignores_latest_symlink(tmp_path):
     run_dir.mkdir(parents=True)
     (tmp_path / "runs" / "latest").symlink_to(run_dir, target_is_directory=True)
     assert run_initializer._find_run_directory(tmp_path) == run_dir
+
+
+def test_import_etiss_trace_uses_legacy_instr_log(tmp_path, monkeypatch):
+    instr_log = tmp_path / "etiss_rv32_instrs.log"
+    instr_log.write_text("0x00000000: addi x0,x0,0 # 0x00000013 []\n", encoding="utf-8")
+    (tmp_path / "instr_trace.csv").write_text("not;an;etiss;instruction;log\n", encoding="utf-8")
+    imported = []
+    monkeypatch.setattr(
+        run_initializer,
+        "load_etiss_instr_trace",
+        lambda sess, path, force: imported.append((path, force)),
+    )
+
+    run_initializer._import_trace_artifacts(object(), tmp_path, "etiss_rv32", force=True)
+
+    assert imported == [(instr_log, True)]

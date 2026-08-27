@@ -120,7 +120,10 @@ def run_mlonmcu_from_initializer(
     else:
         until = RunStage[until]
 
-    initializer = RunInitializer.from_file(initializer_file)
+    initializers = RunInitializer.from_file(initializer_file)
+    if len(initializers) != 1:
+        raise ValueError(f"Expected exactly one MLonMCU run initializer, found {len(initializers)}")
+    initializer = initializers[0]
     print("initializer", initializer)
     print("initializer.config", initializer.config)
     if trace_instrs:
