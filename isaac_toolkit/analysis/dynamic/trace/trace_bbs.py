@@ -766,7 +766,7 @@ def collect_trace_bbs(
     func2bbs_df = pd.DataFrame({"func": list(func2bbs.keys()), "bb_idxs": list(func2bbs.values())})
     # print("func2bbs_df", func2bbs_df)
 
-    bb_trace_artifact = TableArtifact("bb_trace", bb_trace_df, attrs=bb_trace_attrs)
+    bb_trace_artifact = TraceArtifact("bb_trace", bb_trace_df, attrs=bb_trace_attrs)
     unique_bbs_artifact = TableArtifact("unique_bbs", unique_bbs_df, attrs=unique_bbs_attrs)
     func2bbs_artifact = TableArtifact("func2bbs", func2bbs_df, attrs=func2bbs_attrs)
     trace_pcs_artifact = TableArtifact("trace_pcs", trace_pcs_df, attrs=trace_pcs_attrs)
