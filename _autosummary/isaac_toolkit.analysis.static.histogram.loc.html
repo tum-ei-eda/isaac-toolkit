@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>isaac_toolkit.analysis.static.linker_map &mdash; ISAAC Toolkit 0.5.7 documentation</title>
+  <title>isaac_toolkit.analysis.static.histogram.loc &mdash; ISAAC Toolkit 0.5.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="isaac_toolkit.analysis.static.llvm_bbs" href="isaac_toolkit.analysis.static.llvm_bbs.html" />
-    <link rel="prev" title="isaac_toolkit.analysis.static.histogram.loc" href="isaac_toolkit.analysis.static.histogram.loc.html" /> 
+    <link rel="next" title="isaac_toolkit.analysis.static.linker_map" href="isaac_toolkit.analysis.static.linker_map.html" />
+    <link rel="prev" title="isaac_toolkit.analysis.static.histogram.disass_opcode" href="isaac_toolkit.analysis.static.histogram.disass_opcode.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -90,9 +90,10 @@
           <li class="breadcrumb-item"><a href="isaac_toolkit.html">isaac_toolkit</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.html">isaac_toolkit.analysis</a></li>
           <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.static.html">isaac_toolkit.analysis.static</a></li>
-      <li class="breadcrumb-item active">isaac_toolkit.analysis.static.linker_map</li>
+          <li class="breadcrumb-item"><a href="isaac_toolkit.analysis.static.histogram.html">isaac_toolkit.analysis.static.histogram</a></li>
+      <li class="breadcrumb-item active">isaac_toolkit.analysis.static.histogram.loc</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/isaac_toolkit.analysis.static.linker_map.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/isaac_toolkit.analysis.static.histogram.loc.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -100,15 +101,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-isaac_toolkit.analysis.static.linker_map">
-<span id="isaac-toolkit-analysis-static-linker-map"></span><h1>isaac_toolkit.analysis.static.linker_map<a class="headerlink" href="#module-isaac_toolkit.analysis.static.linker_map" title="Link to this heading"></a></h1>
+  <section id="module-isaac_toolkit.analysis.static.histogram.loc">
+<span id="isaac-toolkit-analysis-static-histogram-loc"></span><h1>isaac_toolkit.analysis.static.histogram.loc<a class="headerlink" href="#module-isaac_toolkit.analysis.static.histogram.loc" title="Link to this heading"></a></h1>
+<p>Static source-location histograms derived from disassembly.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyze_linker_map</span></code>(sess[, force])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">collect_loc_histograms</span></code>(pc2locs_df, disass_df)</p></td>
+<td><p>Build selected source-location histograms from disassembly.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_loc_hist</span></code>(sess[, metrics, force])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyze_linker_map_helper</span></code>(mapFile)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_loc_hists</span></code>(sess[, metrics, force])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">decode_opcode</span></code>(instr_word)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_artifacts</span></code>(artifacts, func)</p></td>
@@ -120,13 +128,10 @@
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>(args)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>([argv])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(argv)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_log_level</span></code>([console_level, file_level])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_log_level</span></code>([console_level, file_level])</p></td>
 <td><p>Set command line log level at runtime.</p></td>
 </tr>
 </tbody>
@@ -134,16 +139,13 @@
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArtifactFlag</span></code>(value)</p></td>
-<td><p>An enumeration.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code>(*args, **kwargs)</p></td>
 <td><p>PurePath subclass that can make system calls.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code>(session_dir, config)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code>(session_dir, config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableArtifact</span></code>(name[, df, path, flags, ...])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableArtifact</span></code>(name[, df, path, flags, ...])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -154,8 +156,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="isaac_toolkit.analysis.static.histogram.loc.html" class="btn btn-neutral float-left" title="isaac_toolkit.analysis.static.histogram.loc" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="isaac_toolkit.analysis.static.llvm_bbs.html" class="btn btn-neutral float-right" title="isaac_toolkit.analysis.static.llvm_bbs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="isaac_toolkit.analysis.static.histogram.disass_opcode.html" class="btn btn-neutral float-left" title="isaac_toolkit.analysis.static.histogram.disass_opcode" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="isaac_toolkit.analysis.static.linker_map.html" class="btn btn-neutral float-right" title="isaac_toolkit.analysis.static.linker_map" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

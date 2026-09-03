@@ -12,3 +12,4 @@ isaac\_toolkit.analysis.static.histogram
 
    disass_instr
    disass_opcode
+   loc

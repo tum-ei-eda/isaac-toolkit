@@ -18,8 +18,10 @@ isaac\_toolkit.flow.demo.stage.analyze
       create_disass_instr_hist
       create_disass_opcode_hist
       create_instr_hist
+      create_loc_hists
       create_opcode_hist
       create_opcode_per_llvm_bb_hist
+      create_static_loc_hists
       get_logger
       get_parser
       handle

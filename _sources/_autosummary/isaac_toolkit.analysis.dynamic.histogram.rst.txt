@@ -11,6 +11,7 @@ isaac\_toolkit.analysis.dynamic.histogram
    :recursive:
 
    instr
+   loc
    opcode
    opcode_per_llvm_bb
    pc
