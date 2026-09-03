@@ -87,8 +87,8 @@ def collect_memory_event_costs(bb_trace_df: pd.DataFrame, mem_trace_df: pd.DataF
         }
     )
     events["bb_row"] = bb_rows
-    bb_costs = events.groupby("bb_row", observed=True)[MEMORY_EVENT_NAMES].sum().reindex(
-        range(len(bb_trace_df)), fill_value=0
+    bb_costs = (
+        events.groupby("bb_row", observed=True)[MEMORY_EVENT_NAMES].sum().reindex(range(len(bb_trace_df)), fill_value=0)
     )
 
     events["pc"] = mem["pc"].to_numpy(dtype=np.int64)
@@ -393,7 +393,13 @@ def callgrind_format_converter(
         if len(bb_cost_trace_df) != len(bb_trace_df):
             raise ValueError("bb_cost and bb_trace must have one row per BB invocation")
         supported_events = [
-            "Ir", "Cycles", "StallCycles", "BranchMispredicts", "L1IMisses", "L1DMisses", *MEMORY_EVENT_NAMES
+            "Ir",
+            "Cycles",
+            "StallCycles",
+            "BranchMispredicts",
+            "L1IMisses",
+            "L1DMisses",
+            *MEMORY_EVENT_NAMES,
         ]
         event_names = [name for name in supported_events if name in bb_cost_trace_df]
     # print("bb_cost_trace_df", bb_cost_trace_df)
@@ -668,9 +674,9 @@ def generate_callgrind_output(
         memory_bb_cost_df, memory_pc_cost_df = collect_memory_event_costs(bb_trace_df, mem_trace_artifacts[0].df)
         if bb_cost_df is None:
             bb_cost_df = pd.DataFrame()
-            bb_cost_df["Ir"] = bb_trace_df.merge(
-                unique_bbs_df, how="left", left_on="bb_idx", right_index=True
-            )["num_instrs"].to_numpy()
+            bb_cost_df["Ir"] = bb_trace_df.merge(unique_bbs_df, how="left", left_on="bb_idx", right_index=True)[
+                "num_instrs"
+            ].to_numpy()
         else:
             bb_cost_df = bb_cost_df.reset_index(drop=True).copy()
         for event_name in MEMORY_EVENT_NAMES:
