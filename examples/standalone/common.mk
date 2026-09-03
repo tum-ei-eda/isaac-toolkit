@@ -687,11 +687,13 @@ analyze_static:
 	python3 -m isaac_toolkit.analysis.static.mem_footprint --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.static.histogram.disass_instr --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.static.histogram.disass_opcode --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.static.histogram.loc --metrics count opcode instr --session $(SESS) $(FORCE_ARG)
 
 analyze_dynamic:
 	python3 -m isaac_toolkit.analysis.dynamic.histogram.opcode --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.dynamic.histogram.instr --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.dynamic.histogram.pc --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.analysis.dynamic.histogram.loc --metrics count opcode instr --session $(SESS) $(FORCE_ARG)
 	# python3 -m isaac_toolkit.analysis.dynamic.trace.basic_blocks --session $(SESS) $(FORCE_ARG)
 	python3 -m isaac_toolkit.analysis.dynamic.trace.trace_bbs --session $(SESS) $(FORCE_ARG)
 ifeq ($(MEM_REUSE),1)

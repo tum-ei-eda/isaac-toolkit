@@ -34,6 +34,7 @@ from isaac_toolkit.analysis.static.histogram.disass_instr import (
 from isaac_toolkit.analysis.static.histogram.disass_opcode import (
     create_disass_opcode_hist,
 )
+from isaac_toolkit.analysis.static.histogram.loc import create_loc_hists as create_static_loc_hists
 
 # from isaac_toolkit.analysis.dynamic.trace.trunc_trace import trunc_trace
 # from isaac_toolkit.analysis.dynamic.trace.instr_operands import analyze_instr_operands
@@ -44,6 +45,7 @@ from isaac_toolkit.analysis.dynamic.histogram.pc import create_pc_hist
 #     create_opcode_per_llvm_bb_hist,
 # )
 from isaac_toolkit.analysis.dynamic.histogram.instr import create_instr_hist
+from isaac_toolkit.analysis.dynamic.histogram.loc import create_loc_hists
 
 # from isaac_toolkit.analysis.dynamic.trace.basic_blocks import analyze_basic_blocks
 from isaac_toolkit.analysis.dynamic.trace.trace_bbs import collect_trace_bbs
@@ -75,6 +77,8 @@ def analyze_artifacts(sess: Session, force: bool = False, progress: bool = False
     create_pc_hist(sess, force=force)
     create_disass_instr_hist(sess, force=force)
     create_disass_opcode_hist(sess, force=force)
+    create_static_loc_hists(sess, force=force)
+    create_loc_hists(sess, force=force)
     # analyze_basic_blocks(sess, force=force)
     collect_trace_bbs(sess, force=force)
     if any(artifact.attrs.get("kind") == "timing_trace" for artifact in sess.artifacts):

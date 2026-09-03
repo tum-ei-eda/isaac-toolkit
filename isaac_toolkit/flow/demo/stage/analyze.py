@@ -32,6 +32,7 @@ from isaac_toolkit.analysis.static.histogram.disass_instr import (
 from isaac_toolkit.analysis.static.histogram.disass_opcode import (
     create_disass_opcode_hist,
 )
+from isaac_toolkit.analysis.static.histogram.loc import create_loc_hists as create_static_loc_hists
 from isaac_toolkit.analysis.dynamic.trace.trunc_trace import trunc_trace
 from isaac_toolkit.analysis.dynamic.trace.instr_operands import analyze_instr_operands
 from isaac_toolkit.analysis.dynamic.histogram.opcode import create_opcode_hist
@@ -39,6 +40,7 @@ from isaac_toolkit.analysis.dynamic.histogram.opcode_per_llvm_bb import (
     create_opcode_per_llvm_bb_hist,
 )
 from isaac_toolkit.analysis.dynamic.histogram.instr import create_instr_hist
+from isaac_toolkit.analysis.dynamic.histogram.loc import create_loc_hists
 from isaac_toolkit.analysis.dynamic.trace.basic_blocks import analyze_basic_blocks
 from isaac_toolkit.analysis.dynamic.trace.map_llvm_bbs_new import map_llvm_bbs_new
 from isaac_toolkit.analysis.dynamic.trace.track_used_functions import (
@@ -68,6 +70,8 @@ def analyze_artifacts(sess: Session, force: bool = False, progress: bool = False
     create_instr_hist(sess, force=force)
     create_disass_instr_hist(sess, force=force)
     create_disass_opcode_hist(sess, force=force)
+    create_static_loc_hists(sess, force=force)
+    create_loc_hists(sess, force=force)
     analyze_basic_blocks(sess, force=force)
     map_llvm_bbs_new(sess, force=force)
     track_unused_functions(sess, force=force)
