@@ -11,6 +11,7 @@ isaac\_toolkit.backend.profile.callgrind\_new
       build_call_trace
       callgrind_format_converter
       callgrind_format_get_inclusive_cost
+      collect_memory_event_costs
       filter_artifacts
       find_func_name
       generate_callgrind_output
