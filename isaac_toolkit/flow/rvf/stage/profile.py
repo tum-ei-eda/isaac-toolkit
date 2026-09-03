@@ -32,11 +32,25 @@ import logging
 logger = logging.getLogger()
 
 
-def generate_profile(sess: Session, unmangle: bool = False, force: bool = False, progress: bool = False):
+def generate_profile(
+    sess: Session,
+    unmangle: bool = False,
+    force: bool = False,
+    progress: bool = False,
+    memory_events: bool = False,
+):
     logger.info("Generate RVF profiling artifacts...")
     # generate_callgrind_output(sess, output=None, force=force, dump_pc=True, dump_pos=False, unmangle_names=unmangle)
     # generate_callgrind_output(sess, output=None, force=force, dump_pc=False, dump_pos=True, unmangle_names=unmangle)
-    generate_callgrind_output(sess, output=None, force=force, dump_pc=True, dump_pos=True, unmangle_names=unmangle)
+    generate_callgrind_output(
+        sess,
+        output=None,
+        force=force,
+        dump_pc=True,
+        dump_pos=True,
+        unmangle_names=unmangle,
+        memory_events=memory_events,
+    )
 
 
 def handle(args):
@@ -45,7 +59,7 @@ def handle(args):
     assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
     sess = Session.from_dir(session_dir)
     # set_log_level(console_level=args.log, file_level=args.log)
-    generate_profile(sess, force=args.force, unmangle=args.unmangle)
+    generate_profile(sess, force=args.force, unmangle=args.unmangle, memory_events=args.memory_events)
     sess.save()
 
 
@@ -59,6 +73,11 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--unmangle", action="store_true")
+    parser.add_argument(
+        "--memory-events",
+        action="store_true",
+        help="include data-bus access counts and byte totals from the mem_trace artifact",
+    )
     return parser
 
 

@@ -41,6 +41,60 @@ logger = logging.getLogger(__name__)
 
 PC_FUNC_NAME_CACHE = {}
 
+MEMORY_EVENT_NAMES = ["DataReads", "DataWrites", "DataAccesses", "DataReadBytes", "DataWriteBytes"]
+
+
+def collect_memory_event_costs(bb_trace_df: pd.DataFrame, mem_trace_df: pd.DataFrame):
+    """Aggregate ETISS data-bus transactions by dynamic BB and instruction PC."""
+    required = {"idx", "pc", "mode", "bytes"}
+    missing = required.difference(mem_trace_df.columns)
+    if missing:
+        raise ValueError(f"memory trace is missing columns: {', '.join(sorted(missing))}")
+
+    ends = bb_trace_df["bb_end_trace_idx"].to_numpy(dtype=np.int64)
+    if not len(ends):
+        return pd.DataFrame(columns=MEMORY_EVENT_NAMES), pd.DataFrame(columns=MEMORY_EVENT_NAMES)
+
+    mem = mem_trace_df.loc[:, ["idx", "pc", "mode", "bytes"]].copy()
+    mem["idx"] = pd.to_numeric(mem["idx"])
+    mem["pc"] = pd.to_numeric(mem["pc"])
+    mem["bytes"] = pd.to_numeric(mem["bytes"])
+    mem["mode"] = mem["mode"].astype(str).str.lower()
+    unknown_modes = sorted(set(mem["mode"]) - {"r", "w"})
+    if unknown_modes:
+        raise ValueError(f"unsupported memory access modes: {', '.join(unknown_modes)}")
+
+    # ETISS timestamps accesses during instruction N at the end of that
+    # instruction's first clock period. The frontend therefore produces a
+    # one-based idx. idx=0 contains initialization accesses (pc=0), which are
+    # outside the executed instruction trace and cannot be attributed.
+    mem = mem.loc[mem["idx"] > 0].copy()
+    trace_indices = mem["idx"].to_numpy(dtype=np.int64) - 1
+    bb_rows = np.searchsorted(ends, trace_indices, side="left")
+    if np.any(bb_rows >= len(ends)):
+        raise ValueError("memory trace contains instruction indices beyond the basic-block trace")
+
+    is_read = mem["mode"].eq("r").to_numpy(dtype=np.int64)
+    is_write = 1 - is_read
+    sizes = mem["bytes"].to_numpy(dtype=np.int64)
+    events = pd.DataFrame(
+        {
+            "DataReads": is_read,
+            "DataWrites": is_write,
+            "DataAccesses": np.ones(len(mem), dtype=np.int64),
+            "DataReadBytes": sizes * is_read,
+            "DataWriteBytes": sizes * is_write,
+        }
+    )
+    events["bb_row"] = bb_rows
+    bb_costs = events.groupby("bb_row", observed=True)[MEMORY_EVENT_NAMES].sum().reindex(
+        range(len(bb_trace_df)), fill_value=0
+    )
+
+    events["pc"] = mem["pc"].to_numpy(dtype=np.int64)
+    pc_costs = events.groupby("pc", observed=True)[MEMORY_EVENT_NAMES].sum()
+    return bb_costs.reset_index(drop=True), pc_costs
+
 
 # TODO: reset?
 
@@ -322,6 +376,7 @@ def callgrind_format_converter(
     # event_names: List[str] = ["Ir"],
     pcs_hist_df=None,
     bb_cost_df=None,
+    memory_pc_cost_df=None,
 ):
     """
     Generate a callgrind-compatible profile.
@@ -337,11 +392,10 @@ def callgrind_format_converter(
         bb_cost_trace_df = bb_cost_df.reset_index(drop=True)
         if len(bb_cost_trace_df) != len(bb_trace_df):
             raise ValueError("bb_cost and bb_trace must have one row per BB invocation")
-        event_names = [
-            name
-            for name in ("Ir", "Cycles", "StallCycles", "BranchMispredicts", "L1IMisses", "L1DMisses")
-            if name in bb_cost_trace_df
+        supported_events = [
+            "Ir", "Cycles", "StallCycles", "BranchMispredicts", "L1IMisses", "L1DMisses", *MEMORY_EVENT_NAMES
         ]
+        event_names = [name for name in supported_events if name in bb_cost_trace_df]
     # print("bb_cost_trace_df", bb_cost_trace_df)
     # event_arrays = {ev: bb_cost_trace_df[ev].to_numpy() for ev in event_names}
     event_arrays = np.vstack([bb_cost_trace_df[ev].to_numpy() for ev in event_names])
@@ -495,6 +549,13 @@ summary:
                 event_names,
                 pcs_hist_df,
             )
+            if memory_pc_cost_df is not None:
+                memory_event_indices = [event_names.index(name) for name in MEMORY_EVENT_NAMES]
+                for instr_pc in position_cost_dict:
+                    if instr_pc in memory_pc_cost_df.index:
+                        position_cost_dict[instr_pc][memory_event_indices] = memory_pc_cost_df.loc[
+                            instr_pc, MEMORY_EVENT_NAMES
+                        ].to_numpy(dtype=np.int64)
             branch_pc_list = unique_bbs_df.iloc[bb_list].last_pc.values
 
             for pc in sorted(position_cost_dict.keys()):
@@ -546,6 +607,7 @@ def generate_callgrind_output(
     dump_pc: bool = False,
     dump_pos: bool = False,
     unmangle_names: bool = False,
+    memory_events: bool = False,
 ):
     artifacts = sess.artifacts
 
@@ -598,6 +660,21 @@ def generate_callgrind_output(
 
     bb_cost_artifacts = filter_artifacts(artifacts, lambda x: x.name == "bb_cost")
     bb_cost_df = bb_cost_artifacts[0].df if len(bb_cost_artifacts) == 1 else None
+    memory_pc_cost_df = None
+    if memory_events:
+        mem_trace_artifacts = filter_artifacts(artifacts, lambda x: x.name == "mem_trace")
+        if len(mem_trace_artifacts) != 1:
+            raise ValueError("--memory-events requires exactly one mem_trace artifact")
+        memory_bb_cost_df, memory_pc_cost_df = collect_memory_event_costs(bb_trace_df, mem_trace_artifacts[0].df)
+        if bb_cost_df is None:
+            bb_cost_df = pd.DataFrame()
+            bb_cost_df["Ir"] = bb_trace_df.merge(
+                unique_bbs_df, how="left", left_on="bb_idx", right_index=True
+            )["num_instrs"].to_numpy()
+        else:
+            bb_cost_df = bb_cost_df.reset_index(drop=True).copy()
+        for event_name in MEMORY_EVENT_NAMES:
+            bb_cost_df[event_name] = memory_bb_cost_df[event_name].to_numpy()
 
     def helper(pc2locs_df):
         df_ = pc2locs_df.explode("locs")
@@ -662,6 +739,7 @@ def generate_callgrind_output(
         unmangle_names=unmangle_names,
         pcs_hist_df=pcs_hist_df,
         bb_cost_df=bb_cost_df,
+        memory_pc_cost_df=memory_pc_cost_df,
     )
     # print("Z", time.time())
 
@@ -691,6 +769,7 @@ def handle(args):
         dump_pc=args.dump_pc,
         dump_pos=args.dump_pos,
         unmangle_names=args.unmangle,
+        memory_events=args.memory_events,
     )
     sess.save()
 
@@ -708,6 +787,11 @@ def get_parser():
     parser.add_argument("--dump-pc", action="store_true")
     parser.add_argument("--dump-pos", action="store_true")
     parser.add_argument("--unmangle", action="store_true")
+    parser.add_argument(
+        "--memory-events",
+        action="store_true",
+        help="include data-bus access counts and byte totals from the mem_trace artifact",
+    )
     # TODO: allow overriding memgraph config?
     return parser
 

@@ -57,6 +57,8 @@ endif
 
 FORCE ?= 1
 FORCE_ARG := $(if $(filter 1,$(FORCE)),--force,)
+PROFILE_MEMORY_EVENTS ?= 0
+PROFILE_MEMORY_EVENTS_ARG := $(if $(filter 1,$(PROFILE_MEMORY_EVENTS)),--memory-events,)
 
 # Simulation
 SIMULATOR ?= spike
@@ -751,7 +753,7 @@ report:
 	python3 -m isaac_toolkit.report.report_sess_mem_usage --session $(SESS) $(FORCE_ARG) --fmt $(REPORT_FMT) --detailed --portable --style --topk $(REPORT_TOPK)
 
 flow_profile:
-	python3 -m isaac_toolkit.flow.rvf.stage.profile --session $(SESS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.flow.rvf.stage.profile --session $(SESS) $(PROFILE_MEMORY_EVENTS_ARG) $(FORCE_ARG)
 	# cp $(SESS)/profile/callgrind_pc.out $(CALLGRIND_PC)
 	# cp $(SESS)/profile/callgrind_pos.out $(CALLGRIND_POS)
 	cp $(SESS)/profile/callgrind_pc_pos.out $(CALLGRIND_BOTH)
@@ -760,13 +762,13 @@ flow_lcov:
 	python3 -m isaac_toolkit.flow.rvf.stage.lcov --session $(SESS) $(FORCE_ARG)
 
 $(CALLGRIND_POS): | $(OUT_DIR)
-	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(FORCE_ARG)
+	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pos --output $(CALLGRIND_POS) $(PROFILE_MEMORY_EVENTS_ARG) $(FORCE_ARG)
 
 $(CALLGRIND_PC): | $(OUT_DIR)
-	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pc --output $(CALLGRIND_PC) $(FORCE_ARG)
+	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pc --output $(CALLGRIND_PC) $(PROFILE_MEMORY_EVENTS_ARG) $(FORCE_ARG)
 
 $(CALLGRIND_BOTH): | $(OUT_DIR)
-	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pc --dump-pos --output $(CALLGRIND_BOTH) $(FORCE_ARG)
+	python3 -m isaac_toolkit.backend.profile.callgrind_new --session $(SESS) --dump-pc --dump-pos --output $(CALLGRIND_BOTH) $(PROFILE_MEMORY_EVENTS_ARG) $(FORCE_ARG)
 
 profile_pc: $(CALLGRIND_PC)
 profile_pos: $(CALLGRIND_POS)
