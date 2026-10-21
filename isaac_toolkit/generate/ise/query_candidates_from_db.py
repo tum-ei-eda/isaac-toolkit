@@ -338,7 +338,6 @@ def query_candidates_from_db(
         args += [
             *(["--progress"] if progress else []),
             *["--times"],
-            *["--log", "info"],
             *(["--yaml", query_config_yaml] if query_config_yaml is not None else []),
             *["--session", label],
             *["--function", func_name],
