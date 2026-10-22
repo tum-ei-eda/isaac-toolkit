@@ -10,6 +10,7 @@ isaac\_toolkit.frontend.instr\_trace
    :toctree:
    :recursive:
 
+   cfu
    etiss
    etiss_new
    etiss_perf

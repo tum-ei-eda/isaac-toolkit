@@ -10,4 +10,5 @@ isaac\_toolkit.generate.hardware
    :toctree:
    :recursive:
 
+   cfu
    hls
