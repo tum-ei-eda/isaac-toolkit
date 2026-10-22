@@ -21,7 +21,7 @@ def read_trace(trace, disassembly, manifest=None, chunk_size=250000):
         match = re.match(r"^\s*([0-9a-fA-F]+):\s+([0-9a-fA-F]{8})\s+([^\s]+)", line)
         if match:
             address, word, mnemonic = match.groups()
-            static[int(address, 16)] = (int(word, 16), mnemonic.upper())
+            static[int(address, 16)] = (int(word, 16), mnemonic.lower())
     entries = CFUEncoder(manifest, allow_new=False).data["instructions"] if manifest else {}
     names = {}
     for address, (word, mnemonic) in static.items():
@@ -29,7 +29,7 @@ def read_trace(trace, disassembly, manifest=None, chunk_size=250000):
             matches = [key for key, entry in entries.items() if word & entry["mask"] == entry["code"]]
             if len(matches) != 1:
                 raise ValueError(f"Unmapped custom instruction at 0x{address:x}")
-            mnemonic = matches[0].split(".")[-1]
+            mnemonic = matches[0].split(".")[-1].lower()
         names[address] = mnemonic
     parts, previous_cycle = [], -1
     for frame in pd.read_csv(trace, chunksize=chunk_size):

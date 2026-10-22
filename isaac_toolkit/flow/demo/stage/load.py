@@ -72,6 +72,20 @@ def load_mlonmcu_exported_run(sess: Session, run_dir: Path, force: bool = False,
 
 def load_artifacts(sess: Session, run_dir: Path, force: bool = False, progress: bool = False):
     logger.info("Loading ISAAC Demo artifacts...")
+    discovery = run_dir / "cfu_discovery.json"
+    if discovery.exists():
+        import json
+        from isaac_toolkit.frontend.instr_trace.cfu import load_instr_trace
+        data = json.loads(discovery.read_text())
+        if data.get("schema") != 1 or data.get("runner") != "verilator":
+            raise ValueError("Unsupported CFU discovery metadata")
+        load_elf(sess, run_dir / "firmware.elf", force=force)
+        load_linker_map(sess, run_dir / "firmware.map", force=force)
+        load_instr_trace(sess, run_dir / "sim/instruction_trace.csv", run_dir / "firmware.dump",
+                         force=force, start_func=data["start_func"], end_func=data["end_func"])
+        load_disass(sess, run_dir / "firmware.dump", force=force)
+        load_compile_commands_json(sess, run_dir / "compile_commands.json", force=force)
+        return
     load_mlonmcu_exported_run(sess, run_dir, force=force, progress=progress)
 
 
