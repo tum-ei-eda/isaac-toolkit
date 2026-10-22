@@ -22,6 +22,7 @@ isaac\_toolkit.flow.demo.stage.analyze
       create_opcode_hist
       create_opcode_per_llvm_bb_hist
       create_static_loc_hists
+      filter_artifacts
       get_logger
       get_parser
       handle
@@ -36,6 +37,7 @@ isaac\_toolkit.flow.demo.stage.analyze
 
    .. autosummary::
    
+      ArtifactFlag
       Path
       Session
    
