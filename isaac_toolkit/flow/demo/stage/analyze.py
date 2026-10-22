@@ -21,6 +21,7 @@ import argparse
 from pathlib import Path
 
 from isaac_toolkit.session import Session
+from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts
 from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.analysis.static.dwarf import analyze_dwarf
 from isaac_toolkit.analysis.static.llvm_bbs import analyze_llvm_bbs
@@ -61,8 +62,12 @@ def analyze_artifacts(sess: Session, force: bool = False, progress: bool = False
     analyze_llvm_bbs(sess, force=force)
     analyze_mem_footprint(sess, force=force)
     analyze_linker_map(sess, force=force)
-    trunc_trace(sess, start_func="mlonmcu_run", force=force)
-    trunc_trace(sess, end_func="stop_bench", force=force)
+    traces = filter_artifacts(sess.artifacts, lambda artifact: artifact.flags & ArtifactFlag.INSTR_TRACE)
+    if len(traces) != 1:
+        raise ValueError("Expected exactly one instruction trace")
+    bounds = traces[0].attrs
+    trunc_trace(sess, start_func=bounds.get("benchmark_start_func", "mlonmcu_run"), force=force)
+    trunc_trace(sess, end_func=bounds.get("benchmark_end_func", "stop_bench"), force=force)
     if has_operands(sess):
         analyze_instr_operands(sess, force=force)
     create_opcode_hist(sess, force=force)

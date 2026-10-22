@@ -60,11 +60,16 @@ def read_trace(trace, disassembly, manifest=None, chunk_size=250000):
     return result
 
 
-def load_instr_trace(sess, input_file, disassembly, manifest=None, force=False):
+def load_instr_trace(sess, input_file, disassembly, manifest=None, force=False,
+                     start_func=None, end_func=None):
     frame = read_trace(input_file, disassembly, manifest)
     attrs = {"simulator": "cfu_playground_verilator", "cpu_arch": "rv32im",
              "cpu_variant": "full+cfu+debug", "operand_values": "not captured",
              "by": "isaac_toolkit.frontend.instr_trace.cfu"}
+    if start_func:
+        attrs["benchmark_start_func"] = start_func
+    if end_func:
+        attrs["benchmark_end_func"] = end_func
     sess.add_artifact(InstrTraceArtifact(input_file.name, frame, attrs=attrs), override=force)
     return frame
 
