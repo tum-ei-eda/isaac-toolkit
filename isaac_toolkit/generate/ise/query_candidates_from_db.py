@@ -156,8 +156,20 @@ def query_candidates_from_db(
     partition_with_maxmiso: Union[str, bool] = "auto",
     enable_venn: bool = False,
     new: bool = False,
+    encoding_policy: str = "auto",
 ):
     logger.info("Querying candidates from DB...")
+    if encoding_policy == "cfu":
+        if xlen != 32:
+            raise ValueError("CFU requires RV32")
+        if query_config_yaml is None or not yaml.safe_load(Path(query_config_yaml).read_text()).get("filters", {}).get("cfu"):
+            raise ValueError("CFU query requires a configuration with filters.cfu enabled")
+        # Physical operands are checked after variation generation. Allow internal
+        # constants as input nodes without admitting extra encoded operands.
+        MIN_INPUTS, MAX_INPUTS, MIN_OUTPUTS, MAX_OUTPUTS = 1, sys.maxsize, 1, 1
+        MAX_LOADS, MAX_STORES, MAX_MEMS, MAX_BRANCHES = 0, 0, 0, 0
+    elif encoding_policy != "auto":
+        raise ValueError(f"Unknown encoding policy: {encoding_policy}")
     artifacts = sess.artifacts
     choices_artifacts = filter_artifacts(artifacts, lambda x: x.flags & ArtifactFlag.TABLE and x.name == "choices")
     assert len(choices_artifacts) == 1
@@ -293,10 +305,9 @@ def query_candidates_from_db(
         out_dir = workdir / out_name
         logger.debug("out_dir", out_dir)
         out_dir.mkdir(exist_ok=True, parents=True)
-        if new:
-            index_file = out_dir / "index.yml"
-        else:
-            index_file = out_dir / "combined_index.yml"
+        # tool.main always writes index.yml for one query. `new` only chooses
+        # the filename of the aggregate ISAAC index below.
+        index_file = out_dir / "index.yml"
         index_files.append(index_file)
         # TODO: to not hardcode this, call directly via python
 
@@ -353,7 +364,7 @@ def query_candidates_from_db(
             *(["--max-nodes", str(MAX_NODES)] if MAX_NODES is not None else []),
             *(["--min-nodes", str(min_nodes)] if min_nodes is not None else []),
             *(["--max-loads", str(MAX_LOADS)] if MAX_LOADS is not None else []),
-            *(["--max-loads", str(MAX_STORES)] if MAX_STORES is not None else []),
+            *(["--max-stores", str(MAX_STORES)] if MAX_STORES is not None else []),
             *(["--max-mems", str(MAX_MEMS)] if MAX_MEMS is not None else []),
             *(["--max-branches", str(MAX_BRANCHES)] if MAX_BRANCHES is not None else []),
             *(["--max-enc-footprint", str(MAX_ENC_FOOTPRINT)] if MAX_ENC_FOOTPRINT is not None else []),
@@ -444,6 +455,15 @@ def query_candidates_from_db(
     combine_args += ["--overlaps", overlaps_file]
     # logger.debug("combine_args", combine_args)
     subprocess.run(combine_args, check=True)
+    if encoding_policy == "cfu":
+        from isaac_toolkit.generate.iss.cfu import validate_candidate
+        data = yaml.safe_load(combined_index_file.read_text())
+        if len(data["candidates"]) > 1024:
+            raise ValueError("CFU candidate count exceeds the CUSTOM0 namespace")
+        for candidate in data["candidates"]:
+            validate_candidate(candidate["properties"])
+            candidate["properties"]["EncodingPolicy"] = "cfu"
+        combined_index_file.write_text(yaml.safe_dump(data))
 
     # TODO: index and cdsl should use the same instruction names?
     # names = [f"CUSTOM{i}" for i, candidate in enumerate(combined_index_data["candidates"])]
@@ -533,6 +553,7 @@ def handle(args):
         sort_by=args.sort_by,
         topk=args.topk,
         partition_with_maxmiso=args.partition_with_maxmiso,
+        encoding_policy=args.encoding_policy,
     )
     sess.save()
 
@@ -552,6 +573,7 @@ def get_parser():
     parser.add_argument("--stage", type=int, default=8)
     parser.add_argument("--limit-results", type=int, default=None)
     parser.add_argument("--query-config-yaml", type=str, default=None)
+    parser.add_argument("--encoding-policy", choices=["auto", "cfu"], default="auto")
     parser.add_argument("--xlen", type=int, default=32)
     parser.add_argument("--min-iso-weight", type=float, default=None)
     parser.add_argument("--scale-iso-weight", type=str, default="auto")

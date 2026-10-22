@@ -125,7 +125,11 @@ def collect_weights(index_data: dict, enc_size: int = 32, major_count: int = 4):
         # (enc_space, used_space, major_space, minor_space, func2_space, func7_space, major_space_total,
         #     minor_space_total, func2_space_total, func7_space_total) = enc_helper(enc_size)
         # enc_bits_used, enc_bits_left, enc_footprint, enc_weight
-        used_bits, _, enc_footprint, enc_weight = enc_helper2(properties, enc_size, major_count=major_count)
+        if properties.get("EncodingPolicy") == "cfu":
+            # Each operation reserves one of 1024 IDs, also for unary operations.
+            used_bits, enc_footprint, enc_weight = 15, 1 / 1024, 1 / 1024
+        else:
+            used_bits, _, enc_footprint, enc_weight = enc_helper2(properties, enc_size, major_count=major_count)
         weight_per_instr[instr_name] = enc_weight
         bits_per_instr[instr_name] = used_bits
         footprint_per_instr[instr_name] = enc_footprint

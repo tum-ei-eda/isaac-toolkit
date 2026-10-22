@@ -254,8 +254,22 @@ def generate_etiss_core(
     add_mnemonic_prefix: bool = False,
     n_parallel: int = 1,
     new: bool = False,
+    encoding_policy: str = "auto",
+    encoding_manifest: Optional[Union[str, Path]] = None,
 ):
     logger.info("Generating ETISS core...")
+    if encoding_policy not in ("auto", "cfu"):
+        raise ValueError(f"Unknown encoding policy: {encoding_policy}")
+    cfu_encoder = None
+    if encoding_policy == "cfu":
+        from isaac_toolkit.generate.iss.cfu import CFUEncoder, validate_candidate
+        if xlen != 32 or skip_errors:
+            raise ValueError("CFU encoding requires RV32 and strict error handling")
+        cfu_encoder = CFUEncoder(encoding_manifest or Path(workdir) / "cfu_manifest.json", allow_new=auto_encoding)
+        # Reconstruct the original operand declarations, then reapply the exact
+        # ledger assignment. The legacy encoded writer omits those declarations.
+        # In --no-auto-encoding mode the encoder cannot allocate any new IDs.
+        auto_encoding = True
     # artifacts = sess.artifacts
     # TODO: get combined_index.yml from artifacts!
     assert workdir is not None
@@ -295,6 +309,8 @@ def generate_etiss_core(
             sub2files[sub_name]["cdsl"] = sub_file
             sub_encoded_file = Path(sub_artifacts["cdsl_encoded"]) if "cdsl_encoded" in sub_artifacts else None
             sub_properties = sub_data["properties"]
+            if cfu_encoder is not None:
+                validate_candidate(sub_properties)
             instr_name = sub_properties["InstrName"]
             if sub_encoded_file is not None:
                 sub2files[sub_name]["cdsl_encoded"] = sub_encoded_file
@@ -395,7 +411,13 @@ def generate_etiss_core(
     if auto_encoding:
         for set_name, unencoded_instructions in unencoded_instructions_per_set.items():
             unencoded_instructions_ = list(unencoded_instructions.values())
-            encoded_instructions_ = encode_instructions(unencoded_instructions_)
+            if cfu_encoder is None:
+                encoded_instructions_ = encode_instructions(unencoded_instructions_)
+            else:
+                encoded_instructions_ = []
+                for instr in sorted(unencoded_instructions_, key=lambda instruction: instruction.name):
+                    sub_name = set_instr2sub_name[(set_name, instr.name)]
+                    encoded_instructions_.append(cfu_encoder.encode(instr, set_name, sub2files[sub_name]["cdsl"]))
             # print("encoded_instructions_", encoded_instructions_, len(encoded_instructions_))
             encoded_instructions = {(instr_def.code, instr_def.mask): instr_def for instr_def in encoded_instructions_}
             # print("encoded_instructions", encoded_instructions, len(encoded_instructions))
@@ -539,6 +561,11 @@ def generate_etiss_core(
                 new_index_data["candidates"][i]["artifacts"].update(new_artifacts)
         with open(combined_index_file, "w") as f:
             yaml.dump(new_index_data, f)
+    if cfu_encoder is not None:
+        cfu_encoder.save()
+        # Keep an exact snapshot with each generated core for provenance.
+        snapshot = gen_dir / "cfu_manifest.json"
+        snapshot.write_text(cfu_encoder.path.read_text())
 
 
 def handle(args):
@@ -569,6 +596,8 @@ def handle(args):
         extra_includes=(args.extra_includes.split(";") if args.extra_includes is not None else None),
         add_mnemonic_prefix=args.add_mnemonic_prefix,
         n_parallel=args.parallel,
+        encoding_policy=args.encoding_policy,
+        encoding_manifest=args.encoding_manifest,
     )
     if sess is not None:
         sess.save()
@@ -594,6 +623,8 @@ def get_parser():
     parser.add_argument("--semihosting", action="store_true")
     parser.add_argument("--base-extensions", type=str, default="i,m,a,f,d,c,zifencei")
     parser.add_argument("--auto-encoding", action="store_true", default=True)
+    parser.add_argument("--encoding-policy", choices=["auto", "cfu"], default="auto")
+    parser.add_argument("--encoding-manifest", type=str, default=None)
     parser.add_argument("--no-auto-encoding", dest="auto_encoding", action="store_false", default=True)
     parser.add_argument("--split", action="store_true")
     parser.add_argument("--base-dir", type=str, default="rv_base")
