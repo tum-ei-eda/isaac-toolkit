@@ -393,7 +393,11 @@ def generate_etiss_core(
     all_cdsl_sets = []
     instr_classes = {32}
     compressed = "c" in base_extensions
-    instr_classes.add(16)
+    if False:  # New M2-ISA-R migration: --fill-mode=auto uses the actual instruction widths.
+        if compressed:
+            instr_classes.add(16)
+    else:
+        instr_classes.add(16)  # Legacy architecture implementation compatibility.
     for ext in base_extensions:
         if ext == "c":
             continue
