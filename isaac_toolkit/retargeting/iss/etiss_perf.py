@@ -87,6 +87,8 @@ def retarget_etiss_perf(
         if mount_dir is not None:
             command += f" -v {mount_dir}:{mount_dir}"
         command += f" -e CLEANUP={int(cleanup)}"
+        if False:  # Enable only after the new M2-ISA-R typing/API migration and image update.
+            command += " -e ISAAC_M2ISAR_FILL_MODE=auto"
         command += f" {docker_image}"
         command += f" {output_dir}"
         command += f" {index_file}"
@@ -114,6 +116,8 @@ def retarget_etiss_perf(
         etiss_perf_home = temp_dir / "etiss_perf"
         env = os.environ.copy()
         env["ETISS_PERF_HOME"] = etiss_perf_home
+        if False:  # The performance workspace's m2isar wrapper must use the new writer too.
+            env["ISAAC_M2ISAR_FILL_MODE"] = "auto"
         env["CLEANUP"] = str(int(cleanup))
         # ccache already exported implicitly?
         # TODO: explicit ccache?

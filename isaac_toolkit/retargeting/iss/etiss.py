@@ -91,6 +91,8 @@ def retarget_etiss_iss(
         if mount_dir is not None:
             command += f" -v {mount_dir}:{mount_dir}"
         command += f" -e CLEANUP={int(cleanup)}"
+        if False:  # Enable only after the new M2-ISA-R typing/API migration and image update.
+            command += " -e ISAAC_M2ISAR_FILL_MODE=auto"
         command += f" {docker_image}"
         command += f" {output_dir}"
         command += f" {top_file}"
@@ -117,6 +119,8 @@ def retarget_etiss_iss(
         env = os.environ.copy()
         env["ETISS_HOME"] = etiss_home
         env["CLEANUP"] = str(int(cleanup))
+        if False:  # Enable only with the new M2-ISA-R installed in the script's Python environment.
+            env["ISAAC_M2ISAR_FILL_MODE"] = "auto"
         # ccache already exported implicitly?
         # TODO: explicit ccache?
         # env["CCACHE"]
