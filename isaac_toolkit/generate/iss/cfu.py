@@ -4,8 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 
-from m2isar.metamodel import arch
-from m2isar.transforms.encode_instructions.instr_encodings import reg_bitfield
+from m2isar.metamodel import arch, attribute_info, type_info
+
+
+def reg_bitfield(name):
+    return arch.BitField(name, arch.RangeSpec(4, 0), type_info.TypeKind.UINT)
+
 
 OPCODE = 0x0B
 CAPACITY = 1024
@@ -38,17 +42,17 @@ def operands(instruction):
     inputs, outputs = [], []
     for name, operand in instruction.operands.items():
         attrs = operand.attributes
-        if arch.OperandAttribute.IS_REG not in attrs or arch.OperandAttribute.IS_IMM in attrs:
+        if attribute_info.OperandAttribute.IS_REG not in attrs or attribute_info.OperandAttribute.IS_IMM in attrs:
             raise ValueError(f"{instruction.name}: CFU does not support instruction immediates")
-        reg_class = [getattr(value, "value", value) for value in attrs.get(arch.OperandAttribute.REG_CLASS, [])]
-        reg_type = [getattr(value, "value", value) for value in attrs.get(arch.OperandAttribute.REG_TYPE, [])]
+        reg_class = [getattr(value, "value", value) for value in attrs.get(attribute_info.OperandAttribute.REG_CLASS, [])]
+        reg_type = [getattr(value, "value", value) for value in attrs.get(attribute_info.OperandAttribute.REG_TYPE, [])]
         if operand.size != 5 or reg_class != ["GPR"] or reg_type not in (["s32"], ["i32"], ["u32"]):
             raise ValueError(f"{instruction.name}: CFU requires five-bit GPR indices")
-        directions = [d for d in (arch.OperandAttribute.IN, arch.OperandAttribute.OUT,
-                                  arch.OperandAttribute.INOUT) if d in attrs]
-        if directions == [arch.OperandAttribute.IN]:
+        directions = [d for d in (attribute_info.OperandAttribute.IN, attribute_info.OperandAttribute.OUT,
+                                  attribute_info.OperandAttribute.INOUT) if d in attrs]
+        if directions == [attribute_info.OperandAttribute.IN]:
             inputs.append(name)
-        elif directions == [arch.OperandAttribute.OUT]:
+        elif directions == [attribute_info.OperandAttribute.OUT]:
             outputs.append(name)
         else:
             raise ValueError(f"{instruction.name}: ambiguous or tied operand direction")

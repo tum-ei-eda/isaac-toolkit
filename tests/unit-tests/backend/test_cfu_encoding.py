@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip("m2isar")
-from m2isar.backends.coredsl2_set.writer import gen_cdsl_code
+from m2isar.backends.coredsl2.writer import gen_cdsl_code
 from m2isar.frontends.coredsl2_set.parser import parse_cdsl2_set
 from m2isar.metamodel import M2Model, M2_METAMODEL_VERSION
 from isaac_toolkit.generate.iss.cfu import CFUEncoder, validate_candidate
@@ -52,7 +52,11 @@ def test_roundtrip_and_stable_filtered_ids(tmp_path):
     assert instr.code == 0x0B and instr.mask == 0xFE00707F
     assert unary.code == 0x100B and unary.mask == 0xFFF0707F
     from m2isar.metamodel import arch
-    s = arch.InstructionSet("XTest", ["RV32I"], {}, {}, {}, {(instr.code, instr.mask): instr}, {})
+    s = arch.InstructionSet(
+        name="XTest", extension=["RV32I"], parameters={}, memories={}, memory_aliases={},
+        register_banks={}, register_aliases={}, functions={},
+        instructions={(instr.code, instr.mask): instr}, unencoded_instructions={},
+    )
     path = tmp_path / "encoded.core_desc"
     path.write_text('import "RVI.core_desc"\n' + gen_cdsl_code(
         M2Model(M2_METAMODEL_VERSION, {}, {"XTest": s}, {}), with_includes=False))
