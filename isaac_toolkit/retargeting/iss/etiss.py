@@ -49,7 +49,10 @@ def retarget_etiss_iss(
     verbose: bool = False,
     cleanup: bool = False,
     new: bool = False,
+    fill_mode: str = "auto",
 ):
+    if fill_mode not in ("auto", "empty"):
+        raise ValueError(f"Unsupported M2-ISA-R fill mode: {fill_mode}")
     assert workdir is not None
     if not isinstance(workdir, Path):
         workdir = Path(workdir)
@@ -91,8 +94,7 @@ def retarget_etiss_iss(
         if mount_dir is not None:
             command += f" -v {mount_dir}:{mount_dir}"
         command += f" -e CLEANUP={int(cleanup)}"
-        if False:  # Enable only after the new M2-ISA-R typing/API migration and image update.
-            command += " -e ISAAC_M2ISAR_FILL_MODE=auto"
+        command += f" -e ISAAC_M2ISAR_FILL_MODE={fill_mode}"
         command += f" {docker_image}"
         command += f" {output_dir}"
         command += f" {top_file}"
@@ -119,8 +121,7 @@ def retarget_etiss_iss(
         env = os.environ.copy()
         env["ETISS_HOME"] = etiss_home
         env["CLEANUP"] = str(int(cleanup))
-        if False:  # Enable only with the new M2-ISA-R installed in the script's Python environment.
-            env["ISAAC_M2ISAR_FILL_MODE"] = "auto"
+        env["ISAAC_M2ISAR_FILL_MODE"] = fill_mode
         # ccache already exported implicitly?
         # TODO: explicit ccache?
         # env["CCACHE"]
@@ -158,6 +159,7 @@ def handle(args):
         docker_image=args.docker,
         service_addr=args.service,
         verbose=args.verbose,
+        fill_mode=args.fill_mode,
     )
     if sess is not None:
         sess.save()
@@ -177,6 +179,7 @@ def get_parser():
     parser.add_argument("--service", type=str, default=None, const=DEFAULT_SERVICE_ADDR, nargs="?")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--fill-mode", choices=["auto", "empty"], default="auto")
     # label: Optional[str] = None,
     # etiss_core: Optional[str] = None,
 

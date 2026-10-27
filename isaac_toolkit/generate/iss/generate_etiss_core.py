@@ -16,7 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# Generate typed ETISS models using one encoding allocation domain across all sets.
+from __future__ import annotations
+
 import sys
+import copy
+import json
+from types import SimpleNamespace
 import yaml
 import pickle
 import logging
@@ -27,15 +33,13 @@ from pathlib import Path
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 
-import m2isar
-import m2isar.metamodel.arch
-from m2isar.metamodel import M2_METAMODEL_VERSION, M2Model
+from m2isar.metamodel import M2_METAMODEL_VERSION, M2Model, arch, type_info, attribute_info
 
-from m2isar.frontends.coredsl2_set.parser import parse_cdsl2_set
-from m2isar.backends.coredsl2_set.writer import gen_cdsl_code
-from m2isar.transforms.encode_instructions.encoder import encode_instructions
+from m2isar.transforms.encode_instructions import (
+    EncodingError, EncodingPolicy, apply_model_plan, plan_model,
+)
+from m2isar.transforms.encode_instructions.planner import overlaps, validate_pattern
 
-from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
 
 logger = get_logger()
@@ -47,6 +51,58 @@ logging.getLogger("set_parser").setLevel(logging.WARNING)
 logging.getLogger("visit_importer").setLevel(logging.WARNING)
 
 
+def validate_instruction_sets(instructions_per_set):
+    """Reject ambiguous generated decoding patterns, including unequal masks.
+
+    This checks generated extension instructions, not imported base ISA files.
+    It must run on lists before dictionary construction can hide duplicates.
+    """
+    occupied = []
+    for set_name, instructions in sorted(instructions_per_set.items()):
+        values = instructions.values() if isinstance(instructions, dict) else instructions
+        for instruction in values:
+            if not instruction.has_encoding or instruction.size != 32:
+                raise EncodingError(f"{set_name}/{instruction.name}: expected a 32-bit encoding")
+            pattern = (instruction.code, instruction.mask)
+            validate_pattern(*pattern)
+            for previous_name, previous_pattern in occupied:
+                if overlaps(pattern, previous_pattern):
+                    raise EncodingError(
+                        f"overlapping generated encodings: {previous_name} and {set_name}/{instruction.name}"
+                    )
+            occupied.append((f"{set_name}/{instruction.name}", pattern))
+
+
+def encode_instruction_sets(unencoded_per_set, existing_per_set=None, policy=None, assignments=None):
+    """Plan all sets in one namespace, keeping names and input objects intact.
+
+    Identical instruction names in different sets are qualified by plan_model.
+    Returns (encoded instruction mappings by set, successful encoding plan).
+    """
+    existing_per_set = existing_per_set or {}
+    validate_instruction_sets(existing_per_set)
+    containers = {}
+    for name in sorted(set(unencoded_per_set) | set(existing_per_set)):
+        pending = unencoded_per_set.get(name, {})
+        if any(key != instruction.name for key, instruction in pending.items()):
+            raise EncodingError(f"{name}: unencoded mapping keys must match instruction names")
+        old = existing_per_set.get(name, {})
+        old_values = list(old.values() if isinstance(old, dict) else old)
+        if set(pending) & {instruction.name for instruction in old_values}:
+            raise EncodingError(f"{name}: instruction is both encoded and unencoded")
+        containers[name] = SimpleNamespace(
+            instructions={(instruction.code, instruction.mask): instruction for instruction in old_values},
+            unencoded_instructions=dict(pending),
+        )
+    model = M2Model(M2_METAMODEL_VERSION, {}, containers, {})
+    plan = plan_model(model, policy=policy, assignments=assignments)
+    plan.raise_for_errors()
+    encoded = apply_model_plan(model, plan)
+    result = {name: container.instructions for name, container in encoded.sets.items()}
+    validate_instruction_sets(result)
+    return result, plan
+
+
 def parse_generated_set(
     set_file,
     skip_errors: bool = False,
@@ -54,13 +110,16 @@ def parse_generated_set(
     add_mnemonic_prefix: bool = False,
     set_name: Optional[str] = None,
     auto_encoding: bool = False,
+    xlen: int = 32,
 ):
+    from m2isar.frontends.coredsl2_set.parser import parse_cdsl2_set
+
     try:
-        models = parse_cdsl2_set(set_file, extra_includes)
+        models = parse_cdsl2_set(set_file, extra_includes, defines={"XLEN": xlen})
     except Exception as e:
         if skip_errors:
             logger.exception(e)
-            return None, str(e)
+            return None, set_name, str(e)
         else:
             raise e
     instr_sets = list(models.values())
@@ -156,7 +215,6 @@ def get_cdsl_includes(
     cdsl_includes = {
         "RISCVBase.core_desc": ["RISCVBase"],
         # "RV32I.core_desc": ["RV32I", "Zicsr", "Zifencei", "RVNMode", "RVSMode", "RVDebug"],
-        "RV64I.core_desc": ["RV64I"],
         "RVA.core_desc": ["RV32A", "RV64A"],
         "RVC.core_desc": [
             "RV32IC",
@@ -211,7 +269,7 @@ def get_cdsl_includes(
 
 def get_includes_code(includes: List[Union[str, Path]], prefix: str = ""):
     ret = []
-    for inc in includes:
+    for inc in sorted(includes, key=str):
         if isinstance(inc, Path):
             inc = str(inc)
         if ".core_desc" not in inc:
@@ -256,11 +314,22 @@ def generate_etiss_core(
     new: bool = False,
     encoding_policy: str = "auto",
     encoding_manifest: Optional[Union[str, Path]] = None,
+    encoding_opcodes=None,
+    encoding_reservations=(),
 ):
+    from m2isar.backends.coredsl2.writer import gen_cdsl_code
+
     logger.info("Generating ETISS core...")
     if encoding_policy not in ("auto", "cfu"):
         raise ValueError(f"Unknown encoding policy: {encoding_policy}")
     cfu_encoder = None
+    encoding_plan = None
+    if encoding_policy == "cfu" and (encoding_opcodes is not None or encoding_reservations):
+        raise ValueError("CFU has a fixed encoding policy; opcode/reservation overrides require auto policy")
+    if encoding_policy == "auto" and not auto_encoding and (
+        encoding_manifest is not None or encoding_opcodes is not None or encoding_reservations
+    ):
+        raise ValueError("Planner options require auto encoding")
     if encoding_policy == "cfu":
         from isaac_toolkit.generate.iss.cfu import CFUEncoder, validate_candidate
         if xlen != 32 or skip_errors:
@@ -278,7 +347,6 @@ def generate_etiss_core(
     assert workdir.is_dir()
     gen_dir = Path(gen_dir) if gen_dir is not None else workdir / "gen"
     gen_dir.mkdir(exist_ok=True)
-    core_out_model_file = gen_dir / f"{core_name}.m2isarmodel"
     core_out_cdsl_file = gen_dir / f"{core_name}.core_desc"
     if index_files is None:
         if new:
@@ -296,15 +364,17 @@ def generate_etiss_core(
     sub2new_files = defaultdict(dict)
     set_instr2sub_name = {}
 
+    index_records = []
     for k, combined_index_file in enumerate(index_files):
         set_name = set_names[k]
         assert combined_index_file.is_file()
         with open(combined_index_file, "r") as f:
             index_data = yaml.safe_load(f)
+        index_records.append((combined_index_file, index_data, k))
         for i, sub_data in enumerate(index_data["candidates"]):
             sub_artifacts = sub_data["artifacts"]
             # sub_properties = sub_data["properties"]
-            sub_name = f"C{i}"
+            sub_name = f"S{k}C{i}"
             sub_file = Path(sub_artifacts["cdsl"])
             sub2files[sub_name]["cdsl"] = sub_file
             sub_encoded_file = Path(sub_artifacts["cdsl_encoded"]) if "cdsl_encoded" in sub_artifacts else None
@@ -318,13 +388,7 @@ def generate_etiss_core(
             generated_sets.append((set_name, sub_name, sub_file, sub_encoded_file))
     # Not uses set() here as we want to preserve the order!
     all_cdsl_sets = []
-    instr_classes = {32}
     compressed = "c" in base_extensions
-    if False:  # New M2-ISA-R migration: --fill-mode=auto uses the actual instruction widths.
-        if compressed:
-            instr_classes.add(16)
-    else:
-        instr_classes.add(16)  # Legacy architecture implementation compatibility.
     for ext in base_extensions:
         if ext == "c":
             continue
@@ -341,34 +405,10 @@ def generate_etiss_core(
         core_includes.add(set_out_cdsl_file.resolve())
     # print("cdsl_includes", cdsl_includes)
     core_includes_code = get_includes_code(core_includes)
-    constants = {}
-    memories = {}
-    constants["XLEN"] = m2isar.metamodel.arch.Constant("XLEN", value=xlen, attributes={}, size=None, signed=False)
-    # if ignore_etiss:
-    if True:
-        main_reg = m2isar.metamodel.arch.Memory(
-            "X",
-            m2isar.metamodel.arch.RangeSpec(32),
-            size=xlen,
-            attributes={m2isar.metamodel.arch.MemoryAttribute.IS_MAIN_REG: []},
-        )
-        main_mem = m2isar.metamodel.arch.Memory(
-            "MEM",
-            m2isar.metamodel.arch.RangeSpec(1 << 32),
-            size=8,
-            attributes={m2isar.metamodel.arch.MemoryAttribute.IS_MAIN_MEM: []},
-        )
-        pc = m2isar.metamodel.arch.Memory(
-            "PC",
-            m2isar.metamodel.arch.RangeSpec(0),
-            size=32,
-            attributes={m2isar.metamodel.arch.MemoryAttribute.IS_PC: []},
-        )
-        memories["X"] = main_reg
-        memories["MEM"] = main_mem
-        memories["PC"] = pc
-    functions = {}
-    intrinsics = {}
+    main_reg = arch.RegisterBank(
+        "X", 32, type_info.TypeKind.UINT, xlen,
+        {attribute_info.RegisterAttribute.IS_MAIN_REG: []},
+    )
     contributing_types = all_cdsl_sets
     if extra_includes is None:
         extra_includes = []
@@ -397,64 +437,60 @@ def generate_etiss_core(
                 extra_includes=extra_includes,
                 add_mnemonic_prefix=add_mnemonic_prefix,
                 auto_encoding=auto_encoding,
+                xlen=xlen,
             )
             futures.append(future)
-        for future in futures:
+        for future, (_, candidate_name, _, _) in zip(futures, generated_sets):
             # TODO: except failing?
             result = future.result()
             parsed_instructions, set_name, err_msg = result
             if parsed_instructions is None:
                 assert err_msg is not None
-                errs[(set_name, set_name_)] = err_msg
+                errs[(set_name, candidate_name)] = err_msg
+                continue
             # assert set_name not in unencoded_instructions_per_set, f"Duplicate set name: {set_name}"
-            if auto_encoding:
-                unencoded_instructions_per_set[set_name].update(parsed_instructions)
-            else:
-                instructions_per_set[set_name].update(parsed_instructions)
+            target = unencoded_instructions_per_set if auto_encoding else instructions_per_set
+            duplicates = set(target[set_name]) & set(parsed_instructions)
+            if duplicates:
+                raise EncodingError(f"{set_name}: duplicate instruction names: {sorted(duplicates)}")
+            target[set_name].update(parsed_instructions)
 
-    if auto_encoding:
-        for set_name, unencoded_instructions in unencoded_instructions_per_set.items():
-            unencoded_instructions_ = list(unencoded_instructions.values())
-            if cfu_encoder is None:
-                encoded_instructions_ = encode_instructions(unencoded_instructions_)
-            else:
-                encoded_instructions_ = []
-                for instr in sorted(unencoded_instructions_, key=lambda instruction: instruction.name):
-                    sub_name = set_instr2sub_name[(set_name, instr.name)]
-                    encoded_instructions_.append(cfu_encoder.encode(instr, set_name, sub2files[sub_name]["cdsl"]))
-            # print("encoded_instructions_", encoded_instructions_, len(encoded_instructions_))
-            encoded_instructions = {(instr_def.code, instr_def.mask): instr_def for instr_def in encoded_instructions_}
-            # print("encoded_instructions", encoded_instructions, len(encoded_instructions))
-            instructions_per_set[set_name] = encoded_instructions
+    if auto_encoding and cfu_encoder is None:
+        manifest = None
+        if encoding_manifest is not None:
+            manifest = json.loads(Path(encoding_manifest).read_text())
+        policy = EncodingPolicy(
+            opcodes=tuple(encoding_opcodes) if encoding_opcodes is not None else EncodingPolicy().opcodes,
+            reservations=tuple(encoding_reservations),
+        )
+        instructions_per_set, encoding_plan = encode_instruction_sets(
+            unencoded_instructions_per_set,
+            existing_per_set=instructions_per_set,
+            policy=policy,
+            assignments=manifest,
+        )
+        logger.info("Planned %d encodings across %d sets", len(encoding_plan.assignments), len(instructions_per_set))
+    elif auto_encoding:
+        pending_encoded = {}
+        for set_name, pending in sorted(unencoded_instructions_per_set.items()):
+            pending_encoded[set_name] = []
+            for instr in sorted(pending.values(), key=lambda instruction: instruction.name):
+                sub_name = set_instr2sub_name[(set_name, instr.name)]
+                pending_encoded[set_name].append(
+                    cfu_encoder.encode(instr, set_name, sub2files[sub_name]["cdsl"])
+                )
+        validate_instruction_sets(pending_encoded)
+        instructions_per_set = {
+            name: {(instr.code, instr.mask): instr for instr in instructions}
+            for name, instructions in pending_encoded.items()
+        }
+    # Validate manual encodings too, before any dictionary or core output hides a collision.
+    validate_instruction_sets(instructions_per_set)
     for set_name in instructions_per_set.keys():
         contributing_types.append(set_name)
     # instructions = {}
     # instructions.update(encoded_instructions)
     # input("1")
-    generated_core = m2isar.metamodel.arch.CoreDef(
-        name=core_name,
-        contributing_types=contributing_types,
-        template=None,  # type: ignore
-        constants=constants,
-        memories=memories,
-        memory_aliases={},
-        functions=functions,
-        # instructions=instructions,
-        instructions={},
-        unencoded_instructions={},
-        instr_classes=instr_classes,
-        intrinsics=intrinsics,
-    )
-    # print("generated_core", generated_core)
-    with open(core_out_model_file, "wb") as f:
-        cores = {core_name: generated_core}
-        model_obj = M2Model(M2_METAMODEL_VERSION, cores, {}, {})
-        pickle.dump(model_obj, f)
-    core_cdsl_code = gen_cdsl_code(model_obj, with_includes=False)
-    with open(core_out_cdsl_file, "w") as f:
-        f.write(core_includes_code)
-        f.write("\n\n")
-        f.write(core_cdsl_code)
     extension = [f"RV{xlen}I"]  # TODO: add include?
     set_includes = get_cdsl_includes(extension, base_dir=base_dir, tum_dir=tum_dir)
     set_includes_code = get_includes_code(set_includes)
@@ -466,11 +502,14 @@ def generate_etiss_core(
         set_out_cdsl_file = gen_dir / f"{set_name}.core_desc"
         set_hls_out_cdsl_file = gen_dir / f"{set_name}.hls.core_desc"
         set_splitted_out_cdsl_file = gen_dir / f"{set_name}.splitted.core_desc"
-        generated_set = m2isar.metamodel.arch.InstructionSet(
+        generated_set = arch.InstructionSet(
             name=set_name,
             extension=extension,
-            constants={},
+            parameters={},
             memories={},
+            memory_aliases={},
+            register_banks={},
+            register_aliases={},
             functions={},
             instructions=instructions_per_set[set_name],
             unencoded_instructions={},
@@ -489,13 +528,16 @@ def generate_etiss_core(
         for instr_def in generated_set.instructions.values():
             instr_name = instr_def.name
             temp_set_name = f"{set_name}{instr_name}single"
-            temp_set = m2isar.metamodel.arch.InstructionSet(
+            temp_set = arch.InstructionSet(
                 name=temp_set_name,
                 extension=extension,
-                constants={},
+                parameters={},
                 memories={},
+                memory_aliases={},
+                register_banks={},
+                register_aliases={},
                 functions={},
-                instructions={(instr_def.mask, instr_def.code): instr_def},
+                instructions={(instr_def.code, instr_def.mask): instr_def},
                 unencoded_instructions={},
             )
             sets_splitted[temp_set_name] = temp_set
@@ -518,11 +560,14 @@ def generate_etiss_core(
                     f.write("\n\n")
                     f.write(set_single_cdsl_code)
                 sub2new_files[sub_name]["cdsl_encoded"] = base_cdsl_file_encoded
-        group_set = m2isar.metamodel.arch.InstructionSet(
+        group_set = arch.InstructionSet(
             name=set_name,
             extension=list(sets_splitted.keys()),
-            constants={},
+            parameters={},
             memories={},
+            memory_aliases={},
+            register_banks={},
+            register_aliases={},
             functions={},
             instructions={},
             unencoded_instructions={},
@@ -536,7 +581,8 @@ def generate_etiss_core(
             f.write(set_includes_code)
             f.write("\n\n")
             f.write(set_splitted_cdsl_code)
-        model_obj.sets[set_name].memories["X"] = main_reg
+        model_obj = copy.deepcopy(model_obj)
+        model_obj.sets[set_name].register_banks["X"] = main_reg
         model_obj.sets[set_name].extension = []
         hls_unique_instr_names = len(set_names) > 1
         if hls_unique_instr_names:
@@ -552,19 +598,40 @@ def generate_etiss_core(
             with open(errs_file, "w") as f:
                 errs_text = "\n".join([f"{name}: {err}" for name, err in errs.items()])
                 f.write(errs_text)
+    core_body = ""
+    if "tum_csr" in contributing_types:
+        misa = "0x800000000014112D" if xlen == 64 else "0x4014112D"
+        core_body = f"""    architectural_state {{
+        CSR[0x000] = 0x0000000B;
+        CSR[RV_CSR_SSTATUS] = 0x0000000B;
+        CSR[RV_CSR_MSTATUS] = 0x0000000B;
+        CSR[RV_CSR_MISA] = {misa};
+        CSR[0xC10] = 0x00000003;
+        CSR[RV_CSR_MIE] = 0xFFFFFBBB;
+        CSR[RV_CSR_SIE] = CSR[0x304] & (~(0x888));
+        CSR[0x004] = CSR[0x304] & (~(0xAAA));
+    }}
+"""
+    core_out_cdsl_file.write_text(
+        core_includes_code + "\n\n" + f"Core {core_name} provides {', '.join(contributing_types)} {{\n"
+        + core_body + "}\n"
+    )
+    # Store a fully resolved typed core, including actual instruction widths.
+    from m2isar.frontends.coredsl2.parser import main as parse_core
+    parse_args = [str(core_out_cdsl_file), "--output", str(gen_dir)]
+    for include in extra_includes:
+        parse_args.extend(["-I", str(include)])
+    parse_core(parse_args)
     if auto_encoding:
-        assert len(index_files) == 1
-        combined_index_file = index_files[0]
-        inplace = True
-        assert inplace
-        new_index_data = index_data
-        for i in range(len(index_data["candidates"])):
-            sub_name = f"C{i}"
-            new_artifacts = sub2new_files.get(sub_name)
-            if new_artifacts:
-                new_index_data["candidates"][i]["artifacts"].update(new_artifacts)
-        with open(combined_index_file, "w") as f:
-            yaml.dump(new_index_data, f)
+        for combined_index_file, index_data, k in index_records:
+            for i, candidate in enumerate(index_data["candidates"]):
+                new_artifacts = sub2new_files.get(f"S{k}C{i}")
+                if new_artifacts:
+                    candidate["artifacts"].update(new_artifacts)
+            with open(combined_index_file, "w") as f:
+                yaml.dump(index_data, f)
+    if encoding_plan is not None:
+        (gen_dir / "encoding_plan.json").write_text(json.dumps(encoding_plan.to_dict(), indent=2) + "\n")
     if cfu_encoder is not None:
         cfu_encoder.save()
         # Keep an exact snapshot with each generated core for provenance.
@@ -576,6 +643,8 @@ def handle(args):
     # assert args.session is not None
     sess = None
     if args.session is not None:
+        from isaac_toolkit.session import Session
+
         session_dir = Path(args.session)
         assert session_dir.is_dir(), f"Session dir does not exist: {session_dir}"
         sess = Session.from_dir(session_dir)
@@ -602,9 +671,20 @@ def handle(args):
         n_parallel=args.parallel,
         encoding_policy=args.encoding_policy,
         encoding_manifest=args.encoding_manifest,
+        encoding_opcodes=args.encoding_opcode,
+        encoding_reservations=args.encoding_reserve,
     )
     if sess is not None:
         sess.save()
+
+
+def parse_reservation(value):
+    try:
+        code, mask = (int(part, 0) for part in value.split("/"))
+        validate_pattern(code, mask)
+        return code, mask
+    except (ValueError, TypeError) as exc:
+        raise argparse.ArgumentTypeError("expected a valid 32-bit CODE/MASK pattern") from exc
 
 
 def get_parser():
@@ -628,7 +708,12 @@ def get_parser():
     parser.add_argument("--base-extensions", type=str, default="i,m,a,f,d,c,zifencei")
     parser.add_argument("--auto-encoding", action="store_true", default=True)
     parser.add_argument("--encoding-policy", choices=["auto", "cfu"], default="auto")
-    parser.add_argument("--encoding-manifest", type=str, default=None)
+    parser.add_argument("--encoding-manifest", type=str, default=None,
+                        help="Auto: input planner manifest; CFU: persistent CFU ledger")
+    parser.add_argument("--encoding-opcode", action="append", type=lambda value: int(value, 0),
+                        help="Permitted custom major opcode, repeatable (auto policy)")
+    parser.add_argument("--encoding-reserve", action="append", default=[], type=parse_reservation,
+                        metavar="CODE/MASK", help="Reserved pattern, repeatable (auto policy)")
     parser.add_argument("--no-auto-encoding", dest="auto_encoding", action="store_false", default=True)
     parser.add_argument("--split", action="store_true")
     parser.add_argument("--base-dir", type=str, default="rv_base")

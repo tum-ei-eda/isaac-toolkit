@@ -44,7 +44,10 @@ def retarget_etiss_perf(
     force: bool = False,
     verbose: bool = False,
     cleanup: bool = False,
+    fill_mode: str = "auto",
 ):
+    if fill_mode not in ("auto", "empty"):
+        raise ValueError(f"Unsupported M2-ISA-R fill mode: {fill_mode}")
     assert workdir is not None
     if not isinstance(workdir, Path):
         workdir = Path(workdir)
@@ -87,8 +90,7 @@ def retarget_etiss_perf(
         if mount_dir is not None:
             command += f" -v {mount_dir}:{mount_dir}"
         command += f" -e CLEANUP={int(cleanup)}"
-        if False:  # Enable only after the new M2-ISA-R typing/API migration and image update.
-            command += " -e ISAAC_M2ISAR_FILL_MODE=auto"
+        command += f" -e ISAAC_M2ISAR_FILL_MODE={fill_mode}"
         command += f" {docker_image}"
         command += f" {output_dir}"
         command += f" {index_file}"
@@ -116,8 +118,7 @@ def retarget_etiss_perf(
         etiss_perf_home = temp_dir / "etiss_perf"
         env = os.environ.copy()
         env["ETISS_PERF_HOME"] = etiss_perf_home
-        if False:  # The performance workspace's m2isar wrapper must use the new writer too.
-            env["ISAAC_M2ISAR_FILL_MODE"] = "auto"
+        env["ISAAC_M2ISAR_FILL_MODE"] = fill_mode
         env["CLEANUP"] = str(int(cleanup))
         # ccache already exported implicitly?
         # TODO: explicit ccache?
@@ -129,7 +130,6 @@ def retarget_etiss_perf(
         # TODO: ship with isaac?
         etiss_perf_script_args = [output_dir, index_file, hls_dir, top_file]
         try:
-            print("env", env)
             print("command", " ".join(map(str, [etiss_perf_script, *etiss_perf_script_args])))
             # input(">")
             subprocess.run([etiss_perf_script, *etiss_perf_script_args], check=True, **kwargs, env=env)
@@ -158,6 +158,7 @@ def handle(args):
         workdir=args.workdir,
         docker_image=args.docker,
         verbose=args.verbose,
+        fill_mode=args.fill_mode,
     )
     if sess is not None:
         sess.save()
@@ -176,6 +177,7 @@ def get_parser():
     parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--fill-mode", choices=["auto", "empty"], default="auto")
     # label: Optional[str] = None,
     # etiss_core: Optional[str] = None,
 
