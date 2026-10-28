@@ -23,6 +23,7 @@ import subprocess
 
 # import yaml
 import argparse
+import re
 from typing import Optional, Union
 from pathlib import Path
 
@@ -88,7 +89,25 @@ def retarget_etiss_iss(
     if use_service:
         if service_tag is None:
             service_tag = DEFAULT_SERVICE_TAG
-        raise NotImplementedError("ISS Service")
+        from isaac_toolkit.retargeting.service.client import run_retargeting_service
+
+        imported = []
+        for match in re.finditer(r'import\s+"([^"]+)"', top_file.read_text()):
+            raw_path = match.group(1)
+            candidate = Path(raw_path)
+            if not candidate.is_absolute():
+                candidate = gen_dir / candidate
+            if not candidate.is_file() or "rv_base" in raw_path or "etiss_arch_riscv" in raw_path:
+                continue
+            imported.append(candidate)
+        if not imported:
+            raise FileNotFoundError(f"No generated instruction CoreDSL imported by {top_file}")
+        host, port = service_addr.rsplit(":", 1)
+        run_retargeting_service(
+            [str(top_file), str(imported[0])], out_dir=str(output_dir), host=host,
+            port=int(port), tag=service_tag, verbose=verbose,
+        )
+        return
     elif use_docker:
         command = "docker run -it --rm"
         if mount_dir is not None:

@@ -24,6 +24,7 @@ from pathlib import Path
 from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.retargeting.iss.etiss import retarget_etiss_iss
+from isaac_toolkit.retargeting.iss.spike import DEFAULT_DOCKER_IMAGE as DEFAULT_SPIKE_DOCKER_IMAGE
 from isaac_toolkit.retargeting.iss.spike import retarget_spike_iss
 
 logger = get_logger()
@@ -56,9 +57,35 @@ def retarget_iss_auto(
                     sim = sim_
     sim = iss or sim
     if sim.startswith("spike"):
-        return retarget_spike_iss(sess, workdir=workdir or sess.directory / "work",
-                                  label=label, force=force, verbose=verbose,
-                                  spike_core=demo_config.etiss.core_name)
+        if workdir is None:
+            workdir = sess.directory / "work"
+        else:
+            workdir = Path(workdir)
+            assert workdir.is_dir()
+        docker_config = demo_config.docker
+        service_config = demo_config.service
+        assert docker_config is not None and service_config is not None
+        # Spike retargeting has historically compiled locally against the active
+        # MLonMCU installation. Only an explicit --docker opts into a container.
+        use_docker = bool(docker_override)
+        use_service = service_override if service_override is not None else service_config.enable
+        if use_docker and use_service:
+            raise ValueError("Spike retargeting cannot use Docker and the service at the same time")
+        service_addr = None
+        service_tag = None
+        if use_service:
+            service_addr = f"{service_config.hostname}:{service_config.port}"
+            service_tag = (service_config.tags or {}).get("spike")
+            if service_tag is None:
+                raise ValueError("demo.service.tags.spike must be set when Spike service retargeting is enabled")
+        image = getattr(docker_config, "spike_image", None) or DEFAULT_SPIKE_DOCKER_IMAGE
+        if not use_docker:
+            image = None
+        return retarget_spike_iss(
+            sess, workdir=workdir, label=label, force=force, verbose=verbose,
+            spike_core=demo_config.etiss.core_name, docker_image=image,
+            service_addr=service_addr, service_tag=service_tag,
+        )
     if sim != "etiss":
         raise ValueError(f"Unsupported ISS: {sim}")
     sim_retarget_iss = {

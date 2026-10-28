@@ -524,6 +524,11 @@ def generate_etiss_core(
             f.write(set_includes_code)
             f.write("\n\n")
             f.write(set_cdsl_code)
+        # Deployed Seal5 services may still use the legacy CoreDSL grammar.
+        # Export from the same encoded model so compiler and ISS agree.
+        (gen_dir / f"{set_name}.seal5.core_desc").write_text(
+            set_includes_code + "\n\n" + gen_cdsl_code(model_obj, with_includes=False, legacy=True)
+        )
         sets_splitted = {}
         for instr_def in generated_set.instructions.values():
             instr_name = instr_def.name
@@ -581,6 +586,14 @@ def generate_etiss_core(
             f.write(set_includes_code)
             f.write("\n\n")
             f.write(set_splitted_cdsl_code)
+        (gen_dir / f"{set_name}.splitted.seal5.core_desc").write_text(
+            set_includes_code + "\n\n" + gen_cdsl_code(model_obj_splitted, with_includes=False, legacy=True)
+        )
+        # The deployed LLVM service expects the CoreDSL input under this name
+        # when it creates its etiss_instructions model.
+        (gen_dir / "etiss_instructions.core_desc").write_text(
+            set_includes_code + "\n\n" + gen_cdsl_code(model_obj, with_includes=False, legacy=True)
+        )
         model_obj = copy.deepcopy(model_obj)
         model_obj.sets[set_name].register_banks["X"] = main_reg
         model_obj.sets[set_name].extension = []

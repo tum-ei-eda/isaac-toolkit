@@ -79,6 +79,11 @@ class RetargetClient(ABC):
         return cdsl_filename, rewritten.encode("utf-8")
 
     def _submit_job(self, files: dict = None, data: dict = None):
+        files = dict(files or {})
+        # The service requires these multipart fields even for jobs that do
+        # not consume a performance description or configuration.
+        files.setdefault("cpdsl", ("unused.core_perf_dsl", BytesIO(b"")))
+        files.setdefault("config", ("unused.yaml", BytesIO(b"{}\n")))
         resp = requests.post(f"{self.api_url}/jobs", files=files, data=data)
         resp.raise_for_status()
         data = resp.json()
@@ -124,6 +129,12 @@ class RetargetClient(ABC):
 
     def wait_for_completion(self, job_id: str, poll_interval: float = 5.0, verbose: bool = False):
         """Waits for job completion and prints live progress"""
+        if self.console is None:
+            while True:
+                status = self.get_status(job_id)
+                if status["status"] in ("finished", "failed"):
+                    return status["status"]
+                time.sleep(poll_interval)
         last_progress = -1
         n_lines = 50
         # if USE_RICH:
@@ -219,11 +230,14 @@ class RetargetClient(ABC):
 
 class Seal5RetargetClient(RetargetClient):
 
-    def submit_job(self, tag: str, cdsl_path: str = None, config_path: str = None, **kwargs):
+    def submit_job(self, tag: str, cdsl_path: str = None, config_path: str = None, cpdsl_path: str = None, **kwargs):
         assert cdsl_path is not None
         assert config_path is not None
         cdsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
         files = {"cdsl": (cdsl_filename, BytesIO(rewritten_cdsl)), "config": open(config_path, "rb")}
+        if cpdsl_path:
+            cpdsl_filename, rewritten_cpdsl = self._rewrite_cdsl(cpdsl_path)
+            files["cpdsl"] = (cpdsl_filename, BytesIO(rewritten_cpdsl))
         data = {
             "tag": tag,
         }
@@ -242,6 +256,20 @@ class EtissRetargetClient(RetargetClient):
             "tag": tag,
         }
         return self._submit_job(files=files, data=data)
+
+
+class SpikeRetargetClient(RetargetClient):
+
+    def submit_job(self, tag: str, cdsl_path: str = None, cpdsl_path: str = None, **kwargs):
+        if cdsl_path is None or cpdsl_path is None:
+            raise ValueError("Spike retargeting requires the top-level and imported instruction CoreDSL files")
+        cdsl_filename, rewritten_cdsl = self._rewrite_cdsl(cdsl_path)
+        cpdsl_filename, rewritten_cpdsl = self._rewrite_cdsl(cpdsl_path)
+        files = {
+            "cdsl": (cdsl_filename, BytesIO(rewritten_cdsl)),
+            "cpdsl": (cpdsl_filename, BytesIO(rewritten_cpdsl)),
+        }
+        return self._submit_job(files=files, data={"tag": tag})
 
 
 class EtissPerfRetargetClient(RetargetClient):
@@ -279,12 +307,14 @@ def run_retargeting_service(
     client_lookup = {
         "llvm": Seal5RetargetClient,
         "iss": EtissRetargetClient,
+        "etiss": EtissRetargetClient,
+        "spike": SpikeRetargetClient,
         "perf": EtissPerfRetargetClient,
     }
     client_cls = client_lookup.get(tag)
     assert client_cls is not None, f"Unable to find client class for tag: {tag}"
 
-    client = RetargetClient(f"http://{host}:{port}", console=console)
+    client = client_cls(f"http://{host}:{port}", console=console)
 
     # Separate input files
     cdsl_files: List[Path] = []
@@ -300,10 +330,12 @@ def run_retargeting_service(
             cpdsl_files.append(file_path)
         elif file_path.suffix in [".yaml", ".yml"]:
             cfg_files.append(file_path)
-    if len(cdsl_files) != 1:
-        raise ValueError(f"Expected exactly one .core_desc/.cdsl file, got {len(cdsl_files)}")
+    if len(cdsl_files) not in (1, 2):
+        raise ValueError(f"Expected one or two .core_desc/.cdsl files, got {len(cdsl_files)}")
     cdsl_file = cdsl_files[0]
     cpdsl_file = None
+    if len(cdsl_files) == 2:
+        cpdsl_file = cdsl_files[1]
     if len(cpdsl_files) > 0:
         if len(cpdsl_files) > 1:
             raise ValueError(f"Expected exactly one .core_perf_dsl file, got {len(cpdsl_files)}")
@@ -316,16 +348,18 @@ def run_retargeting_service(
         merged_cfg_file.write_text(merged_contents)
         cfg_file = merged_cfg_file
     else:
-        cfg_file = cfg_files[0]
+        cfg_file = cfg_files[0] if cfg_files else None
 
-    job_id, token = client.submit_job(tag, cdsl_path=str(cdsl_file), cfg_path=str(cfg_file), cpdsl_path=str(cpdsl_file))
+    job_id, token = client.submit_job(tag, cdsl_path=str(cdsl_file),
+                                    config_path=str(cfg_file) if cfg_file else None,
+                                    cpdsl_path=str(cpdsl_file) if cpdsl_file else None)
 
     if console:
         console.print(f"Submitted job {job_id} with token {token}")
     time.sleep(1)
 
     # Wait for completion
-    status = client.wait_for_completion(job_id) if console else None
+    status = client.wait_for_completion(job_id)
 
     # Download logs
     log_file = out_path / f"{job_id}_logs.txt"
@@ -334,8 +368,7 @@ def run_retargeting_service(
     client.download_logs(job_id, str(log_file))
 
     if status == "failed":
-        if console:
-            console.print("Artifact not available (job failed)")
+        raise RuntimeError(f"Retargeting job {job_id} failed; see {log_file}")
     else:
         # Download artifact
         artifact_file = out_path / f"{job_id}_artifact.tar.zst"
@@ -369,7 +402,6 @@ def handle(args):
     run_retargeting_service(
         args.files,
         out_dir=args.out_dir,
-        force=args.force,
         verbose=args.verbose,
         host=args.host,
         port=args.port,

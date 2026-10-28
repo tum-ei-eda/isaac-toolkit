@@ -20,6 +20,7 @@ import os
 import sys
 import shutil
 import subprocess
+import re
 
 # import yaml
 import argparse
@@ -39,6 +40,8 @@ def retarget_spike_iss(
     workdir: Optional[Union[str, Path]] = None,
     mount_dir: Optional[Union[str, Path]] = None,
     docker_image: Optional[str] = None,
+    service_addr: Optional[str] = None,
+    service_tag: Optional[str] = None,
     spike_core: Optional[str] = None,
     label: Optional[str] = None,
     force: bool = False,
@@ -56,8 +59,11 @@ def retarget_spike_iss(
         spike_core = "XIsaacCore"
     if label is None:
         label = "default"
+    use_service = service_addr is not None
     use_docker = docker_image is not None
-    subdir = "docker" if use_docker else "local"
+    if use_service and use_docker:
+        raise ValueError("Choose either the Spike retargeting service or Docker")
+    subdir = "service" if use_service else ("docker" if use_docker else "local")
     base_dir = workdir / subdir
     output_dir = (base_dir / "spike") if label == "" else (base_dir / f"spike_{label}")
     if output_dir.is_dir():
@@ -68,6 +74,26 @@ def retarget_spike_iss(
     # gen_dir = workdir / "gen" / label
     gen_dir = (workdir / "gen") if label == "" else (workdir / f"gen_{label}")
     top_file = gen_dir / f"{spike_core}.core_desc"
+    if use_service:
+        from isaac_toolkit.retargeting.service.client import run_retargeting_service
+
+        imported = []
+        for match in re.finditer(r'import\s+"([^"]+)"', top_file.read_text()):
+            raw_path = match.group(1)
+            candidate = Path(raw_path)
+            if not candidate.is_absolute():
+                candidate = gen_dir / candidate
+            if not candidate.is_file() or "rv_base" in raw_path or "etiss_arch_riscv" in raw_path:
+                continue
+            imported.append(candidate)
+        if not imported:
+            raise FileNotFoundError(f"No generated instruction CoreDSL imported by {top_file}")
+        host, port = service_addr.rsplit(":", 1)
+        run_retargeting_service(
+            [str(top_file), str(imported[0])], out_dir=str(output_dir), host=host,
+            port=int(port), tag=service_tag or "spike", verbose=verbose,
+        )
+        return
     kwargs = {}
     # print("verbose", verbose)
     if not verbose:
@@ -119,6 +145,7 @@ def handle(args):
         force=args.force,
         workdir=args.workdir,
         docker_image=args.docker,
+        service_addr=args.service,
         verbose=args.verbose,
         label=args.label,
         spike_core=args.spike_core,
@@ -141,6 +168,7 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=False)
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
+    parser.add_argument("--service", type=str, default=None, const="localhost:8080", nargs="?")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--label", default="default")
