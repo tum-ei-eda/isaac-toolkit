@@ -44,6 +44,9 @@ def retarget_spike_iss(
     force: bool = False,
     verbose: bool = False,
     cleanup: bool = False,
+    spike_install_dir=None,
+    spike_source_dir=None,
+    spike_build_dir=None,
 ):
     assert workdir is not None
     if not isinstance(workdir, Path):
@@ -97,31 +100,10 @@ def retarget_spike_iss(
             raise  # Re-raise if you want the caller to handle it too
     else:
 
-        temp_dir = base_dir / "temp"
-        spike_home = temp_dir / "spike"
-        env = os.environ.copy()
-        env["SPIKE_HOME"] = spike_home
-        env["CLEANUP"] = str(int(cleanup))
-        # ccache already exported implicitly?
-        # TODO: explicit ccache?
-        # env["CCACHE"]
-        # env["CCACHE_DIR"]
-        spike_script = os.environ.get("SPIKE_SCRIPT_LOCAL", None)
-        assert spike_script is not None, "SPIKE_SCRIPT_LOCAL undefined"
-        assert Path(spike_script).is_file(), f"Not found: {spike_script}"
-        # TODO: ship with isaac?
-        spike_script_args = [output_dir, top_file]
-        try:
-            subprocess.run([spike_script, *spike_script_args], check=True, **kwargs, env=env)
-        except subprocess.CalledProcessError as e:
-            print(f"[ERROR] Command failed with return code {e.returncode}")
-            if e.stdout:
-                print("--- STDOUT ---")
-                print(e.stdout.decode())
-            if e.stderr:
-                print("--- STDERR ---")
-                print(e.stderr.decode())
-            raise  # Re-raise if you want the caller to handle it too
+        from .spike_plugin import build_plugin
+        return build_plugin(gen_dir / f"{spike_core}.m2isarmodel", spike_core, output_dir,
+                            install_dir=spike_install_dir, source_dir=spike_source_dir,
+                            build_dir=spike_build_dir)
 
 
 def handle(args):
@@ -138,6 +120,11 @@ def handle(args):
         workdir=args.workdir,
         docker_image=args.docker,
         verbose=args.verbose,
+        label=args.label,
+        spike_core=args.spike_core,
+        spike_install_dir=args.spike_install_dir,
+        spike_source_dir=args.spike_source_dir,
+        spike_build_dir=args.spike_build_dir,
     )
     if sess is not None:
         sess.save()
@@ -156,6 +143,11 @@ def get_parser():
     parser.add_argument("--docker", type=str, default=None, const=DEFAULT_DOCKER_IMAGE, nargs="?")
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--label", default="default")
+    parser.add_argument("--spike-core", default="XIsaacCore")
+    parser.add_argument("--spike-install-dir")
+    parser.add_argument("--spike-source-dir")
+    parser.add_argument("--spike-build-dir")
     # label: Optional[str] = None,
     # etiss_core: Optional[str] = None,
 

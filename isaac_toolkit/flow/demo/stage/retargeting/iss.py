@@ -24,6 +24,7 @@ from pathlib import Path
 from isaac_toolkit.session import Session
 from isaac_toolkit.logging import get_logger, set_log_level
 from isaac_toolkit.retargeting.iss.etiss import retarget_etiss_iss
+from isaac_toolkit.retargeting.iss.spike import retarget_spike_iss
 
 logger = get_logger()
 
@@ -38,6 +39,7 @@ def retarget_iss_auto(
     service_override: Optional[bool] = None,
     verbose: bool = False,  # TODO: add to other stages, too
     cleanup: bool = False,
+    iss: Optional[str] = None,
 ):
     logger.info("Retargeting ISS with ISAAC instructions...")
     # input(">>>")
@@ -52,7 +54,13 @@ def retarget_iss_auto(
                 sim_ = sim_config.iss
                 if sim_:
                     sim = sim_
-    assert sim == "etiss"
+    sim = iss or sim
+    if sim.startswith("spike"):
+        return retarget_spike_iss(sess, workdir=workdir or sess.directory / "work",
+                                  label=label, force=force, verbose=verbose,
+                                  spike_core=demo_config.etiss.core_name)
+    if sim != "etiss":
+        raise ValueError(f"Unsupported ISS: {sim}")
     sim_retarget_iss = {
         "etiss": retarget_etiss_iss,
     }
@@ -144,6 +152,7 @@ def handle(args):
         service_override=service_override,
         verbose=args.verbose,
         cleanup=args.cleanup,
+        iss=args.iss,
     )
     sess.save()
 
@@ -164,6 +173,7 @@ def get_parser():
     parser.add_argument("--service", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--cleanup", action="store_true")
+    parser.add_argument("--iss", choices=["etiss", "spike"])
     return parser
 
 

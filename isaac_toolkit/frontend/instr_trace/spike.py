@@ -19,6 +19,7 @@
 
 # import time
 import io
+import re
 import sys
 import itertools
 import pandas as pd
@@ -39,55 +40,41 @@ logger = get_logger()
 # TODO: logger
 
 
-def process_df(df, operands: bool = False):
-    df = df[df[0].str.contains(r" \(0x")]
-    df = df[~df[0].str.contains("exception")]
-    df = df[~df[0].str.contains("tval")]
-    df[["core", "rest"]] = df[0].str.split(":", n=1, expand=True)
-    df.drop(columns=[0], inplace=True)
-    df["core"] = df["core"].apply(lambda x: int(x.split(" ", 1)[-1].strip()))
-    df[["pc", "bytecode", "instr", "args"]] = df["rest"].apply(lambda x: x.strip()).str.split(" ", n=3, expand=True)
-    df.drop(columns=["rest"], inplace=True)
-    if operands:
-        raise NotImplementedError
-    else:
-        df.drop(columns=["args"], inplace=True)
-    df["bytecode"] = df["bytecode"].apply(lambda x: x[1:-1])
-    df["bytecode"] = df["bytecode"].apply(lambda x: int(x, 0))
-    df["pc"] = df["pc"].apply(lambda x: int(x, 0))
-
-    df["pc"] = pd.to_numeric(df["pc"])
-    df["instr"] = df["instr"].astype("category")
-
-    def detect_size(instr):
-        # if bytecode[:2] == "0x":
-        #     return len(bytecode[2:]) // 2
-        # elif bytecode[:2] == "0b":
-        #     return len(bytecode[2:]) // 8
-        # else:
-        #     assert len(set(bytecode)) == 2
-        #     return len(bytecode) // 8
-
-        # Spike does not use shorter byte codes for compressed instrs
-        # Alternatives: check LSBs or instr prefix
-        if instr.startswith("c."):
-            return 2
-        return 4
-
-    df["size"] = df["instr"].apply(detect_size)
-    df["size"] = df["size"].astype("category")
-
-    df["bytecode"] = pd.to_numeric(df["bytecode"])
-    return df
+RECORD = re.compile(r"^core\s+(\d+):\s+(0x[0-9a-fA-F]+)\s+\((0x[0-9a-fA-F]+)\)\s+(\S+)")
+COLUMNS = ["core", "pc", "bytecode", "instr", "size"]
 
 
-def parse_and_process(chunk_bytes, operands: bool = False):
-    # df = pd.read_csv(input_file, sep="@", header=None, chunksize=2**22) as reader:
-    df = pd.read_csv(io.BytesIO(chunk_bytes), header=None, sep="@")
-    return process_df(df, operands=operands)
+def process_df(df, operands=False):
+    rows = []
+    for line in df.iloc[:, 0].dropna():
+        match = RECORD.match(str(line))
+        if match is None:
+            continue
+        core, pc, code, instr = match.groups()
+        code = int(code, 16)
+        # Instruction bits also handle unknown compressed mnemonics correctly.
+        if code & 3 != 3:
+            size = 2
+        elif code & 0x1f != 0x1f:
+            size = 4
+        elif code & 0x3f == 0x1f:
+            size = 6
+        elif code & 0x7f == 0x3f:
+            size = 8
+        else:
+            raise ValueError(f"Unsupported instruction length: {code:#x}")
+        rows.append((int(core), int(pc, 16), code, instr, size))
+    return pd.DataFrame(rows, columns=COLUMNS)
+
+
+def parse_and_process(chunk_bytes, operands=False):
+    # Disassembly is not CSV and can contain commas and quotes.
+    return process_df(pd.DataFrame({0: chunk_bytes.decode("utf-8", errors="replace").splitlines()}))
 
 
 def chunk_iter(path, chunk_size=2**22):
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
     f = open(path, "rb")
 
     with f:
@@ -115,94 +102,42 @@ def load_instr_trace(
     num_workers: Optional[int] = None,
     executor: str = "process_pool",
     chunk_size: int = 2**22,
+    proxy_kernel: Optional[bool] = None,
 ):
     logger.info("Loading Spike instruction trace...")
     assert input_file.is_file(), f"File not found: {input_file}"
     name = input_file.name
+    if proxy_kernel is None:
+        target = name.split("_instrs.", 1)[0]
+        proxy_kernel = target in {"spike", "spike_pk", "spike_rv32", "spike_rv64", "spike_rv32_min"}
     # df = pd.read_csv(input_file, sep=":", names=["pc", "rest"])
     dfs = []
-    if True:
-        executor_map = {
-            "thread_pool": ThreadPoolExecutor,
-            "process_pool": ProcessPoolExecutor,
-        }
-        executor_cls = executor_map.get(executor)
-        assert executor_cls is not None, f"Unsupported Executor: {executor}"
-        with executor_cls(max_workers=num_workers) as executor:  # tune workers
-            dfs_ = list(
-                tqdm(
-                    executor.map(
-                        parse_and_process,
-                        chunk_iter(input_file, chunk_size=chunk_size),
-                        itertools.repeat(operands),
-                    ),
-                    disable=not progress,
-                )
-            )
-            dfs += dfs_
-    else:
-        with pd.read_csv(input_file, sep="@", header=None, chunksize=2**22) as reader:
-            for df in tqdm(reader, disable=False):
-                df = df[df[0].str.contains(r" \(0x")]
-                df[["core", "rest"]] = df[0].str.split(":", n=1, expand=True)
-                df.drop(columns=[0], inplace=True)
-                df["core"] = df["core"].apply(lambda x: int(x.split(" ", 1)[-1].strip()))
-                df[["pc", "bytecode", "instr", "args"]] = (
-                    df["rest"].apply(lambda x: x.strip()).str.split(" ", n=3, expand=True)
-                )
-                df.drop(columns=["rest"], inplace=True)
-                if operands:
-                    raise NotImplementedError
-                else:
-                    df.drop(columns=["args"], inplace=True)
-                df["bytecode"] = df["bytecode"].apply(lambda x: x[1:-1])
-                df["bytecode"] = df["bytecode"].apply(lambda x: int(x, 0))
-                df["pc"] = df["pc"].apply(lambda x: int(x, 0))
-
-                df["pc"] = pd.to_numeric(df["pc"])
-                df["instr"] = df["instr"].astype("category")
-
-                def detect_size(instr):
-                    # if bytecode[:2] == "0x":
-                    #     return len(bytecode[2:]) // 2
-                    # elif bytecode[:2] == "0b":
-                    #     return len(bytecode[2:]) // 8
-                    # else:
-                    #     assert len(set(bytecode)) == 2
-                    #     return len(bytecode) // 8
-
-                    # Spike does not use shorter byte codes for compressed instrs
-                    # Alternatives: check LSBs or instr prefix
-                    if instr.startswith("c."):
-                        return 2
-                    return 4
-
-                df["size"] = df["instr"].apply(detect_size)
-                df["size"] = df["size"].astype("category")
-
-                df["bytecode"] = pd.to_numeric(df["bytecode"])
-
-                dfs.append(df)
-
-    df = pd.concat(dfs, axis=0)
+    if operands:
+        logger.warning("Skipping optional operands trace for Spike")
+    executor_map = {"thread_pool": ThreadPoolExecutor, "process_pool": ProcessPoolExecutor}
+    executor_cls = executor_map.get(executor)
+    if executor_cls is None:
+        raise ValueError(f"Unsupported Executor: {executor}")
+    with executor_cls(max_workers=num_workers) as pool:
+        dfs = list(tqdm(pool.map(parse_and_process, chunk_iter(input_file, chunk_size=chunk_size)),
+                        disable=not progress))
+    df = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame(columns=COLUMNS)
     df["instr"] = df["instr"].astype("category")
     df["size"] = df["size"].astype("category")
     df["core"] = df["core"].astype("category")
     df["pc"] = pd.to_numeric(df["pc"], downcast="unsigned")
-    df["is_trap"] = df["pc"] >= 0x80000000  # TODO: check if assumption can be made. PK only?
+    if proxy_kernel:
+        # PK occupies high addresses; HTIF programs can execute there too.
+        df["is_trap"] = df["pc"] >= 0x80000000
     df["bytecode"] = df["bytecode"].astype("category")
     df.reset_index(drop=True, inplace=True)
 
     attrs = {
         "simulator": "spike",
+        "proxy_kernel": proxy_kernel,
         "cpu_arch": "unknown",
         "by": "isaac_toolkit.frontend.instr_trace.spike",
     }
-    if operands:
-        operands_trace_df = df[["instr", "operands"]]
-        df.drop(columns=["operands"], inplace=True)
-        operands_artifact = TraceArtifact("operands_trace", operands_trace_df, attrs=attrs)
-        sess.add_artifact(operands_artifact, override=force)
     artifact = InstrTraceArtifact(name, df, attrs=attrs)
     sess.add_artifact(artifact, override=force)
 
@@ -220,6 +155,7 @@ def handle(args):
         force=args.force,
         operands=args.operands,
         progress=args.progress,
+        proxy_kernel=args.proxy_kernel,
     )
     sess.save()
 
@@ -236,6 +172,9 @@ def get_parser():
     parser.add_argument("--force", "-f", action="store_true")
     parser.add_argument("--operands", action="store_true")
     parser.add_argument("--progress", action="store_true")
+    runtime = parser.add_mutually_exclusive_group()
+    runtime.add_argument("--proxy-kernel", dest="proxy_kernel", action="store_true", default=None)
+    runtime.add_argument("--no-proxy-kernel", dest="proxy_kernel", action="store_false")
     return parser
 
 
