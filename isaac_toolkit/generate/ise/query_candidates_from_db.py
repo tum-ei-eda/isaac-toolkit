@@ -166,6 +166,7 @@ def query_candidates_from_db(
     encoding_policy: str = "auto",
     query_timeout: Optional[float] = None,
     allowed_reg_classes: Optional[int] = None,
+    query_level_filtering: Optional[bool] = None,
 ):
     """Query bounded candidates through memgraph_experiments.
 
@@ -378,6 +379,8 @@ def query_candidates_from_db(
             # *["--ignore-const-inputs"],
             *(["--limit-results", str(limit_results)] if limit_results is not None else []),
             *(["--query-timeout", str(query_timeout)] if query_timeout is not None else []),
+            *(["--query-level-filtering" if query_level_filtering else "--no-query-level-filtering"]
+              if query_level_filtering is not None else []),
             *(["--allowed_reg_classes", str(allowed_reg_classes)] if allowed_reg_classes is not None else []),
             *(["--min-inputs", str(MIN_INPUTS)] if MIN_INPUTS is not None else []),
             *(["--max-inputs", str(MAX_INPUTS)] if MAX_INPUTS is not None else []),
@@ -570,6 +573,7 @@ def handle(args):
         query_config_yaml=args.query_config_yaml,
         limit_results=args.limit_results,
         query_timeout=args.query_timeout,
+        query_level_filtering=args.query_level_filtering,
         MIN_PATH_LENGTH=args.min_path_length,
         MAX_PATH_LENGTH=args.max_path_length,
         MAX_PATH_WIDTH=args.max_path_width,
@@ -600,6 +604,8 @@ def get_parser():
     parser.add_argument("--label", type=str, default=None)
     parser.add_argument("--progress", action="store_true", default=None)
     parser.add_argument("--stage", type=int, default=8)
+    parser.add_argument("--query-level-filtering", action=argparse.BooleanOptionalAction, default=None,
+                        help="Enable query predicate and memory/branch filtering (backend default: enabled)")
     parser.add_argument("--limit-results", type=int, default=None)
     parser.add_argument("--query-timeout", type=float, default=None,
                         help="Seconds per candidate query (YAML/backend default: 60)")
