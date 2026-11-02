@@ -1,0 +1,145 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checking ELF basic blocks against Memgraph CDFGs &mdash; ISAAC Toolkit 0.5.7 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d65efdcf"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ISAAC Toolkit
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">isaac-toolkit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ISAAC Toolkit</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Checking ELF basic blocks against Memgraph CDFGs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/bb_cdfg_validation.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="checking-elf-basic-blocks-against-memgraph-cdfgs">
+<h1>Checking ELF basic blocks against Memgraph CDFGs<a class="headerlink" href="#checking-elf-basic-blocks-against-memgraph-cdfgs" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">isaac_toolkit.backend.memgraph.annotate_bb_weights</span></code> validates counts before
+copying profile weights onto the CDFG. The demo’s CDFG script already invokes
+this command after graph generation, so the check runs automatically.</p>
+<p>The validator joins the ELF-derived <code class="docutils literal notranslate"><span class="pre">llvm_bbs_new</span></code> table to <code class="docutils literal notranslate"><span class="pre">BB</span></code> records in the
+requested Memgraph session using function name and BB name. It counts <code class="docutils literal notranslate"><span class="pre">INSTR</span></code>
+nodes directly, including nodes without DFG edges. Synthetic <code class="docutils literal notranslate"><span class="pre">input</span></code>, <code class="docutils literal notranslate"><span class="pre">constant</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">label</span></code> operand nodes are excluded. The node lookup also matches the graph’s
+module and compiler stage. This is a consistency check for a CDFG stage close
+to assembly; equal counts do not prove that instruction semantics match.</p>
+<p>The default permitted difference in either direction is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">abs</span><span class="p">(</span><span class="n">graph_nodes</span> <span class="o">-</span> <span class="n">elf_instructions</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">5</span> <span class="o">+</span> <span class="mf">0.10</span> <span class="o">*</span> <span class="n">elf_instructions</span>
+</pre></div>
+</div>
+<p>For example, a 100-instruction ELF block permits 85 through 115 graph nodes.
+An empty graph for a nonempty ELF block always fails. Duplicate ELF identities
+or multiple graph blocks sharing a function/BB identity also fail, rather than
+combining modules or compiler stages into a misleading count.</p>
+<p>Every run records a <code class="docutils literal notranslate"><span class="pre">bb_cdfg_validation</span></code> table artifact containing both counts,
+the difference and allowance, status, selected-block flag, graph modules and
+stages. Validation covers cold blocks as well as executed blocks. Missing
+selected blocks on either side fail. ELF blocks outside the exported compilation
+units are recorded as <code class="docutils literal notranslate"><span class="pre">not_exported</span></code>; other graph blocks missing from the ELF
+are recorded as <code class="docutils literal notranslate"><span class="pre">missing_elf</span></code> and produce a coverage warning, since earlier
+compiler stages can contain blocks eliminated before linking.</p>
+<p>By default, a large mismatch stops the stage <strong>before any weight writes</strong>.
+The CLI saves the diagnostic artifact in the session even on this failure.
+Inspect the ELF, compiler stage, and database session label before proceeding.
+The usual artifact replacement rules apply: rerun with <code class="docutils literal notranslate"><span class="pre">--force</span></code> to replace a
+previous validation report.</p>
+<p>To change the tolerance or explicitly continue after logging mismatches:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>isaac_toolkit.backend.memgraph.annotate_bb_weights<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--session<span class="w"> </span>/path/to/session<span class="w"> </span>--label<span class="w"> </span>my-cdfg-session<span class="w"> </span>--force<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--absolute-tolerance<span class="w"> </span><span class="m">3</span><span class="w"> </span>--relative-tolerance<span class="w"> </span><span class="m">0</span>.20<span class="w"> </span>--mismatch-action<span class="w"> </span>warn
+</pre></div>
+</div>
+<p>The Python <code class="docutils literal notranslate"><span class="pre">annotate_bb_weights</span></code> function accepts the corresponding
+<code class="docutils literal notranslate"><span class="pre">absolute_tolerance</span></code>, <code class="docutils literal notranslate"><span class="pre">relative_tolerance</span></code>, and <code class="docutils literal notranslate"><span class="pre">mismatch_action</span></code> arguments.
+Warning mode annotates comparable blocks, including count mismatches, but skips
+missing or ambiguous identities. A session with no comparable blocks is never
+silently accepted: error mode stops and warning mode logs it.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, TUM Department of Electrical and Computer Engineering - Chair of Electronic Design Automation.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
