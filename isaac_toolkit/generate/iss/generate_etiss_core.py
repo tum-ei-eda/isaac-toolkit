@@ -614,6 +614,8 @@ def generate_etiss_core(
     core_body = ""
     if "tum_csr" in contributing_types:
         misa = "0x800000000014112D" if xlen == 64 else "0x4014112D"
+        # Architectural reset initializers must be constants. Apply the SIE/UIE
+        # masks to the MIE reset value (0xFFFFFBBB) here, rather than reading CSR.
         core_body = f"""    architectural_state {{
         CSR[0x000] = 0x0000000B;
         CSR[RV_CSR_SSTATUS] = 0x0000000B;
@@ -621,8 +623,8 @@ def generate_etiss_core(
         CSR[RV_CSR_MISA] = {misa};
         CSR[0xC10] = 0x00000003;
         CSR[RV_CSR_MIE] = 0xFFFFFBBB;
-        CSR[RV_CSR_SIE] = CSR[0x304] & (~(0x888));
-        CSR[0x004] = CSR[0x304] & (~(0xAAA));
+        CSR[RV_CSR_SIE] = 0xFFFFF333;
+        CSR[0x004] = 0xFFFFF111;
     }}
 """
     core_out_cdsl_file.write_text(
