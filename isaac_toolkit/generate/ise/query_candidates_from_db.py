@@ -17,6 +17,8 @@
 # limitations under the License.
 #
 import os
+import json
+import math
 import sys
 import yaml
 import argparse
@@ -40,6 +42,11 @@ from isaac_toolkit.utils.assign_names import assign_names
 from isaac_toolkit.utils.combine_pdfs import combine_pdfs
 
 logger = get_logger()
+
+
+def _csv_option(value):
+    """Accept API lists and the comma-separated form used by the backend CLI."""
+    return value if isinstance(value, str) else ",".join(map(str, value))
 
 
 def get_unique_maxmisos(maxmisos):
@@ -78,24 +85,24 @@ def get_unique_maxmisos(maxmisos):
     return unique_maxmisos, factors, duplicate_maxmisos
 
 
-def get_func_query(session, stage, func_name):
+def get_func_query(session, stage, func_name, timeout=None):
     return Query(f"""MATCH p0=(n00:INSTR)-[r01:DFG]->(n01:INSTR)
-        WHERE n00.func_name = '{func_name}'
-        AND n00.session = "{session}"
+        WHERE n00.func_name = {json.dumps(func_name, ensure_ascii=False)}
+        AND n00.session = {json.dumps(session, ensure_ascii=False)}
         AND n00.stage = {stage}
         AND n01.name != "PHI" AND n01.name != "G_PHI"
         RETURN p0
-        """)
+        """, timeout=timeout)
 
 
-def get_bbs_query(session, stage, func_name):
+def get_bbs_query(session, stage, func_name, timeout=None):
     return Query(f"""MATCH (n00:INSTR)
-        WHERE n00.func_name = '{func_name}'
-        AND n00.session = "{session}"
+        WHERE n00.func_name = {json.dumps(func_name, ensure_ascii=False)}
+        AND n00.session = {json.dumps(session, ensure_ascii=False)}
         AND n00.stage = {stage}
         RETURN n00.bb_id as bb_id, count(*) as num_instrs
         ORDER BY bb_id
-        """)
+        """, timeout=timeout)
 
 
 def get_update_nodes_query(maxmiso_idx, maxmiso_nodes, factor=1):
@@ -134,7 +141,7 @@ def query_candidates_from_db(
     MIN_NODES: Optional[Union[int, str]] = None,
     MIN_PATH_LENGTH: Optional[int] = 1,
     # MAX_PATH_LENGTH = 3,
-    MAX_PATH_LENGTH=9,
+    MAX_PATH_LENGTH=3,
     MAX_PATH_WIDTH=2,
     # MAX_PATH_WIDTH = 4,
     INSTR_PREDICATES=511,  # ALL?
@@ -157,7 +164,20 @@ def query_candidates_from_db(
     enable_venn: bool = False,
     new: bool = False,
     encoding_policy: str = "auto",
+    query_timeout: Optional[float] = None,
+    allowed_reg_classes: Optional[int] = None,
 ):
+    """Query bounded candidates through memgraph_experiments.
+
+    None options delegate to the query YAML/backend defaults (100000 results,
+    60 seconds per candidate query). Finite limits select traversal-order results
+    before sorting by size. Register classes use the backend bitmask: UNKNOWN=1,
+    GPR=2, FPR=4, CSR=8. Path lengths count edges; width permits repeated slots.
+    """
+    if query_timeout is not None and (
+        isinstance(query_timeout, bool) or not math.isfinite(query_timeout) or query_timeout <= 0
+    ):
+        raise ValueError("query_timeout must be a positive finite number of seconds")
     logger.info("Querying candidates from DB...")
     if encoding_policy == "cfu":
         if xlen != 32:
@@ -209,7 +229,7 @@ def query_candidates_from_db(
         logger.debug("func_name", func_name)
         logger.debug("bb_name", bb_name)
 
-        bbs_query = get_bbs_query(label, stage, func_name)
+        bbs_query = get_bbs_query(label, stage, func_name, timeout=query_timeout)
 
         memgraph_config = sess.config.memgraph
         memgraph_host = os.environ.get("MEMGRAPH_HOST")
@@ -225,7 +245,7 @@ def query_candidates_from_db(
         driver = GraphDatabase.driver(f"bolt://{memgraph_host}:{memgraph_port}", auth=(user, password))
         session = driver.session()
         try:
-            func_query = get_func_query(label, stage, func_name)
+            func_query = get_func_query(label, stage, func_name, timeout=query_timeout)
             logger.debug("func_query", func_query)
             # print("func_query", func_query)
             logger.debug("bbs_query", bbs_query)
@@ -357,6 +377,8 @@ def query_candidates_from_db(
             *["--output-dir", out_dir],
             # *["--ignore-const-inputs"],
             *(["--limit-results", str(limit_results)] if limit_results is not None else []),
+            *(["--query-timeout", str(query_timeout)] if query_timeout is not None else []),
+            *(["--allowed_reg_classes", str(allowed_reg_classes)] if allowed_reg_classes is not None else []),
             *(["--min-inputs", str(MIN_INPUTS)] if MIN_INPUTS is not None else []),
             *(["--max-inputs", str(MAX_INPUTS)] if MAX_INPUTS is not None else []),
             *(["--min-outputs", str(MIN_OUTPUTS)] if MIN_OUTPUTS is not None else []),
@@ -375,9 +397,9 @@ def query_candidates_from_db(
             *(["--max-path-width", str(MAX_PATH_WIDTH)] if MAX_PATH_WIDTH is not None else []),
             *(["--min-iso-weight", str(min_iso_weight)] if min_iso_weight is not None else []),
             *(["--instr-predicates", str(INSTR_PREDICATES)] if INSTR_PREDICATES is not None else []),
-            *(["--ignore-names", IGNORE_NAMES] if IGNORE_NAMES is not None else []),
-            *(["--ignore-op-types", str(IGNORE_OP_TYPES)] if IGNORE_OP_TYPES is not None else []),
-            *(["--allowed-enc-sizes", " ".join(map(str, ALLOWED_ENC_SIZES))] if ALLOWED_ENC_SIZES is not None else []),
+            *(["--ignore-names", _csv_option(IGNORE_NAMES)] if IGNORE_NAMES is not None else []),
+            *(["--ignore-op-types", _csv_option(IGNORE_OP_TYPES)] if IGNORE_OP_TYPES is not None else []),
+            *(["--allowed-enc-sizes", *map(str, ALLOWED_ENC_SIZES)] if ALLOWED_ENC_SIZES is not None else []),
             *(["--xlen", str(xlen)] if xlen is not None else []),
             *(["--enable-variation-reuse-io"] if ENABLE_VARIATION_REUSE_IO else []),  # TODO: use FLT instead?
             *(["--halt-on-error"] if HALT_ON_ERROR else []),  # TODO: use FLT instead?
@@ -547,6 +569,13 @@ def handle(args):
         progress=args.progress,
         query_config_yaml=args.query_config_yaml,
         limit_results=args.limit_results,
+        query_timeout=args.query_timeout,
+        MIN_PATH_LENGTH=args.min_path_length,
+        MAX_PATH_LENGTH=args.max_path_length,
+        MAX_PATH_WIDTH=args.max_path_width,
+        IGNORE_NAMES=args.ignore_names,
+        IGNORE_OP_TYPES=args.ignore_op_types,
+        allowed_reg_classes=args.allowed_reg_classes,
         xlen=args.xlen,
         min_iso_weight=args.min_iso_weight,
         scale_iso_weight=args.scale_iso_weight,
@@ -572,6 +601,15 @@ def get_parser():
     parser.add_argument("--progress", action="store_true", default=None)
     parser.add_argument("--stage", type=int, default=8)
     parser.add_argument("--limit-results", type=int, default=None)
+    parser.add_argument("--query-timeout", type=float, default=None,
+                        help="Seconds per candidate query (YAML/backend default: 60)")
+    parser.add_argument("--min-path-length", type=int, default=None, help="Minimum edges per path")
+    parser.add_argument("--max-path-length", type=int, default=None, help="Maximum edges per path")
+    parser.add_argument("--max-path-width", type=int, default=None, help="Number of path slots (repetition allowed)")
+    parser.add_argument("--ignore-names", default=None, help="Comma-separated instruction names to exclude during DFS")
+    parser.add_argument("--ignore-op-types", default=None, help="Comma-separated operand types to exclude during DFS")
+    parser.add_argument("--allowed-reg-classes", "--allowed_reg_classes", type=int, default=None,
+                        help="Register-class mask: UNKNOWN=1, GPR=2, FPR=4, CSR=8")
     parser.add_argument("--query-config-yaml", type=str, default=None)
     parser.add_argument("--encoding-policy", choices=["auto", "cfu"], default="auto")
     parser.add_argument("--xlen", type=int, default=32)
