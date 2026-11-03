@@ -166,6 +166,7 @@ def choose_bbs(
             "func_name": func_name,
             "file": file,
             "bb_name": bb_name,
+            "bb_id": int(str(bb_name).removeprefix("%bb.")),
             "rel_weight": rel_weight,
             "num_instrs": num_instrs,
             "freq": freq,
@@ -184,6 +185,8 @@ def choose_bbs(
 
     attrs = {
         "elf_file": elf_artifact.name,
+        "elf_sha256": llvm_bbs_artifact.attrs.get("elf_sha256"),
+        "bb_map_decoder": llvm_bbs_artifact.attrs.get("bb_map_decoder"),
         "kind": "list",
         "by": __name__,
     }

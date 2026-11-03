@@ -28,6 +28,8 @@ import pandas as pd
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.bb_identity import (BBIdentityError, block_id, verified_imports,
+    verify_graph_receipts, resolve_block)
 
 logger = get_logger()
 
@@ -36,26 +38,37 @@ class BBMismatchError(ValueError):
     """ELF blocks and the imported CDFG cannot safely share profile weights."""
 
 
-def graph_bb_counts(driver, label="default", timeout=120):
+def graph_bb_counts(driver, label="default", timeout=120, stage=None, module_name=None, compilation_id=None,
+                    func_name=None, bb_id=None):
     # Count nodes directly, including instructions with no DFG edges. Input and
     # constant/label nodes describe operands, not ELF instructions.
     query = Query(
         """
         MATCH (b:BB) WHERE b.session = $label
+          AND ($func_name IS NULL OR b.func_name = $func_name)
+          AND ($bb_id IS NULL OR b.bb_id = $bb_id)
+          AND ($stage IS NULL OR b.stage = $stage)
+          AND ($module_name IS NULL OR b.module_name = $module_name)
+          AND ($compilation_id IS NULL OR b.compilation_id = $compilation_id)
         OPTIONAL MATCH (i:INSTR)
         WHERE i.session = $label AND i.func_name = b.func_name
-          AND i.basic_block = b.name
+          AND i.bb_id = b.bb_id AND i.compilation_id = b.compilation_id
           AND i.module_name = b.module_name AND i.stage = b.stage
           AND NOT coalesce(i.op_type, 'instruction') IN ['input', 'constant', 'label']
-        RETURN b.func_name AS func_name, b.name AS bb_name,
+        RETURN b.func_name AS func_name, b.bb_id AS bb_id,
+               '%bb.' + toString(b.bb_id) AS bb_name,
                count(DISTINCT b) AS graph_blocks, count(DISTINCT i) AS graph_nodes,
                collect(DISTINCT b.module_name) AS graph_modules,
-               collect(DISTINCT b.stage) AS graph_stages
+               collect(DISTINCT b.stage) AS graph_stages,
+               collect(DISTINCT b.name) AS graph_names,
+               collect(DISTINCT b.compilation_id) AS graph_compilations,
+               collect(DISTINCT id(b)) AS graph_block_ids
     """,
         timeout=timeout,
     )
     with driver.session() as session:
-        return [dict(record) for record in session.run(query, label=label)]
+        return [dict(record) for record in session.run(query, label=label, stage=stage,
+                module_name=module_name, compilation_id=compilation_id, func_name=func_name, bb_id=bb_id)]
 
 
 def compare_bb_counts(elf_bbs, graph_counts, *, relative_tolerance=0.10, absolute_tolerance=5, selected=()):
@@ -72,10 +85,23 @@ def compare_bb_counts(elf_bbs, graph_counts, *, relative_tolerance=0.10, absolut
     ):
         raise ValueError("BB count tolerances must be finite and nonnegative")
     selected = set(selected)
-    graph = {(row["func_name"], row["bb_name"]): row for row in graph_counts}
+    graph = {}
+    for row in graph_counts:
+        fixed_id = block_id(row["bb_name"], row.get("bb_id"))
+        key = (row["func_name"], f"%bb.{fixed_id}")
+        if key in graph:
+            # Never overwrite a second module/stage with the same function/ID.
+            old = graph[key]
+            old["graph_blocks"] += row["graph_blocks"]
+            old["graph_nodes"] += row["graph_nodes"]
+            for field in ("graph_modules", "graph_stages", "graph_names", "graph_compilations", "graph_block_ids"):
+                old[field] = old.get(field, []) + row.get(field, [])
+        else:
+            graph[key] = dict(row)
     elf_groups = {}
     for row in elf_bbs.to_dict("records"):
-        elf_groups.setdefault((row["func_name"], row["bb_name"]), []).append(row)
+        fixed_id = block_id(row["bb_name"], row.get("bb_id"))
+        elf_groups.setdefault((row["func_name"], f"%bb.{fixed_id}"), []).append(row)
     rows = []
     for key in sorted(elf_groups.keys() | graph.keys() | selected):
         elf_rows = elf_groups.get(key, [])
@@ -115,6 +141,9 @@ def compare_bb_counts(elf_bbs, graph_counts, *, relative_tolerance=0.10, absolut
                 selected=key in selected,
                 graph_modules=db.get("graph_modules", []) if db else [],
                 graph_stages=db.get("graph_stages", []) if db else [],
+                graph_names=db.get("graph_names", []) if db else [],
+                graph_compilations=db.get("graph_compilations", []) if db else [],
+                graph_block_ids=db.get("graph_block_ids", []) if db else [],
             )
         )
     return pd.DataFrame(
@@ -132,6 +161,9 @@ def compare_bb_counts(elf_bbs, graph_counts, *, relative_tolerance=0.10, absolut
             "selected",
             "graph_modules",
             "graph_stages",
+            "graph_names",
+            "graph_compilations",
+            "graph_block_ids",
         ],
     )
 
@@ -162,54 +194,45 @@ def enforce_bb_report(report, mismatch_action="error"):
 
 
 def anonotate_helper(
-    driver, func_name, bb_name, num_instrs, freq, rel_weight, label="default", check=True, timeout=120
+    driver, func_name, bb_name, num_instrs, freq, rel_weight, label="default", check=True, timeout=120,
+    stage=None, module_name=None, compilation_id=None,
 ):
     if not math.isfinite(num_instrs) or num_instrs <= 0:
         raise ValueError("Cannot annotate weights without a positive ELF instruction count")
+    bb_id = block_id(bb_name)
+    counts = [r for r in graph_bb_counts(driver, label, timeout, stage, module_name, compilation_id, func_name, bb_id)
+              if r["func_name"] == func_name and r["bb_id"] == bb_id]
+    if len(counts) != 1 or counts[0]["graph_blocks"] != 1:
+        raise BBIdentityError(f"Ambiguous or missing fixed BB identity for {func_name}, {bb_id}")
+    count = counts[0]
+    if any(len(count[k]) != 1 for k in ("graph_modules", "graph_stages", "graph_compilations")):
+        raise BBIdentityError("Annotation requires one verified module/stage/compilation")
+    context = dict(module_name=count["graph_modules"][0], stage=count["graph_stages"][0],
+                   compilation_id=count["graph_compilations"][0])
+    resolved = resolve_block(driver, label, func_name, bb_id, context, timeout)
     if check:
-        report = compare_bb_counts(
+        enforce_bb_report(compare_bb_counts(
             pd.DataFrame([dict(func_name=func_name, bb_name=bb_name, num_instrs=num_instrs)]),
-            [
-                row
-                for row in graph_bb_counts(driver, label, timeout)
-                if (row["func_name"], row["bb_name"]) == (func_name, bb_name)
-            ],
-            selected=[(func_name, bb_name)],
-        )
-        enforce_bb_report(report)
-    params = dict(
-        func_name=func_name,
-        bb_name=bb_name,
-        num_instrs=int(num_instrs),
-        freq=float(freq),
-        rel_weight=float(rel_weight),
-        label=label,
-        instr_weight=float(rel_weight / num_instrs),
-    )
+            counts, selected=[(func_name, bb_name)]))
+    params = dict(label=label, func_name=func_name, bb_id=bb_id, **context, **resolved,
+                  num_instrs=int(num_instrs), freq=float(freq), rel_weight=float(rel_weight),
+                  instr_weight=float(rel_weight / num_instrs))
     with driver.session() as session:
-        session.run(
-            Query(
-                """
-            MATCH (a:BB)
-            WHERE a.func_name = $func_name AND a.name = $bb_name AND a.session = $label
-            SET a.bb_freq = $freq, a.bb_instrs = $num_instrs, a.bb_rel_weight = $rel_weight
-        """,
-                timeout=timeout,
-            ),
-            **params,
-        ).consume()
-        session.run(
-            Query(
-                """
-            MATCH (a:INSTR)
-            WHERE a.func_name = $func_name AND a.basic_block = $bb_name AND a.session = $label
-              AND NOT coalesce(a.op_type, 'instruction') IN ['input', 'constant', 'label']
-            SET a.instr_freq = $freq, a.instr_rel_weight = $instr_weight
-        """,
-                timeout=timeout,
-            ),
-            **params,
-        ).consume()
+        with session.begin_transaction(timeout=timeout) as tx:
+            updated = tx.run("""MATCH (a:BB) WHERE id(a) = $graph_block_id
+                AND a.session = $label AND a.func_name = $func_name AND a.bb_id = $bb_id
+                AND a.module_name = $module_name AND a.stage = $stage
+                AND a.compilation_id = $compilation_id
+                SET a.bb_freq = $freq, a.bb_instrs = $num_instrs, a.bb_rel_weight = $rel_weight
+                RETURN count(a) AS updated""", **params).single()
+            if updated is None or updated["updated"] != 1:
+                raise BBIdentityError("BB changed while annotating it")
+            tx.run("""MATCH (a:INSTR) WHERE a.session = $label
+                AND a.func_name = $func_name AND a.bb_id = $bb_id
+                AND a.module_name = $module_name AND a.stage = $stage
+                AND a.compilation_id = $compilation_id AND a.basic_block = $mir_name
+                AND NOT coalesce(a.op_type, 'instruction') IN ['input', 'constant', 'label']
+                SET a.instr_freq = $freq, a.instr_rel_weight = $instr_weight""", **params).consume()
 
 
 def annotate_bb_weights(
@@ -219,6 +242,7 @@ def annotate_bb_weights(
     relative_tolerance: float = 0.10,
     absolute_tolerance: float = 5,
     mismatch_action: str = "error",
+    stage: int = None,
 ):
     if mismatch_action not in ("error", "warn"):
         raise ValueError("mismatch_action must be 'error' or 'warn'")
@@ -244,6 +268,8 @@ def annotate_bb_weights(
     driver = GraphDatabase.driver(f"bolt://{memgraph_host}:{memgraph_port}", auth=(user, password))
     try:
 
+        imports = verified_imports(sess, label, stage)
+        verify_graph_receipts(driver, imports, label)
         artifacts = sess.artifacts
         llvm_bbs_artifacts = filter_artifacts(
             artifacts,
@@ -258,7 +284,9 @@ def annotate_bb_weights(
             selected = set(zip(choices[0].df["func_name"], choices[0].df["bb_name"]))
         report = compare_bb_counts(
             llvm_bbs_df,
-            graph_bb_counts(driver, label),
+            [row for receipt in imports for row in graph_bb_counts(driver, label,
+                stage=int(receipt["stage"]), module_name=receipt["module_name"],
+                compilation_id=receipt["compilation_id"])],
             selected=selected,
             relative_tolerance=relative_tolerance,
             absolute_tolerance=absolute_tolerance,
@@ -285,6 +313,7 @@ def annotate_bb_weights(
             for row in report.to_dict("records")
             if row["status"] in ("exact", "tolerated", "mismatch")
         }
+        identities = {(r["func_name"], r["bb_name"]): r for r in report.to_dict("records")}
         # print("llvm_bbs_df", llvm_bbs_df, llvm_bbs_df.columns)
         # input("?")
         for index, row in llvm_bbs_df.iterrows():
@@ -310,6 +339,9 @@ def annotate_bb_weights(
                 rel_weight,
                 label=label,
                 check=False,
+                stage=identities[(func_name, bb_name)]["graph_stages"][0],
+                module_name=identities[(func_name, bb_name)]["graph_modules"][0],
+                compilation_id=identities[(func_name, bb_name)]["graph_compilations"][0],
             )
     finally:
         driver.close()
@@ -329,6 +361,7 @@ def handle(args):
             relative_tolerance=args.relative_tolerance,
             absolute_tolerance=args.absolute_tolerance,
             mismatch_action=args.mismatch_action,
+            stage=args.stage,
         )
     except BBMismatchError:
         sess.save()  # Preserve the diagnostic table even when the stage stops.
@@ -346,6 +379,7 @@ def get_parser():
     parser.add_argument("--session", "--sess", "-s", type=str, required=True)
     parser.add_argument("--label", default="default", required=True)
     parser.add_argument("--force", "-f", action="store_true")
+    parser.add_argument("--stage", type=int, default=None, help="Select one imported CDFG stage")
     parser.add_argument(
         "--relative-tolerance",
         type=float,

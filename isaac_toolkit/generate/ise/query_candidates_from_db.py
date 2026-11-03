@@ -38,6 +38,8 @@ from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, Table
 from isaac_toolkit.utils.graph_utils import memgraph_to_nx
 from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
 from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.bb_identity import (BBIdentityError, block_id, verified_imports,
+    verify_graph_receipts, context_for_choice, resolve_block)
 from isaac_toolkit.utils.assign_names import assign_names
 from isaac_toolkit.utils.combine_pdfs import combine_pdfs
 
@@ -85,14 +87,19 @@ def get_unique_maxmisos(maxmisos):
     return unique_maxmisos, factors, duplicate_maxmisos
 
 
-def get_func_query(session, stage, func_name, timeout=None):
-    return Query(f"""MATCH p0=(n00:INSTR)-[r01:DFG]->(n01:INSTR)
-        WHERE n00.func_name = {json.dumps(func_name, ensure_ascii=False)}
-        AND n00.session = {json.dumps(session, ensure_ascii=False)}
-        AND n00.stage = {stage}
-        AND n01.name != "PHI" AND n01.name != "G_PHI"
-        RETURN p0
-        """, timeout=timeout)
+def get_func_query(session, stage, func_name, timeout=None, module_name=None, compilation_id=None):
+    def scope(node):
+        parts = [f"{node}.func_name = {json.dumps(func_name)}", f"{node}.session = {json.dumps(session)}",
+                 f"{node}.stage = {int(stage)}"]
+        if module_name is not None:
+            parts.append(f"{node}.module_name = {json.dumps(module_name)}")
+        if compilation_id is not None:
+            parts.append(f"{node}.compilation_id = {json.dumps(compilation_id)}")
+        return " AND ".join(parts)
+    return Query(f"""MATCH (n00:INSTR) WHERE {scope('n00')}
+        OPTIONAL MATCH (n00)-[r01:DFG]->(n01:INSTR)
+        WHERE {scope('n01')} AND NOT n01.name IN ['PHI', 'G_PHI']
+        RETURN n00, r01, n01""", timeout=timeout)
 
 
 def get_bbs_query(session, stage, func_name, timeout=None):
@@ -105,13 +112,21 @@ def get_bbs_query(session, stage, func_name, timeout=None):
         """, timeout=timeout)
 
 
-def get_update_nodes_query(maxmiso_idx, maxmiso_nodes, factor=1):
-    size = len(maxmiso_nodes)
-    return Query(f"""
-        MATCH (n:INSTR)
-        WHERE id(n) IN {maxmiso_nodes}
-        SET n.maxmiso_idx = {maxmiso_idx}, n.maxmiso_factor = {factor}, n.maxmiso_size = {size};
-        """)
+def get_update_nodes_query(maxmiso_idx, maxmiso_nodes, factor=1, **scope):
+    terms = [f"id(n) IN {maxmiso_nodes}"]
+    properties = dict(label="session", func_name="func_name", bb_id="bb_id", stage="stage",
+                      module_name="module_name", compilation_id="compilation_id")
+    for key, value in scope.items():
+        terms.append(f"n.{properties[key]} = {json.dumps(value)}")
+    return Query(f"""MATCH (n:INSTR) WHERE {' AND '.join(terms)}
+        SET n.maxmiso_idx = {maxmiso_idx}, n.maxmiso_factor = {factor}, n.maxmiso_size = {len(maxmiso_nodes)}
+        RETURN count(n) AS updated""")
+
+
+def update_partition(session, query, expected):
+    result = session.run(query).single()
+    if result is None or result["updated"] != expected:
+        raise BBIdentityError("CDFG nodes changed during partition annotation")
 
 
 def query_candidates_from_db(
@@ -167,6 +182,7 @@ def query_candidates_from_db(
     query_timeout: Optional[float] = None,
     allowed_reg_classes: Optional[int] = None,
     query_level_filtering: Optional[bool] = None,
+    n_parallel: Optional[int] = None,
 ):
     """Query bounded candidates through memgraph_experiments.
 
@@ -175,6 +191,10 @@ def query_candidates_from_db(
     before sorting by size. Register classes use the backend bitmask: UNKNOWN=1,
     GPR=2, FPR=4, CSR=8. Path lengths count edges; width permits repeated slots.
     """
+    if n_parallel is not None and (
+        isinstance(n_parallel, bool) or not isinstance(n_parallel, int) or n_parallel < 1
+    ):
+        raise ValueError("n_parallel must be a positive integer or None")
     if query_timeout is not None and (
         isinstance(query_timeout, bool) or not math.isfinite(query_timeout) or query_timeout <= 0
     ):
@@ -216,7 +236,8 @@ def query_candidates_from_db(
     logger.debug("choices_df", choices_df)
 
     combined_query_metrics_df = pd.DataFrame()
-    missing_bb_ids = set()
+    imports = verified_imports(sess, label, stage)
+    receipts_checked = False
     for index, row in choices_df.iterrows():
         # logger.debug("index", index)
         # logger.debug("row", row)
@@ -230,7 +251,9 @@ def query_candidates_from_db(
         logger.debug("func_name", func_name)
         logger.debug("bb_name", bb_name)
 
-        bbs_query = get_bbs_query(label, stage, func_name, timeout=query_timeout)
+        bb_id = block_id(bb_name, row.get("bb_id"))
+        context = context_for_choice(imports, row)
+
 
         memgraph_config = sess.config.memgraph
         memgraph_host = os.environ.get("MEMGRAPH_HOST")
@@ -243,84 +266,85 @@ def query_candidates_from_db(
             user = memgraph_config.user
             password = memgraph_config.password
 
-        driver = GraphDatabase.driver(f"bolt://{memgraph_host}:{memgraph_port}", auth=(user, password))
-        session = driver.session()
-        try:
-            func_query = get_func_query(label, stage, func_name, timeout=query_timeout)
-            logger.debug("func_query", func_query)
-            # print("func_query", func_query)
-            logger.debug("bbs_query", bbs_query)
-            func_results = session.run(func_query)
-            func = memgraph_to_nx(func_results)
-            logger.debug("func", func)
-            # print("func", func)
-            # input(">>")
-            bbs_results = session.run(bbs_query)
-            bbs_df = bbs_results.to_df()
-        finally:
-            session.close()
-        # logger.debug("bbs_df", bbs_df)
-        # input(">")
-        bb_id = int(bb_name.split(".", 1)[1])
-        assert len(bbs_df) > 0
-        db_bb_ids = bbs_df["bb_id"].unique()
-        if bb_id not in db_bb_ids:
-            logger.warning(f"BB ID {bb_id} not found in DB!")
-            missing_bb_ids.add((func_name, bb_id))
-            continue
-        maxmiso_idxs = []
-        # TODO: skip maxmisos which are unsuitable?
-        if isinstance(partition_with_maxmiso, str):
-            # TODO: Handle 1/0/true/false/...
-            # TODO: if numeric parse number!
-            assert partition_with_maxmiso == "auto"
-            num_instrs_threshold = 250
-            partition_with_maxmiso = num_instrs > num_instrs_threshold
-        if partition_with_maxmiso:
-            bb_nodes = [node for node in func.nodes if func.nodes[node]["properties"]["bb_id"] == bb_id]
-            # logger.debug("bb_nodes", bb_nodes)
-            bb = func.subgraph(bb_nodes)
-            # logger.debug("bb", bb)
-            maxmisos = maxmiso_algo(bb)
-            # logger.debug("maxmisos", maxmisos)
-            # input(">")
-            unique_maxmisos, factors, duplicate_maxmisos = get_unique_maxmisos(maxmisos)
-            # TODO: write maxmisos to file?
-            # maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in maxmisos]
-            unique_maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in unique_maxmisos]
-            duplicate_maxmiso_node_ids = [
-                [maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in duplicate_maxmisos
-            ]
-            remaining_nodes = set(bb_nodes)
-            total_idx = 0
+        with GraphDatabase.driver(f"bolt://{memgraph_host}:{memgraph_port}", auth=(user, password)) as driver:
+            if not receipts_checked:
+                verify_graph_receipts(driver, imports, label)
+                receipts_checked = True
+            resolve_block(driver, label, func_name, bb_id, context, query_timeout or 120)
+            update_scope = dict(label=label, func_name=func_name, bb_id=bb_id, **context)
             session = driver.session()
             try:
-                # TODO: make unique optional!
-                # for i, node_ids in enumerate(maxmiso_node_ids):
-                for i, node_ids in enumerate(duplicate_maxmiso_node_ids):
-                    factor = 0
-                    idx = -1
-                    # Negative -> ignore
-                    query = get_update_nodes_query(idx, node_ids, factor=0)
-                    _ = session.run(query)
-                    remaining_nodes -= set(node_ids)
-                for i, node_ids in enumerate(unique_maxmiso_node_ids):
-                    factor = factors[i]
-                    query = get_update_nodes_query(total_idx, node_ids, factor=factor)
-                    maxmiso_idxs.append(total_idx)
-                    # logger.debug("query", query)
-                    _ = session.run(query)
-                    # logger.debug("results3", results3)
-                    remaining_nodes -= set(node_ids)
-                    total_idx += 1
-                logger.debug("remaining_nodes", remaining_nodes)
-                if len(remaining_nodes) > 0:
-                    query = get_update_nodes_query(total_idx, list(remaining_nodes), factor=1)
-                    _ = session.run(query)
-                    maxmiso_idxs.append(total_idx)
-                total_idx += 1
+                func_query = get_func_query(label, stage, func_name, timeout=query_timeout,
+                    module_name=context["module_name"], compilation_id=context["compilation_id"])
+                logger.debug("func_query", func_query)
+                # print("func_query", func_query)
+                func_results = session.run(func_query)
+                func = memgraph_to_nx(func_results)
+                logger.debug("func", func)
+                # print("func", func)
+                # input(">>")
             finally:
                 session.close()
+            for node in func.nodes:
+                props = func.nodes[node]["properties"]
+                if (props.get("func_name") != func_name or props.get("session") != label
+                        or any(props.get(k) != value for k, value in context.items())):
+                    raise BBIdentityError("Fetched function graph contains nodes outside its verified compilation")
+            if not any(func.nodes[n]["properties"].get("bb_id") == bb_id for n in func.nodes):
+                raise BBIdentityError(f"Fixed BB {bb_id} has no instructions at stage {stage}; refusing to guess")
+            maxmiso_idxs = []
+            # TODO: skip maxmisos which are unsuitable?
+            if isinstance(partition_with_maxmiso, str):
+                # TODO: Handle 1/0/true/false/...
+                # TODO: if numeric parse number!
+                assert partition_with_maxmiso == "auto"
+                num_instrs_threshold = 250
+                partition_with_maxmiso = num_instrs > num_instrs_threshold
+            if partition_with_maxmiso:
+                bb_nodes = [node for node in func.nodes if func.nodes[node]["properties"]["bb_id"] == bb_id]
+                # logger.debug("bb_nodes", bb_nodes)
+                bb = func.subgraph(bb_nodes)
+                # logger.debug("bb", bb)
+                maxmisos = maxmiso_algo(bb)
+                # logger.debug("maxmisos", maxmisos)
+                # input(">")
+                unique_maxmisos, factors, duplicate_maxmisos = get_unique_maxmisos(maxmisos)
+                # TODO: write maxmisos to file?
+                # maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in maxmisos]
+                unique_maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in unique_maxmisos]
+                duplicate_maxmiso_node_ids = [
+                    [maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in duplicate_maxmisos
+                ]
+                remaining_nodes = set(bb_nodes)
+                total_idx = 0
+                session = driver.session()
+                try:
+                    # TODO: make unique optional!
+                    # for i, node_ids in enumerate(maxmiso_node_ids):
+                    for i, node_ids in enumerate(duplicate_maxmiso_node_ids):
+                        factor = 0
+                        idx = -1
+                        # Negative -> ignore
+                        query = get_update_nodes_query(idx, node_ids, factor=0, **update_scope)
+                        update_partition(session, query, len(node_ids))
+                        remaining_nodes -= set(node_ids)
+                    for i, node_ids in enumerate(unique_maxmiso_node_ids):
+                        factor = factors[i]
+                        query = get_update_nodes_query(total_idx, node_ids, factor=factor, **update_scope)
+                        maxmiso_idxs.append(total_idx)
+                        # logger.debug("query", query)
+                        update_partition(session, query, len(node_ids))
+                        # logger.debug("results3", results3)
+                        remaining_nodes -= set(node_ids)
+                        total_idx += 1
+                    logger.debug("remaining_nodes", remaining_nodes)
+                    if len(remaining_nodes) > 0:
+                        query = get_update_nodes_query(total_idx, list(remaining_nodes), factor=1, **update_scope)
+                        update_partition(session, query, len(remaining_nodes))
+                        maxmiso_idxs.append(total_idx)
+                    total_idx += 1
+                finally:
+                    session.close()
 
         out_name = f"{func_name}_{bb_name}_0"
         out_dir = workdir / out_name
@@ -371,14 +395,19 @@ def query_candidates_from_db(
             *(["--progress"] if progress else []),
             *["--times"],
             *(["--yaml", query_config_yaml] if query_config_yaml is not None else []),
+            *["--host", str(memgraph_host)],
+            *["--port", str(memgraph_port)],
             *["--session", label],
             *["--function", func_name],
             *(["--basic-block", bb_name] if bb_name is not None else []),
             *["--stage", str(stage)],
+            *["--module-name", context["module_name"]],
+            *["--compilation-id", context["compilation_id"]],
             *["--output-dir", out_dir],
             # *["--ignore-const-inputs"],
             *(["--limit-results", str(limit_results)] if limit_results is not None else []),
             *(["--query-timeout", str(query_timeout)] if query_timeout is not None else []),
+            *(["--n-parallel", str(n_parallel)] if n_parallel is not None else []),
             *(["--query-level-filtering" if query_level_filtering else "--no-query-level-filtering"]
               if query_level_filtering is not None else []),
             *(["--allowed_reg_classes", str(allowed_reg_classes)] if allowed_reg_classes is not None else []),
@@ -444,12 +473,6 @@ def query_candidates_from_db(
         query_metrics_df["func"] = func_name
         query_metrics_df["basic_block"] = bb_name
         combined_query_metrics_df = pd.concat([combined_query_metrics_df, query_metrics_df])
-
-    # allow_missing_bb_id = False
-    allow_missing_bb_id = True
-    if len(missing_bb_ids) > 0:
-        assert len(missing_bb_ids) < len(choices_df), "No matching BB IDs found in DB!"
-        assert allow_missing_bb_id, f"Missing BB ID DB entries: {missing_bb_ids}"
 
     combined_query_metrics_file = workdir / "combined_query_metrics.csv"
     combined_query_metrics_df.to_csv(combined_query_metrics_file, index=False)
@@ -574,6 +597,7 @@ def handle(args):
         limit_results=args.limit_results,
         query_timeout=args.query_timeout,
         query_level_filtering=args.query_level_filtering,
+        n_parallel=args.n_parallel,
         MIN_PATH_LENGTH=args.min_path_length,
         MAX_PATH_LENGTH=args.max_path_length,
         MAX_PATH_WIDTH=args.max_path_width,
@@ -603,6 +627,8 @@ def get_parser():
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--label", type=str, default=None)
     parser.add_argument("--progress", action="store_true", default=None)
+    parser.add_argument("--n-parallel", type=int, default=None,
+                        help="Maximum graph export workers (positive; 1 forces serial export)")
     parser.add_argument("--stage", type=int, default=8)
     parser.add_argument("--query-level-filtering", action=argparse.BooleanOptionalAction, default=None,
                         help="Enable query predicate and memory/branch filtering (backend default: enabled)")

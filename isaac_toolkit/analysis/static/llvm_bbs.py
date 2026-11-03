@@ -18,7 +18,6 @@
 #
 import io
 import sys
-import leb128
 import argparse
 from pathlib import Path
 from collections import defaultdict
@@ -32,6 +31,7 @@ from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV32, CS_MODE_RISCV64, CS_MOD
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 from isaac_toolkit.logging import get_logger, set_log_level
+from isaac_toolkit.utils.bb_identity import file_digest
 
 logger = get_logger()
 
@@ -41,6 +41,10 @@ def parse_elf(elf_path):
     func_to_addrs = defaultdict(list)
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)
+        if elffile['e_type'] == 'ET_REL':
+            raise ValueError('BB address maps must be decoded from a linked ELF, not an unrelocated object')
+        if not elffile.little_endian:
+            raise NotImplementedError('Big-endian BB address maps are not supported')
 
         # extract disassembly to count instructions per bb
         # see https://isleem.medium.com/create-your-own-disassembler-in-python-pefile-capstone-754f863b2e1c
@@ -60,6 +64,8 @@ def parse_elf(elf_path):
         while True:
             temp = [(x.address, x.size) for x in md.disasm(ops, begin)]
             valid_pcs_ = set(pc for pc, size in temp)
+            if not temp:
+                raise ValueError(f"Cannot disassemble ELF .text at {begin:#x}; instruction counts are not trustworthy")
             last = temp[-1]
             last_pc, last_size = last
             begin = max(last_pc, begin) + last_size
@@ -102,26 +108,47 @@ def parse_elf(elf_path):
         assert llvm_bb_addr_map_raw is not None, "Missing: .llvm_bb_addr_map"
         llvm_bb_addr_map_raw = llvm_bb_addr_map_raw.data()
 
+        symbol_sizes = {}
+        for entries in func_to_addrs.values():
+            for address, size in entries:
+                symbol_sizes[address] = max(symbol_sizes.get(address, 0), size)
+
+        def read_uleb(reader):
+            value = 0
+            for shift in range(0, 64, 7):
+                byte = reader.read(1)
+                if not byte:
+                    raise ValueError("Truncated ULEB128 in BB address map")
+                byte = byte[0]
+                if shift == 63 and byte > 1:
+                    raise ValueError("Oversized ULEB128 in BB address map")
+                value |= (byte & 0x7f) << shift
+                if not byte & 0x80:
+                    return value
+            raise ValueError("Oversized ULEB128 in BB address map")
+
         def decode_map(data, addr_to_func):
             ret = {}
             unknown_count = 0
             with io.BytesIO(data) as reader:
-                while True:
+                while reader.tell() < len(data):
                     # print("reader", reader)
                     # print("dir(reader)", dir(reader))
                     version = int.from_bytes(reader.read(1), byteorder="little")
                     # print("version", version)
                     # assert version == 2
                     if version != 2:
-                        if version == 0:
-                            break
                         raise NotImplementedError(f"LLVM_BB_ADDR_MAP version {version}")
                         # print("!")
                         # print(reader.read(100))
                     features = int.from_bytes(reader.read(1), byteorder="little")
                     # print("features", features)
-                    assert features == 0
-                    func_addr = int.from_bytes(reader.read(addr_bytes), byteorder="little")
+                    if features != 0:
+                        raise NotImplementedError(f"Unsupported BB address map features: {features:#x}")
+                    address_data = reader.read(addr_bytes)
+                    if len(address_data) != addr_bytes:
+                        raise ValueError("Truncated BB address map function address")
+                    func_addr = int.from_bytes(address_data, byteorder="little")
                     # print("func_addr", func_addr)
                     func_name = addr_to_func.get(func_addr, None)
                     # print("func_name", func_name)
@@ -131,7 +158,7 @@ def parse_elf(elf_path):
                         unknown_count += 1
                     # TODO: leb128?
                     # num_bbs = int.from_bytes(reader.read(1), byteorder="little")
-                    num_bbs = leb128.u.decode_reader(reader)[0]
+                    num_bbs = read_uleb(reader)
                     # print("num_bbs", num_bbs)
                     # assert num_bbs > 0
                     if GISEL:
@@ -142,28 +169,33 @@ def parse_elf(elf_path):
                     for i in range(num_bbs):
                         # print("i", i)
                         # bb_id = int.from_bytes(reader.read(1), byteorder="little")
-                        bb_id = leb128.u.decode_reader(reader)[0]
+                        bb_id = read_uleb(reader)
                         if not GISEL:
                             assert bb_id < num_bbs
-                        start_offset = leb128.u.decode_reader(reader)[0]
+                        start_offset = read_uleb(reader)
                         # print("start_offset", start_offset)
                         assert start_offset >= 0
-                        end_offset = leb128.u.decode_reader(reader)[0]
-                        # print("end_offset", end_offset)
-                        assert end_offset >= 0
+                        block_size = read_uleb(reader)
+                        assert block_size >= 0
                         # TODO: leb128?
                         # metadata = int.from_bytes(reader.read(1), byteorder="little")
-                        # metadata = leb128.u.decode_reader(reader)[0]
-                        _ = leb128.u.decode_reader(reader)[0]
+                        # metadata = read_uleb(reader)
+                        _ = read_uleb(reader)
                         # print("metadata", metadata)
                         # TODO: decode metadata (is_return, is_call, ...)
                         # rest = reader.read(1000)
                         # print("rest", rest)
                         cur += start_offset
-                        sz = end_offset - start_offset
+                        # Version 2 stores padding relative to the previous end,
+                        # followed by a size, not an end offset.
+                        sz = block_size
                         assert sz >= 0
                         start = cur
                         end = cur + sz
+                        if symbol_sizes.get(func_addr, 0) and end > func_addr + symbol_sizes[func_addr]:
+                            raise ValueError(f"BB {bb_id} exceeds function {func_name}'s symbol range")
+                        if start < code["sh_addr"] or end > code["sh_addr"] + code["sh_size"]:
+                            raise ValueError(f"BB {bb_id} of {func_name} lies outside .text")
                         if sz > 0:
                             pcs = [pc for pc in range(start, end, 2) if pc in valid_pcs]
                             # valid_pcs_sorted = sorted(list(valid_pcs))
@@ -176,9 +208,13 @@ def parse_elf(elf_path):
                             num_instrs = 0
                         cur += sz
                         if GISEL:
+                            if str(bb_id) in tmp:
+                                raise ValueError(f"Duplicate BB ID {bb_id} in {func_name}")
                             tmp[str(bb_id)] = (start, end, sz, num_instrs)
                         else:
                             tmp[bb_id] = (start, end, sz, num_instrs)
+                    if func_name in ret:
+                        raise ValueError(f"Ambiguous BB map for function {func_name}")
                     ret[func_name] = tmp
             return ret
 
@@ -230,7 +266,10 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
     #     pass
     #     # trace_pc2bb_df = None
 
+    elf_hash = file_digest(elf_artifact.path)
     llvm_bbs = parse_elf(elf_artifact.path)
+    if file_digest(elf_artifact.path) != elf_hash:
+        raise ValueError("ELF changed during BB analysis")
     # print("llvm_bbs", llvm_bbs)
     df_data = []
     for func_name, func_data in llvm_bbs.items():
@@ -242,6 +281,7 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
             new = {
                 "func_name": func_name,
                 "bb_name": bb_name,
+                "bb_id": int(bb_name.removeprefix("%bb.")),
                 "pcs": (start, end),
                 "size": sz,
                 "num_instrs": num_instrs,
@@ -336,6 +376,8 @@ def analyze_llvm_bbs(sess: Session, force: bool = False):
 
     attrs = {
         "elf_file": elf_artifact.name,
+        "elf_sha256": elf_hash,
+        "bb_map_decoder": 2,
         "kind": "mapping",
         "by": "isaac_toolkit.analysis.static.llvm_bbs",
     }

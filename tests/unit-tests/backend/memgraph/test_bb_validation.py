@@ -18,7 +18,9 @@ def elf(*counts):
 
 
 def graph(*counts):
-    return [dict(func_name="f", bb_name=f"%bb.{i}", graph_nodes=n, graph_blocks=1) for i, n in enumerate(counts)]
+    return [dict(func_name="f", bb_name=f"%bb.{i}", bb_id=i, graph_nodes=n, graph_blocks=1,
+                 graph_modules=["module"], graph_stages=[32], graph_compilations=["receipt"],
+                 graph_names=[f"%bb.{i}"], graph_block_ids=[i]) for i, n in enumerate(counts)]
 
 
 def test_counts_are_checked_in_both_directions_with_combined_tolerance():
@@ -81,6 +83,8 @@ def test_invalid_options_fail_before_database_access(monkeypatch, options):
 
 
 def test_cold_block_mismatch_stops_all_writes_and_keeps_report(monkeypatch):
+    monkeypatch.setattr(m, "verified_imports", lambda *a: [dict(module_name="module", stage=32, compilation_id="receipt")])
+    monkeypatch.setattr(m, "verify_graph_receipts", lambda *a: None)
     sess = SimpleNamespace(
         artifacts=[m.TableArtifact("llvm_bbs_new", elf(10, 100))],
         config=SimpleNamespace(memgraph=None),
@@ -108,7 +112,8 @@ def test_count_query_uses_session_scope_and_excludes_operand_nodes():
     assert m.graph_bb_counts(driver, label) == graph(7)
     query = session.run.call_args.args[0]
     assert label not in query.text
-    assert session.run.call_args.kwargs == {"label": label}
+    assert session.run.call_args.kwargs == dict(label=label, func_name=None, bb_id=None,
+        stage=None, module_name=None, compilation_id=None)
     assert "OPTIONAL MATCH (i:INSTR)" in query.text
     assert "['input', 'constant', 'label']" in query.text
     assert "i.module_name = b.module_name AND i.stage = b.stage" in query.text
@@ -134,6 +139,8 @@ def test_tolerated_or_explicit_warning_mode_can_annotate(monkeypatch, action, co
         config=SimpleNamespace(memgraph=None),
         add_artifact=MagicMock(),
     )
+    monkeypatch.setattr(m, "verified_imports", lambda *a: [dict(module_name="module", stage=32, compilation_id="receipt")])
+    monkeypatch.setattr(m, "verify_graph_receipts", lambda *a: None)
     monkeypatch.setattr(m.GraphDatabase, "driver", MagicMock())
     monkeypatch.setattr(m, "graph_bb_counts", lambda *a, **kw: graph(count))
     annotate = MagicMock()
@@ -143,13 +150,34 @@ def test_tolerated_or_explicit_warning_mode_can_annotate(monkeypatch, action, co
     assert annotate.call_args.kwargs["check"] is False
 
 
-def test_weight_writes_bind_names_as_parameters_and_consume_results():
+def test_weight_writes_bind_names_as_parameters_and_consume_results(monkeypatch):
     driver = MagicMock()
     session = driver.session.return_value.__enter__.return_value
+    tx = session.begin_transaction.return_value.__enter__.return_value
+    tx.run.return_value.single.return_value = {"updated": 1}
+    rows = graph(10)
+    rows[0]["func_name"] = 'f"quoted'
+    monkeypatch.setattr(m, "graph_bb_counts", lambda *a: rows)
+    monkeypatch.setattr(m, "resolve_block", lambda *a: dict(graph_block_id=42, mir_name="%bb.7"))
     m.anonotate_helper(driver, 'f"quoted', "%bb.0", 10, 3, 0.2, label="test", check=False)
-    assert session.run.call_count == 2
-    assert session.run.return_value.consume.call_count == 2
-    for call in session.run.call_args_list:
-        assert 'f"quoted' not in call.args[0].text
+    assert tx.run.call_count == 2
+    assert tx.run.return_value.consume.call_count == 1
+    for call in tx.run.call_args_list:
+        assert 'f"quoted' not in call.args[0]
         assert call.kwargs["func_name"] == 'f"quoted'
         assert call.kwargs["instr_weight"] == 0.02
+        assert call.kwargs["bb_id"] == 0
+        assert call.kwargs["mir_name"] == "%bb.7"
+        assert call.kwargs["compilation_id"] == "receipt"
+
+
+def test_missing_receipt_rejects_before_any_weights_are_written(monkeypatch):
+    sess = SimpleNamespace(artifacts=[], config=SimpleNamespace(memgraph=None))
+    driver = MagicMock()
+    monkeypatch.setattr(m.GraphDatabase, "driver", lambda *a, **kw: driver)
+    annotate = MagicMock()
+    monkeypatch.setattr(m, "anonotate_helper", annotate)
+    with pytest.raises(m.BBIdentityError, match="receipt"):
+        m.annotate_bb_weights(sess)
+    annotate.assert_not_called()
+    driver.close.assert_called_once()

@@ -27,7 +27,17 @@ def test_parser_options_and_yaml_delegation():
 def test_subprocess_receives_options(tmp_path, monkeypatch):
     choices = SimpleNamespace(df=pd.DataFrame([dict(func_name='f', bb_name='%bb.0', rel_weight=1.0, num_instrs=4)]))
     monkeypatch.setattr(module, 'filter_artifacts', lambda *args: [choices])
-    monkeypatch.setattr(module, 'memgraph_to_nx', lambda result: nx.DiGraph())
+    graph = nx.DiGraph()
+    graph.add_node(0, properties=dict(func_name='f', session='s', bb_id=0,
+        module_name='module', stage=8, compilation_id='receipt'))
+    monkeypatch.setattr(module, 'memgraph_to_nx', lambda result: graph)
+    monkeypatch.setattr(module, 'verified_imports', lambda *a: [])
+    monkeypatch.setattr(module, 'verify_graph_receipts', lambda *a: None)
+    monkeypatch.setattr(module, 'context_for_choice', lambda *a:
+        dict(module_name='module', stage=8, compilation_id='receipt'))
+    monkeypatch.setattr(module, 'resolve_block', lambda *a: dict(mir_name='%bb.7'))
+    monkeypatch.setenv('MEMGRAPH_HOST', '127.0.0.1')
+    monkeypatch.setenv('MEMGRAPH_PORT', '28763')
     driver = MagicMock()
     driver.session.return_value.run.return_value.to_df.return_value = pd.DataFrame({'bb_id': [0]})
     monkeypatch.setattr(module.GraphDatabase, 'driver', lambda *args, **kwargs: driver)
@@ -49,13 +59,15 @@ def test_subprocess_receives_options(tmp_path, monkeypatch):
             IGNORE_NAMES=['PHI', 'COPY'], IGNORE_OP_TYPES=['input', 'label'], allowed_reg_classes=3,
             ALLOWED_ENC_SIZES=[16, 32],
         )
-    for option, value in [('--query-timeout', '2.5'), ('--limit-results', '0'), ('--max-path-width', '4'),
+    for option, value in [('--host', '127.0.0.1'), ('--port', '28763'),
+                          ('--module-name', 'module'), ('--compilation-id', 'receipt'),
+                          ('--query-timeout', '2.5'), ('--limit-results', '0'), ('--max-path-width', '4'),
                           ('--min-path-length', '0'), ('--max-path-length', '5'), ('--ignore-names', 'PHI,COPY'),
                           ('--ignore-op-types', 'input,label'), ('--allowed_reg_classes', '3')]:
         assert captured[captured.index(option) + 1] == value
     idx = captured.index('--allowed-enc-sizes')
     assert captured[idx + 1:idx + 3] == ['16', '32']
-    for call in driver.session.return_value.run.call_args_list:
+    for call in driver.__enter__.return_value.session.return_value.run.call_args_list:
         assert call.args[0].timeout == 2.5
 
 

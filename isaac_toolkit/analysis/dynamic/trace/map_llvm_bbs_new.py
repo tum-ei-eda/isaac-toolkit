@@ -110,6 +110,8 @@ def map_llvm_bbs_new(sess: Session, force: bool = False, sort_by: str = "weight"
 
     attrs = {
         "elf_file": elf_artifact.name,
+        "elf_sha256": llvm_bbs_artifact.attrs.get("elf_sha256"),
+        "bb_map_decoder": llvm_bbs_artifact.attrs.get("bb_map_decoder"),
         "kind": "mapping",
         "by": __name__,
     }

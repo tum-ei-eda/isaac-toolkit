@@ -43,6 +43,18 @@ RV_BASE_CONTAINER_ROOT = "/tools/etiss_arch_riscv/rv_base"
 # TODO MGCLIENT CDFGPASS
 
 
+def move_artifact_output(source: Path, destination: Path):
+    """Merge extracted artifacts without duplicating the compiler installation."""
+    destination.mkdir(parents=True, exist_ok=True)
+    for item in source.iterdir():
+        target = destination / item.name
+        if item.is_dir() and not item.is_symlink():
+            move_artifact_output(item, target)
+        else:
+            item.replace(target)
+    source.rmdir()
+
+
 class RetargetClient(ABC):
 
     def __init__(self, api_url: str, token: str = None, console: Console = None):
@@ -381,8 +393,7 @@ def run_retargeting_service(
         extract_zstd(artifact_file, out_path)
 
         # Move files
-        shutil.copytree(out_path / "output", out_path, dirs_exist_ok=True)
-        shutil.rmtree(out_path / "output")
+        move_artifact_output(out_path / "output", out_path)
         if console:
             console.print("Done")
             console.print(f"Removing archive {artifact_file}")

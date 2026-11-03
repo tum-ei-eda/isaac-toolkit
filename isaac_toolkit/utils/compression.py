@@ -18,8 +18,6 @@
 #
 import sys
 import tarfile
-import tempfile
-import shutil
 from pathlib import Path
 
 
@@ -33,8 +31,8 @@ def extract_zstd(archive: Path, out_path: Path):
         from compression.zstd import ZstdFile
 
         with ZstdFile(archive, "rb") as f_in:
-            with out_path.open("wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
+            with tarfile.open(fileobj=f_in, mode="r|") as bundle:
+                bundle.extractall(out_path)
     else:
         _legacy_decompress_zstd_stream(archive, out_path)
 
@@ -42,9 +40,9 @@ def extract_zstd(archive: Path, out_path: Path):
 def _legacy_decompress_zstd_stream(archive: Path, out_path: Path) -> None:
     from zstandard import ZstdDecompressor
 
-    with tempfile.TemporaryFile(suffix=".tar") as ofh:
-        with archive.open("rb") as ifh:
-            ZstdDecompressor().copy_stream(ifh, ofh)
-        ofh.seek(0)
-        with tarfile.open(fileobj=ofh) as z:
-            z.extractall(out_path)
+    # Stream tar entries instead of storing a second, uncompressed copy of the
+    # complete compiler archive in /tmp before extraction.
+    with archive.open("rb") as source:
+        with ZstdDecompressor().stream_reader(source) as reader:
+            with tarfile.open(fileobj=reader, mode="r|") as bundle:
+                bundle.extractall(out_path)
