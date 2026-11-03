@@ -109,7 +109,13 @@
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">assign_names</span></code>(index[, output, inplace, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">combine_pdfs</span></code>(index[, output])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">block_id</span></code>(bb_name[, explicit])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">combine_pdfs</span></code>(index[, output])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">context_for_choice</span></code>(imports, choice)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_artifacts</span></code>(artifacts, func)</p></td>
@@ -148,8 +154,20 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">query_candidates_from_db</span></code>(sess[, workdir, ...])</p></td>
 <td><p>Query bounded candidates through memgraph_experiments.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_log_level</span></code>([console_level, file_level])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_block</span></code>(driver, label, func_name, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_log_level</span></code>([console_level, file_level])</p></td>
 <td><p>Set command line log level at runtime.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_partition</span></code>(session, query, expected)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">verified_imports</span></code>(sess, label[, stage])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">verify_graph_receipts</span></code>(driver, imports, label)</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -176,6 +194,14 @@
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultdict</span></code></p></td>
 <td><p>defaultdict(default_factory=None, /, [...]) --&gt; dict with default factory</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Exceptions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">BBIdentityError</span></code></p></td>
+<td><p>The requested ELF block cannot be identified safely in the CDFG.</p></td>
 </tr>
 </tbody>
 </table>

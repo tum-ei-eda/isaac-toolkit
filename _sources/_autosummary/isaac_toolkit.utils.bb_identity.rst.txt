@@ -1,0 +1,36 @@
+isaac\_toolkit.utils.bb\_identity
+=================================
+
+.. automodule:: isaac_toolkit.utils.bb_identity
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      block_id
+      command_source
+      context_for_choice
+      elf_digest
+      file_digest
+      filter_artifacts
+      graph_receipt
+      require_bb_tables
+      resolve_block
+      verified_imports
+      verify_graph_receipts
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ArtifactFlag
+      Path
+      Query
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      BBIdentityError
+   

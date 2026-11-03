@@ -9,6 +9,7 @@ isaac\_toolkit.analysis.static.llvm\_bbs
    .. autosummary::
    
       analyze_llvm_bbs
+      file_digest
       filter_artifacts
       get_logger
       get_parser

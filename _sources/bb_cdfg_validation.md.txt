@@ -49,3 +49,18 @@ The Python `annotate_bb_weights` function accepts the corresponding
 Warning mode annotates comparable blocks, including count mismatches, but skips
 missing or ambiguous identities. A session with no comparable blocks is never
 silently accepted: error mode stops and warning mode logs it.
+
+## Fixed IDs and import receipts
+
+Validation and annotation use the numeric ELF/CDFG `bb_id`. The CDFG's MIR name
+may differ after block creation or renumbering and is retained only for diagnosis.
+Each match is scoped to one module, function, stage and verified import. Ambiguous
+identities cannot be waived with `--mismatch-action warn`; that option only
+relaxes instruction-count validation.
+
+CDFG generation records `cdfg_imports` receipts with ELF/compiler/command/source
+and dependency hashes plus a graph signature. Inputs or graphs that changed,
+missing receipts, old decoder tables, missing blocks and clone identities are
+rejected. Re-run BB analysis, trace mapping, choices and CDFG generation after
+updating the compiler/toolkit. Use `--stage` on annotation if several stages are
+present. Later-created blocks are not guessed from neighboring numbers.

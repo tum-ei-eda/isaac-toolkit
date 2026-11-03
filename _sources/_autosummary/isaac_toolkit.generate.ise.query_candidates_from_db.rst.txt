@@ -9,7 +9,9 @@ isaac\_toolkit.generate.ise.query\_candidates\_from\_db
    .. autosummary::
    
       assign_names
+      block_id
       combine_pdfs
+      context_for_choice
       filter_artifacts
       get_bbs_query
       get_func_query
@@ -22,7 +24,11 @@ isaac\_toolkit.generate.ise.query\_candidates\_from\_db
       maxmiso_algo
       memgraph_to_nx
       query_candidates_from_db
+      resolve_block
       set_log_level
+      update_partition
+      verified_imports
+      verify_graph_receipts
    
    .. rubric:: Classes
 
@@ -35,4 +41,10 @@ isaac\_toolkit.generate.ise.query\_candidates\_from\_db
       Session
       TableArtifact
       defaultdict
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      BBIdentityError
    

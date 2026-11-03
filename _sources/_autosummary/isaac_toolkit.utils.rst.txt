@@ -24,6 +24,7 @@ isaac\_toolkit.utils
    annotate_seal5_score
    annotate_util_score
    assign_names
+   bb_identity
    benchmark_compression
    cli
    combine_pdfs
