@@ -141,6 +141,30 @@ See [`Examples/standalone/coremark/README.md`](Examples/README.md) for an end-to
 
 We use the [`black`](https://black.readthedocs.io/en/stable/) formatter to maintain a consistent Python style (See `setup.cfg` & `pyproject.toml`)
 
+Run `Scripts/format.sh` to format the Python package and tests. Use
+`Scripts/format.sh --check` to check formatting without changing files. Install
+the development dependencies first:
+
+```sh
+python -m pip install -r requirements_dev.txt
+```
+
+### License headers
+
+New Python files in `isaac_toolkit/` and `tests/` need the repository's Apache
+2.0 header. After adding or editing files, run
+`Scripts/license_headers.sh --fix`; review the resulting changes and commit
+them with your code. The script uses the checked-in template
+`Scripts/apache-2.tmpl`, so it does not need to download a template. Run
+`Scripts/license_headers.sh --check` to check headers without modifying the
+working tree; CI runs this check.
+
+Headers identify the repository's license and copyright owner. Keep existing
+copyright attribution when editing a file, and do not apply the repository
+header to vendored or third-party code. For files with a different license,
+preserve that license and resolve the correct attribution before adding a
+header.
+
 Pylint config is also available, but not enforced.
 
 ### Testing

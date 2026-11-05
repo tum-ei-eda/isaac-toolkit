@@ -35,7 +35,14 @@ import pandas as pd
 from isaac_toolkit.session import Session
 from isaac_toolkit.session.artifact import ArtifactFlag, TableArtifact, filter_artifacts
 from isaac_toolkit.logging import get_logger, set_log_level
-from isaac_toolkit.utils.bb_identity import BBIdentityError, file_digest, elf_digest, graph_receipt, require_bb_tables, command_source
+from isaac_toolkit.utils.bb_identity import (
+    BBIdentityError,
+    file_digest,
+    elf_digest,
+    graph_receipt,
+    require_bb_tables,
+    command_source,
+)
 
 logger = get_logger()
 
@@ -66,8 +73,9 @@ def generate_memgraph_cdfg_via_compile_commands(
         raise BBIdentityError("A positive CDFG stage mask is required")
     artifacts = sess.artifacts
     choices = filter_artifacts(artifacts, lambda a: a.flags & ArtifactFlag.TABLE and a.name == "choices")
-    commands = filter_artifacts(artifacts, lambda a: a.flags & ArtifactFlag.TABLE
-                                and a.attrs.get("kind") == "compile_commands")
+    commands = filter_artifacts(
+        artifacts, lambda a: a.flags & ArtifactFlag.TABLE and a.attrs.get("kind") == "compile_commands"
+    )
     if len(choices) != 1 or len(commands) != 1 or choices[0].df.empty:
         raise BBIdentityError("Choices and unambiguous compile commands are required")
     command_df = commands[0].df.copy()
@@ -121,10 +129,25 @@ def generate_memgraph_cdfg_via_compile_commands(
                         cleaned.append(arg)
                         i += 1
                     depfile = Path(temp) / "dependencies.d"
-                    cleaned += ["-o", str(Path(temp) / "cdfg.o"), "-MD", "-MF", str(depfile),
-                                "-mllvm", "-cdfg-enable=1", "-mllvm", "-cdfg-memgraph-session=" + staging,
-                                "-mllvm", "-cdfg-memgraph-purge=0", "-mllvm", f"-cdfg-stage-mask={stage}",
-                                "-mllvm", f"-cdfg-memgraph-host={host}", "-mllvm", f"-cdfg-memgraph-port={port}"]
+                    cleaned += [
+                        "-o",
+                        str(Path(temp) / "cdfg.o"),
+                        "-MD",
+                        "-MF",
+                        str(depfile),
+                        "-mllvm",
+                        "-cdfg-enable=1",
+                        "-mllvm",
+                        "-cdfg-memgraph-session=" + staging,
+                        "-mllvm",
+                        "-cdfg-memgraph-purge=0",
+                        "-mllvm",
+                        f"-cdfg-stage-mask={stage}",
+                        "-mllvm",
+                        f"-cdfg-memgraph-host={host}",
+                        "-mllvm",
+                        f"-cdfg-memgraph-port={port}",
+                    ]
                     subprocess.run(cleaned, check=True, cwd=cwd)
                     dependency_text = depfile.read_text().replace("\\\n", "")
                     dependencies = {}
@@ -136,10 +159,19 @@ def generate_memgraph_cdfg_via_compile_commands(
                     if dependencies.get(source) != source_hash or file_digest(compiler) != compiler_hash:
                         raise BBIdentityError("Compiler or source changed during CDFG import")
                 with driver.session() as db:
-                    inventory = [dict(r) for r in db.run(Query("""MATCH (b:BB) WHERE b.session = $staging
+                    inventory = [
+                        dict(r)
+                        for r in db.run(
+                            Query(
+                                """MATCH (b:BB) WHERE b.session = $staging
                         RETURN b.func_name AS func, b.bb_id AS bb_id, b.name AS name,
                                b.module_name AS module, b.stage AS stage,
-                               b.bb_clone_id AS clone, b.bb_identity_version AS version""", timeout=120), staging=staging)]
+                               b.bb_clone_id AS clone, b.bb_identity_version AS version""",
+                                timeout=120,
+                            ),
+                            staging=staging,
+                        )
+                    ]
                 modules = {r["module"] for r in inventory}
                 if len(modules) != 1 or not all(isinstance(m, str) and m for m in modules):
                     raise BBIdentityError("CDFG module is missing or ambiguous")
@@ -150,51 +182,102 @@ def generate_memgraph_cdfg_via_compile_commands(
                 identities = set()
                 for row in inventory:
                     key = (row["func"], row["bb_id"], row["stage"])
-                    if (row["version"] != 1 or row["clone"] != 0 or not isinstance(row["bb_id"], int)
-                            or row["bb_id"] < 0 or not isinstance(row["stage"], int)
-                            or row["stage"] <= 0 or row["stage"] & (row["stage"] - 1)
-                            or not row["stage"] & stage or key in identities):
-                        raise BBIdentityError("Invalid/ambiguous CDFG identity. Rebuild and use the updated LLVM compiler.")
+                    if (
+                        row["version"] != 1
+                        or row["clone"] != 0
+                        or not isinstance(row["bb_id"], int)
+                        or row["bb_id"] < 0
+                        or not isinstance(row["stage"], int)
+                        or row["stage"] <= 0
+                        or row["stage"] & (row["stage"] - 1)
+                        or not row["stage"] & stage
+                        or key in identities
+                    ):
+                        raise BBIdentityError(
+                            "Invalid/ambiguous CDFG identity. Rebuild and use the updated LLVM compiler."
+                        )
                     identities.add(key)
                 with driver.session() as db:
-                    invalid = db.run(Query("""MATCH (i:INSTR) WHERE i.session = $staging
+                    invalid = db.run(
+                        Query(
+                            """MATCH (i:INSTR) WHERE i.session = $staging
                         OPTIONAL MATCH (b:BB) WHERE b.session = $staging
                           AND b.func_name = i.func_name AND b.module_name = i.module_name
                           AND b.stage = i.stage AND b.bb_id = i.bb_id AND b.name = i.basic_block
                         WITH i, count(b) AS owners WHERE owners <> 1
-                        RETURN count(i) AS invalid""", timeout=120), staging=staging).single()
+                        RETURN count(i) AS invalid""",
+                            timeout=120,
+                        ),
+                        staging=staging,
+                    ).single()
                     if invalid is None or invalid["invalid"]:
                         raise BBIdentityError("CDFG instructions have missing or ambiguous BB ownership")
                 stages = sorted({r["stage"] for r in inventory})
-                if any(r["label"] == label and r["module_name"] == module
-                       and int(r["stage"]) in stages and r["source_file"] != source for r in receipts):
-                    raise BBIdentityError("CDFG module name collision; use unambiguous source paths in compile commands")
+                if any(
+                    r["label"] == label
+                    and r["module_name"] == module
+                    and int(r["stage"]) in stages
+                    and r["source_file"] != source
+                    for r in receipts
+                ):
+                    raise BBIdentityError(
+                        "CDFG module name collision; use unambiguous source paths in compile commands"
+                    )
                 new_receipts = []
                 for actual_stage in stages:
-                    new_receipts.append(dict(label=label, module_name=module, source_file=source,
-                        stage=actual_stage, compilation_id=compilation, elf_sha256=elf_hash,
-                        compiler=compiler, compiler_sha256=compiler_hash, directory=str(Path(cwd).resolve()),
-                        command_sha256=hashlib.sha256(command.encode()).hexdigest(),
-                        dependencies_json=json.dumps(dependencies, sort_keys=True),
-                        graph_sha256=graph_receipt(driver, staging, module, actual_stage)))
+                    new_receipts.append(
+                        dict(
+                            label=label,
+                            module_name=module,
+                            source_file=source,
+                            stage=actual_stage,
+                            compilation_id=compilation,
+                            elf_sha256=elf_hash,
+                            compiler=compiler,
+                            compiler_sha256=compiler_hash,
+                            directory=str(Path(cwd).resolve()),
+                            command_sha256=hashlib.sha256(command.encode()).hexdigest(),
+                            dependencies_json=json.dumps(dependencies, sort_keys=True),
+                            graph_sha256=graph_receipt(driver, staging, module, actual_stage),
+                        )
+                    )
                 if elf_digest(sess) != elf_hash:
                     raise BBIdentityError("ELF changed during CDFG import")
                 # Only publish a complete import. Failed compilation leaves the
                 # old public graph and receipt intact; stale nodes cannot merge.
-                replaced_modules = sorted({module} | {r["module_name"] for r in receipts
-                    if r["label"] == label and r["source_file"] == source and int(r["stage"]) in stages})
+                replaced_modules = sorted(
+                    {module}
+                    | {
+                        r["module_name"]
+                        for r in receipts
+                        if r["label"] == label and r["source_file"] == source and int(r["stage"]) in stages
+                    }
+                )
                 with driver.session() as db:
                     with db.begin_transaction() as tx:
-                        tx.run("""MATCH (n) WHERE (n:BB OR n:INSTR) AND n.session = $label
+                        tx.run(
+                            """MATCH (n) WHERE (n:BB OR n:INSTR) AND n.session = $label
                             AND n.module_name IN $modules AND n.stage IN $stages DETACH DELETE n""",
-                            label=label, modules=replaced_modules, stages=stages).consume()
-                        tx.run("""MATCH (n) WHERE n.session = $staging
+                            label=label,
+                            modules=replaced_modules,
+                            stages=stages,
+                        ).consume()
+                        tx.run(
+                            """MATCH (n) WHERE n.session = $staging
                             SET n.session = $label, n.compilation_id = $compilation""",
-                            staging=staging, label=label, compilation=compilation).consume()
-                receipts = [r for r in receipts if not (r["label"] == label and r["module_name"] in replaced_modules
-                                                        and int(r["stage"]) in stages)] + new_receipts
-                sess.add_artifact(TableArtifact("cdfg_imports", pd.DataFrame(receipts),
-                                  attrs={"kind": "provenance", "by": __name__}), override=True)
+                            staging=staging,
+                            label=label,
+                            compilation=compilation,
+                        ).consume()
+                receipts = [
+                    r
+                    for r in receipts
+                    if not (r["label"] == label and r["module_name"] in replaced_modules and int(r["stage"]) in stages)
+                ] + new_receipts
+                sess.add_artifact(
+                    TableArtifact("cdfg_imports", pd.DataFrame(receipts), attrs={"kind": "provenance", "by": __name__}),
+                    override=True,
+                )
                 sess.save()
             finally:
                 with driver.session() as db:

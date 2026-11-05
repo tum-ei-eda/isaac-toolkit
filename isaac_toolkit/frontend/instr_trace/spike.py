@@ -55,11 +55,11 @@ def process_df(df, operands=False):
         # Instruction bits also handle unknown compressed mnemonics correctly.
         if code & 3 != 3:
             size = 2
-        elif code & 0x1f != 0x1f:
+        elif code & 0x1F != 0x1F:
             size = 4
-        elif code & 0x3f == 0x1f:
+        elif code & 0x3F == 0x1F:
             size = 6
-        elif code & 0x7f == 0x3f:
+        elif code & 0x7F == 0x3F:
             size = 8
         else:
             raise ValueError(f"Unsupported instruction length: {code:#x}")
@@ -119,8 +119,9 @@ def load_instr_trace(
     if executor_cls is None:
         raise ValueError(f"Unsupported Executor: {executor}")
     with executor_cls(max_workers=num_workers) as pool:
-        dfs = list(tqdm(pool.map(parse_and_process, chunk_iter(input_file, chunk_size=chunk_size)),
-                        disable=not progress))
+        dfs = list(
+            tqdm(pool.map(parse_and_process, chunk_iter(input_file, chunk_size=chunk_size)), disable=not progress)
+        )
     df = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame(columns=COLUMNS)
     df["instr"] = df["instr"].astype("category")
     df["size"] = df["size"].astype("category")

@@ -38,8 +38,14 @@ from isaac_toolkit.session.artifact import ArtifactFlag, filter_artifacts, Table
 from isaac_toolkit.utils.graph_utils import memgraph_to_nx
 from isaac_toolkit.algorithm.ise.identification.maxmiso import maxmiso_algo
 from isaac_toolkit.logging import get_logger, set_log_level
-from isaac_toolkit.utils.bb_identity import (BBIdentityError, block_id, verified_imports,
-    verify_graph_receipts, context_for_choice, resolve_block)
+from isaac_toolkit.utils.bb_identity import (
+    BBIdentityError,
+    block_id,
+    verified_imports,
+    verify_graph_receipts,
+    context_for_choice,
+    resolve_block,
+)
 from isaac_toolkit.utils.assign_names import assign_names
 from isaac_toolkit.utils.combine_pdfs import combine_pdfs
 
@@ -89,38 +95,56 @@ def get_unique_maxmisos(maxmisos):
 
 def get_func_query(session, stage, func_name, timeout=None, module_name=None, compilation_id=None):
     def scope(node):
-        parts = [f"{node}.func_name = {json.dumps(func_name)}", f"{node}.session = {json.dumps(session)}",
-                 f"{node}.stage = {int(stage)}"]
+        parts = [
+            f"{node}.func_name = {json.dumps(func_name)}",
+            f"{node}.session = {json.dumps(session)}",
+            f"{node}.stage = {int(stage)}",
+        ]
         if module_name is not None:
             parts.append(f"{node}.module_name = {json.dumps(module_name)}")
         if compilation_id is not None:
             parts.append(f"{node}.compilation_id = {json.dumps(compilation_id)}")
         return " AND ".join(parts)
-    return Query(f"""MATCH (n00:INSTR) WHERE {scope('n00')}
+
+    return Query(
+        f"""MATCH (n00:INSTR) WHERE {scope('n00')}
         OPTIONAL MATCH (n00)-[r01:DFG]->(n01:INSTR)
         WHERE {scope('n01')} AND NOT n01.name IN ['PHI', 'G_PHI']
-        RETURN n00, r01, n01""", timeout=timeout)
+        RETURN n00, r01, n01""",
+        timeout=timeout,
+    )
 
 
 def get_bbs_query(session, stage, func_name, timeout=None):
-    return Query(f"""MATCH (n00:INSTR)
+    return Query(
+        f"""MATCH (n00:INSTR)
         WHERE n00.func_name = {json.dumps(func_name, ensure_ascii=False)}
         AND n00.session = {json.dumps(session, ensure_ascii=False)}
         AND n00.stage = {stage}
         RETURN n00.bb_id as bb_id, count(*) as num_instrs
         ORDER BY bb_id
-        """, timeout=timeout)
+        """,
+        timeout=timeout,
+    )
 
 
 def get_update_nodes_query(maxmiso_idx, maxmiso_nodes, factor=1, **scope):
     terms = [f"id(n) IN {maxmiso_nodes}"]
-    properties = dict(label="session", func_name="func_name", bb_id="bb_id", stage="stage",
-                      module_name="module_name", compilation_id="compilation_id")
+    properties = dict(
+        label="session",
+        func_name="func_name",
+        bb_id="bb_id",
+        stage="stage",
+        module_name="module_name",
+        compilation_id="compilation_id",
+    )
     for key, value in scope.items():
         terms.append(f"n.{properties[key]} = {json.dumps(value)}")
-    return Query(f"""MATCH (n:INSTR) WHERE {' AND '.join(terms)}
+    return Query(
+        f"""MATCH (n:INSTR) WHERE {' AND '.join(terms)}
         SET n.maxmiso_idx = {maxmiso_idx}, n.maxmiso_factor = {factor}, n.maxmiso_size = {len(maxmiso_nodes)}
-        RETURN count(n) AS updated""")
+        RETURN count(n) AS updated"""
+    )
 
 
 def update_partition(session, query, expected):
@@ -191,9 +215,7 @@ def query_candidates_from_db(
     before sorting by size. Register classes use the backend bitmask: UNKNOWN=1,
     GPR=2, FPR=4, CSR=8. Path lengths count edges; width permits repeated slots.
     """
-    if n_parallel is not None and (
-        isinstance(n_parallel, bool) or not isinstance(n_parallel, int) or n_parallel < 1
-    ):
+    if n_parallel is not None and (isinstance(n_parallel, bool) or not isinstance(n_parallel, int) or n_parallel < 1):
         raise ValueError("n_parallel must be a positive integer or None")
     if query_timeout is not None and (
         isinstance(query_timeout, bool) or not math.isfinite(query_timeout) or query_timeout <= 0
@@ -203,7 +225,9 @@ def query_candidates_from_db(
     if encoding_policy == "cfu":
         if xlen != 32:
             raise ValueError("CFU requires RV32")
-        if query_config_yaml is None or not yaml.safe_load(Path(query_config_yaml).read_text()).get("filters", {}).get("cfu"):
+        if query_config_yaml is None or not yaml.safe_load(Path(query_config_yaml).read_text()).get("filters", {}).get(
+            "cfu"
+        ):
             raise ValueError("CFU query requires a configuration with filters.cfu enabled")
         # Physical operands are checked after variation generation. Allow internal
         # constants as input nodes without admitting extra encoded operands.
@@ -254,7 +278,6 @@ def query_candidates_from_db(
         bb_id = block_id(bb_name, row.get("bb_id"))
         context = context_for_choice(imports, row)
 
-
         memgraph_config = sess.config.memgraph
         memgraph_host = os.environ.get("MEMGRAPH_HOST")
         memgraph_port = os.environ.get("MEMGRAPH_PORT")
@@ -274,8 +297,14 @@ def query_candidates_from_db(
             update_scope = dict(label=label, func_name=func_name, bb_id=bb_id, **context)
             session = driver.session()
             try:
-                func_query = get_func_query(label, stage, func_name, timeout=query_timeout,
-                    module_name=context["module_name"], compilation_id=context["compilation_id"])
+                func_query = get_func_query(
+                    label,
+                    stage,
+                    func_name,
+                    timeout=query_timeout,
+                    module_name=context["module_name"],
+                    compilation_id=context["compilation_id"],
+                )
                 logger.debug("func_query", func_query)
                 # print("func_query", func_query)
                 func_results = session.run(func_query)
@@ -287,8 +316,11 @@ def query_candidates_from_db(
                 session.close()
             for node in func.nodes:
                 props = func.nodes[node]["properties"]
-                if (props.get("func_name") != func_name or props.get("session") != label
-                        or any(props.get(k) != value for k, value in context.items())):
+                if (
+                    props.get("func_name") != func_name
+                    or props.get("session") != label
+                    or any(props.get(k) != value for k, value in context.items())
+                ):
                     raise BBIdentityError("Fetched function graph contains nodes outside its verified compilation")
             if not any(func.nodes[n]["properties"].get("bb_id") == bb_id for n in func.nodes):
                 raise BBIdentityError(f"Fixed BB {bb_id} has no instructions at stage {stage}; refusing to guess")
@@ -311,7 +343,9 @@ def query_candidates_from_db(
                 unique_maxmisos, factors, duplicate_maxmisos = get_unique_maxmisos(maxmisos)
                 # TODO: write maxmisos to file?
                 # maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in maxmisos]
-                unique_maxmiso_node_ids = [[maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in unique_maxmisos]
+                unique_maxmiso_node_ids = [
+                    [maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in unique_maxmisos
+                ]
                 duplicate_maxmiso_node_ids = [
                     [maxmiso.nodes[n]["key"] for n in maxmiso.nodes] for maxmiso in duplicate_maxmisos
                 ]
@@ -408,8 +442,11 @@ def query_candidates_from_db(
             *(["--limit-results", str(limit_results)] if limit_results is not None else []),
             *(["--query-timeout", str(query_timeout)] if query_timeout is not None else []),
             *(["--n-parallel", str(n_parallel)] if n_parallel is not None else []),
-            *(["--query-level-filtering" if query_level_filtering else "--no-query-level-filtering"]
-              if query_level_filtering is not None else []),
+            *(
+                ["--query-level-filtering" if query_level_filtering else "--no-query-level-filtering"]
+                if query_level_filtering is not None
+                else []
+            ),
             *(["--allowed_reg_classes", str(allowed_reg_classes)] if allowed_reg_classes is not None else []),
             *(["--min-inputs", str(MIN_INPUTS)] if MIN_INPUTS is not None else []),
             *(["--max-inputs", str(MAX_INPUTS)] if MAX_INPUTS is not None else []),
@@ -505,6 +542,7 @@ def query_candidates_from_db(
     subprocess.run(combine_args, check=True)
     if encoding_policy == "cfu":
         from isaac_toolkit.generate.iss.cfu import validate_candidate
+
         data = yaml.safe_load(combined_index_file.read_text())
         if len(data["candidates"]) > 1024:
             raise ValueError("CFU candidate count exceeds the CUSTOM0 namespace")
@@ -627,21 +665,32 @@ def get_parser():
     parser.add_argument("--workdir", type=str, default=None)
     parser.add_argument("--label", type=str, default=None)
     parser.add_argument("--progress", action="store_true", default=None)
-    parser.add_argument("--n-parallel", type=int, default=None,
-                        help="Maximum graph export workers (positive; 1 forces serial export)")
+    parser.add_argument(
+        "--n-parallel", type=int, default=None, help="Maximum graph export workers (positive; 1 forces serial export)"
+    )
     parser.add_argument("--stage", type=int, default=8)
-    parser.add_argument("--query-level-filtering", action=argparse.BooleanOptionalAction, default=None,
-                        help="Enable query predicate and memory/branch filtering (backend default: enabled)")
+    parser.add_argument(
+        "--query-level-filtering",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable query predicate and memory/branch filtering (backend default: enabled)",
+    )
     parser.add_argument("--limit-results", type=int, default=None)
-    parser.add_argument("--query-timeout", type=float, default=None,
-                        help="Seconds per candidate query (YAML/backend default: 60)")
+    parser.add_argument(
+        "--query-timeout", type=float, default=None, help="Seconds per candidate query (YAML/backend default: 60)"
+    )
     parser.add_argument("--min-path-length", type=int, default=None, help="Minimum edges per path")
     parser.add_argument("--max-path-length", type=int, default=None, help="Maximum edges per path")
     parser.add_argument("--max-path-width", type=int, default=None, help="Number of path slots (repetition allowed)")
     parser.add_argument("--ignore-names", default=None, help="Comma-separated instruction names to exclude during DFS")
     parser.add_argument("--ignore-op-types", default=None, help="Comma-separated operand types to exclude during DFS")
-    parser.add_argument("--allowed-reg-classes", "--allowed_reg_classes", type=int, default=None,
-                        help="Register-class mask: UNKNOWN=1, GPR=2, FPR=4, CSR=8")
+    parser.add_argument(
+        "--allowed-reg-classes",
+        "--allowed_reg_classes",
+        type=int,
+        default=None,
+        help="Register-class mask: UNKNOWN=1, GPR=2, FPR=4, CSR=8",
+    )
     parser.add_argument("--query-config-yaml", type=str, default=None)
     parser.add_argument("--encoding-policy", choices=["auto", "cfu"], default="auto")
     parser.add_argument("--xlen", type=int, default=32)

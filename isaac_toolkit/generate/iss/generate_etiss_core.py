@@ -16,7 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Generate typed ETISS models using one encoding allocation domain across all sets.
 from __future__ import annotations
 
 import sys
@@ -36,7 +35,10 @@ from concurrent.futures import ProcessPoolExecutor
 from m2isar.metamodel import M2_METAMODEL_VERSION, M2Model, arch, type_info, attribute_info
 
 from m2isar.transforms.encode_instructions import (
-    EncodingError, EncodingPolicy, apply_model_plan, plan_model,
+    EncodingError,
+    EncodingPolicy,
+    apply_model_plan,
+    plan_model,
 )
 from m2isar.transforms.encode_instructions.planner import overlaps, validate_pattern
 
@@ -291,6 +293,7 @@ def get_includes_code(includes: List[Union[str, Path]], prefix: str = ""):
 # ):
 
 
+# Generate typed ETISS models using one encoding allocation domain across all sets.
 def generate_etiss_core(
     sess: Session,
     workdir: Optional[Union[str, Path]] = None,
@@ -326,12 +329,15 @@ def generate_etiss_core(
     encoding_plan = None
     if encoding_policy == "cfu" and (encoding_opcodes is not None or encoding_reservations):
         raise ValueError("CFU has a fixed encoding policy; opcode/reservation overrides require auto policy")
-    if encoding_policy == "auto" and not auto_encoding and (
-        encoding_manifest is not None or encoding_opcodes is not None or encoding_reservations
+    if (
+        encoding_policy == "auto"
+        and not auto_encoding
+        and (encoding_manifest is not None or encoding_opcodes is not None or encoding_reservations)
     ):
         raise ValueError("Planner options require auto encoding")
     if encoding_policy == "cfu":
         from isaac_toolkit.generate.iss.cfu import CFUEncoder, validate_candidate
+
         if xlen != 32 or skip_errors:
             raise ValueError("CFU encoding requires RV32 and strict error handling")
         cfu_encoder = CFUEncoder(encoding_manifest or Path(workdir) / "cfu_manifest.json", allow_new=auto_encoding)
@@ -406,7 +412,10 @@ def generate_etiss_core(
     # print("cdsl_includes", cdsl_includes)
     core_includes_code = get_includes_code(core_includes)
     main_reg = arch.RegisterBank(
-        "X", 32, type_info.TypeKind.UINT, xlen,
+        "X",
+        32,
+        type_info.TypeKind.UINT,
+        xlen,
         {attribute_info.RegisterAttribute.IS_MAIN_REG: []},
     )
     contributing_types = all_cdsl_sets
@@ -476,9 +485,7 @@ def generate_etiss_core(
             pending_encoded[set_name] = []
             for instr in sorted(pending.values(), key=lambda instruction: instruction.name):
                 sub_name = set_instr2sub_name[(set_name, instr.name)]
-                pending_encoded[set_name].append(
-                    cfu_encoder.encode(instr, set_name, sub2files[sub_name]["cdsl"])
-                )
+                pending_encoded[set_name].append(cfu_encoder.encode(instr, set_name, sub2files[sub_name]["cdsl"]))
         validate_instruction_sets(pending_encoded)
         instructions_per_set = {
             name: {(instr.code, instr.mask): instr for instr in instructions}
@@ -628,11 +635,15 @@ def generate_etiss_core(
     }}
 """
     core_out_cdsl_file.write_text(
-        core_includes_code + "\n\n" + f"Core {core_name} provides {', '.join(contributing_types)} {{\n"
-        + core_body + "}\n"
+        core_includes_code
+        + "\n\n"
+        + f"Core {core_name} provides {', '.join(contributing_types)} {{\n"
+        + core_body
+        + "}\n"
     )
     # Store a fully resolved typed core, including actual instruction widths.
     from m2isar.frontends.coredsl2.parser import main as parse_core
+
     parse_args = [str(core_out_cdsl_file), "--output", str(gen_dir)]
     for include in extra_includes:
         parse_args.extend(["-I", str(include)])
@@ -723,12 +734,23 @@ def get_parser():
     parser.add_argument("--base-extensions", type=str, default="i,m,a,f,d,c,zifencei")
     parser.add_argument("--auto-encoding", action="store_true", default=True)
     parser.add_argument("--encoding-policy", choices=["auto", "cfu"], default="auto")
-    parser.add_argument("--encoding-manifest", type=str, default=None,
-                        help="Auto: input planner manifest; CFU: persistent CFU ledger")
-    parser.add_argument("--encoding-opcode", action="append", type=lambda value: int(value, 0),
-                        help="Permitted custom major opcode, repeatable (auto policy)")
-    parser.add_argument("--encoding-reserve", action="append", default=[], type=parse_reservation,
-                        metavar="CODE/MASK", help="Reserved pattern, repeatable (auto policy)")
+    parser.add_argument(
+        "--encoding-manifest", type=str, default=None, help="Auto: input planner manifest; CFU: persistent CFU ledger"
+    )
+    parser.add_argument(
+        "--encoding-opcode",
+        action="append",
+        type=lambda value: int(value, 0),
+        help="Permitted custom major opcode, repeatable (auto policy)",
+    )
+    parser.add_argument(
+        "--encoding-reserve",
+        action="append",
+        default=[],
+        type=parse_reservation,
+        metavar="CODE/MASK",
+        help="Reserved pattern, repeatable (auto policy)",
+    )
     parser.add_argument("--no-auto-encoding", dest="auto_encoding", action="store_false", default=True)
     parser.add_argument("--split", action="store_true")
     parser.add_argument("--base-dir", type=str, default="rv_base")

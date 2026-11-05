@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 """Lower pure RV32 candidate trees to a CFU-Playground SystemVerilog module.
 
 The first lowering supports integer arithmetic/logic and shifts. Unsupported
@@ -67,9 +85,18 @@ class Datapath:
             if len(node.children) != 2:
                 raise ValueError(f"Unsupported operation arity: {node.name}")
             lhs, rhs = [self.expression(child) for child in node.children]
-            binary = {"ADD": "+", "ADDI": "+", "SUB": "-", "MUL": "*",
-                      "AND": "&", "ANDI": "&", "OR": "|", "ORI": "|",
-                      "XOR": "^", "XORI": "^"}
+            binary = {
+                "ADD": "+",
+                "ADDI": "+",
+                "SUB": "-",
+                "MUL": "*",
+                "AND": "&",
+                "ANDI": "&",
+                "OR": "|",
+                "ORI": "|",
+                "XOR": "^",
+                "XORI": "^",
+            }
             if node.name in binary:
                 value = f"({lhs} {binary[node.name]} {rhs})"
             elif node.name in ("SLL", "SLLI", "SRL", "SRLI", "SRA", "SRAI"):
@@ -96,10 +123,14 @@ class Datapath:
                 self.names[ref.name] = self.wire(self.expression(value), node.decl_type)
             elif isinstance(node, Assignment):
                 dest, value = node.children
-                if (self.result is not None or not isinstance(dest, Register)
-                        or dest.reg_class != "gpr" or len(dest.children) != 1
-                        or not isinstance(dest.children[0], Ref)
-                        or dest.children[0].name != self.mapping["rd"]):
+                if (
+                    self.result is not None
+                    or not isinstance(dest, Register)
+                    or dest.reg_class != "gpr"
+                    or len(dest.children) != 1
+                    or not isinstance(dest.children[0], Ref)
+                    or dest.children[0].name != self.mapping["rd"]
+                ):
                     raise ValueError("Expected one mapped architectural result")
                 self.result = self.expression(value)
             else:
@@ -123,21 +154,23 @@ def generate(index, manifest, output, set_name="XIsaac"):
             raise ValueError("Invalid CFU policy or duplicate instruction")
         entry = ledger[key]
         source = Path(artifacts["cdsl"])
-        normalized = "\n".join(line for line in source.read_text().splitlines()
-                               if not line.lstrip().startswith("//"))
+        normalized = "\n".join(line for line in source.read_text().splitlines() if not line.lstrip().startswith("//"))
         if hashlib.sha256(normalized.encode()).hexdigest() != entry["source_sha256"]:
             raise ValueError(f"CoreDSL differs from manifest: {key}")
         tree_path = Path(artifacts["tree"])
         with tree_path.open("rb") as handle:
             tree = pickle.load(handle)
         body, result = Datapath(entry["operands"]).lower(tree)
-        declarations.append(f"  // {key}\n  if (1) begin : op{number}\n{body}\n"
-                            f"    assign results[{number}] = {result};\n  end")
+        declarations.append(
+            f"  // {key}\n  if (1) begin : op{number}\n{body}\n" f"    assign results[{number}] = {result};\n  end"
+        )
         cases.append(f"      10'd{entry['function_id']}: selected_result = results[{number}];")
-        records[key] = {"function_id": entry["function_id"],
-                        "tree_sha256": hashlib.sha256(tree_path.read_bytes()).hexdigest(),
-                        "source_sha256": entry["source_sha256"]}
-    rtl = '''// Generated ISAAC CFU: one registered response slot, pure RV32 datapaths.
+        records[key] = {
+            "function_id": entry["function_id"],
+            "tree_sha256": hashlib.sha256(tree_path.read_bytes()).hexdigest(),
+            "source_sha256": entry["source_sha256"],
+        }
+    rtl = """// Generated ISAAC CFU: one registered response slot, pure RV32 datapaths.
 `timescale 1ns/1ps
 module Cfu (
   input wire cmd_valid, output wire cmd_ready,
@@ -147,12 +180,12 @@ module Cfu (
   output reg [31:0] rsp_payload_outputs_0,
   input wire reset, clk
 );
-'''
+"""
     rtl += f"  wire [31:0] results [0:{len(records)-1}];\n"
     rtl += "\n".join(declarations)
     rtl += "\n  reg [31:0] selected_result;\n  always @* begin\n    selected_result = 32'b0;\n    case (cmd_payload_function_id)\n"
     rtl += "\n".join(cases)
-    rtl += '''
+    rtl += """
       default: selected_result = 32'b0;
     endcase
   end
@@ -167,13 +200,17 @@ module Cfu (
     end
   end
 endmodule
-'''
+"""
     output.mkdir(parents=True, exist_ok=True)
     (output / "cfu.sv").write_text(rtl)
-    report = {"instructions": records, "response_latency_cycles": 1,
-              "response_capacity": 1, "unknown_function_result": 0,
-              "rtl_sha256": hashlib.sha256(rtl.encode()).hexdigest(),
-              "verification": "not yet verified"}
+    report = {
+        "instructions": records,
+        "response_latency_cycles": 1,
+        "response_capacity": 1,
+        "unknown_function_result": 0,
+        "rtl_sha256": hashlib.sha256(rtl.encode()).hexdigest(),
+        "verification": "not yet verified",
+    }
     (output / "cfu_rtl.json").write_text(json.dumps(report, indent=2) + "\n")
     return report
 

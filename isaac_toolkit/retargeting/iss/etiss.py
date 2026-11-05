@@ -104,8 +104,12 @@ def retarget_etiss_iss(
             raise FileNotFoundError(f"No generated instruction CoreDSL imported by {top_file}")
         host, port = service_addr.rsplit(":", 1)
         run_retargeting_service(
-            [str(top_file), str(imported[0])], out_dir=str(output_dir), host=host,
-            port=int(port), tag=service_tag, verbose=verbose,
+            [str(top_file), str(imported[0])],
+            out_dir=str(output_dir),
+            host=host,
+            port=int(port),
+            tag=service_tag,
+            verbose=verbose,
         )
         return
     elif use_docker:
