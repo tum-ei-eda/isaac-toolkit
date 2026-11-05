@@ -57,6 +57,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#development">Development</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#style">Style</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#license-headers">License headers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#testing">Testing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#versioning">Versioning</a></li>
 </ul>
@@ -224,6 +225,27 @@ python3<span class="w"> </span>-m<span class="w"> </span>isaac_toolkit.session.s
 <section id="style">
 <h3>Style<a class="headerlink" href="#style" title="Link to this heading"></a></h3>
 <p>We use the <a class="reference external" href="https://black.readthedocs.io/en/stable/"><code class="docutils literal notranslate"><span class="pre">black</span></code></a> formatter to maintain a consistent Python style (See <code class="docutils literal notranslate"><span class="pre">setup.cfg</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>)</p>
+<p>Run <code class="docutils literal notranslate"><span class="pre">Scripts/format.sh</span></code> to format the Python package and tests. Use
+<code class="docutils literal notranslate"><span class="pre">Scripts/format.sh</span> <span class="pre">--check</span></code> to check formatting without changing files. Install
+the development dependencies first:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements_dev.txt
+</pre></div>
+</div>
+</section>
+<section id="license-headers">
+<h3>License headers<a class="headerlink" href="#license-headers" title="Link to this heading"></a></h3>
+<p>New Python files in <code class="docutils literal notranslate"><span class="pre">isaac_toolkit/</span></code> and <code class="docutils literal notranslate"><span class="pre">tests/</span></code> need the repository’s Apache
+2.0 header. After adding or editing files, run
+<code class="docutils literal notranslate"><span class="pre">Scripts/license_headers.sh</span> <span class="pre">--fix</span></code>; review the resulting changes and commit
+them with your code. The script uses the checked-in template
+<code class="docutils literal notranslate"><span class="pre">Scripts/apache-2.tmpl</span></code>, so it does not need to download a template. Run
+<code class="docutils literal notranslate"><span class="pre">Scripts/license_headers.sh</span> <span class="pre">--check</span></code> to check headers without modifying the
+working tree; CI runs this check.</p>
+<p>Headers identify the repository’s license and copyright owner. Keep existing
+copyright attribution when editing a file, and do not apply the repository
+header to vendored or third-party code. For files with a different license,
+preserve that license and resolve the correct attribution before adding a
+header.</p>
 <p>Pylint config is also available, but not enforced.</p>
 </section>
 <section id="testing">
