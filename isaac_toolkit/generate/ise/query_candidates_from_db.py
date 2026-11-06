@@ -143,7 +143,7 @@ def query_candidates_from_db(
     MIN_INPUTS: Optional[int] = 1,
     MAX_INPUTS: Optional[int] = 4,
     # MAX_INPUTS: Optional[int] = 3,
-    MIN_OUTPUTS: Optional[int] = 1,
+    MIN_OUTPUTS: Optional[int] = None,
     MAX_OUTPUTS: Optional[int] = 2,
     # MAX_OUTPUTS: Optional[int] = 1,
     # TODO: implement topk!
@@ -167,7 +167,7 @@ def query_candidates_from_db(
     scale_iso_weight: Union[bool, str] = "auto",
     MAX_LOADS=1,
     MAX_STORES=1,
-    MAX_MEMS: Optional[int] = 0,  # TODO
+    MAX_MEMS: Optional[int] = None,
     MAX_BRANCHES: Optional[int] = 1,
     xlen: Optional[int] = 32,  # TODO: do not hardcode
     ENABLE_VARIATION_REUSE_IO=False,
@@ -200,6 +200,13 @@ def query_candidates_from_db(
     ):
         raise ValueError("query_timeout must be a positive finite number of seconds")
     logger.info("Querying candidates from DB...")
+    if query_config_yaml is None:
+        # Keep legacy API defaults without overriding an explicitly supplied
+        # query configuration's memory and effect-output limits.
+        if MIN_OUTPUTS is None:
+            MIN_OUTPUTS = 1
+        if MAX_MEMS is None:
+            MAX_MEMS = 0
     if encoding_policy == "cfu":
         if xlen != 32:
             raise ValueError("CFU requires RV32")
