@@ -33,7 +33,7 @@ from pathlib import Path
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 
-from m2isar.metamodel import M2_METAMODEL_VERSION, M2Model, arch, type_info, attribute_info
+from m2isar.metamodel import M2_METAMODEL_VERSION, M2Model, arch, behav, type_info, attribute_info
 
 from m2isar.transforms.encode_instructions import (
     EncodingError, EncodingPolicy, apply_model_plan, plan_model,
@@ -316,10 +316,15 @@ def generate_etiss_core(
     encoding_manifest: Optional[Union[str, Path]] = None,
     encoding_opcodes=None,
     encoding_reservations=(),
+    encoding_interface="generic",
 ):
     from m2isar.backends.coredsl2.writer import gen_cdsl_code
 
     logger.info("Generating ETISS core...")
+    if encoding_interface not in ("generic", "scaiev2"):
+        raise EncodingError("Unknown encoding interface: " + encoding_interface)
+    if encoding_interface != "generic" and (encoding_policy != "auto" or not auto_encoding):
+        raise EncodingError("SCAIE-V encoding constraints require shared automatic allocation")
     if encoding_policy not in ("auto", "cfu"):
         raise ValueError(f"Unknown encoding policy: {encoding_policy}")
     cfu_encoder = None
@@ -363,6 +368,8 @@ def generate_etiss_core(
     sub2files = defaultdict(dict)
     sub2new_files = defaultdict(dict)
     set_instr2sub_name = {}
+    sub_properties_by_name = {}
+    interface_constraints = []
 
     index_records = []
     for k, combined_index_file in enumerate(index_files):
@@ -379,6 +386,7 @@ def generate_etiss_core(
             sub2files[sub_name]["cdsl"] = sub_file
             sub_encoded_file = Path(sub_artifacts["cdsl_encoded"]) if "cdsl_encoded" in sub_artifacts else None
             sub_properties = sub_data["properties"]
+            sub_properties_by_name[sub_name] = sub_properties
             if cfu_encoder is not None:
                 validate_candidate(sub_properties)
             instr_name = sub_properties["InstrName"]
@@ -454,6 +462,18 @@ def generate_etiss_core(
             if duplicates:
                 raise EncodingError(f"{set_name}: duplicate instruction names: {sorted(duplicates)}")
             target[set_name].update(parsed_instructions)
+            if encoding_interface == "scaiev2":
+                properties = sub_properties_by_name[candidate_name]
+                memory_funct3 = {"LB": 0, "LH": 1, "LW": 2, "LD": 3,
+                                 "LBU": 4, "LHU": 5, "LWU": 6,
+                                 "SB": 0, "SH": 1, "SW": 2, "SD": 3}
+                memory_ops = [op for op in properties.get("Instrs", []) if op in memory_funct3]
+                if properties.get("#Mems", 0):
+                    if len(memory_ops) != 1 or properties["#Mems"] != 1:
+                        raise EncodingError("Cannot determine a unique SCAIE-V memory funct3 for " + candidate_name)
+                    for name in parsed_instructions:
+                        interface_constraints.append((f"set/{set_name}/{name}",
+                            memory_funct3[memory_ops[0]] << 12, 7 << 12))
 
     if auto_encoding and cfu_encoder is None:
         manifest = None
@@ -462,6 +482,8 @@ def generate_etiss_core(
         policy = EncodingPolicy(
             opcodes=tuple(encoding_opcodes) if encoding_opcodes is not None else EncodingPolicy().opcodes,
             reservations=tuple(encoding_reservations),
+            fixed_bits=tuple(interface_constraints),
+            decode_mask=0xFE00707F if encoding_interface == "scaiev2" else 0xFFFFFFFF,
         )
         instructions_per_set, encoding_plan = encode_instruction_sets(
             unencoded_instructions_per_set,
@@ -469,6 +491,12 @@ def generate_etiss_core(
             policy=policy,
             assignments=manifest,
         )
+        (gen_dir / "encoding_interface.json").write_text(json.dumps({
+            "interface": encoding_interface,
+            "decode_mask": policy.decode_mask,
+            "fixed_bits": [dict(name=name, code=code, mask=mask)
+                           for name, code, mask in interface_constraints],
+        }, indent=2) + "\n")
         logger.info("Planned %d encodings across %d sets", len(encoding_plan.assignments), len(instructions_per_set))
     elif auto_encoding:
         pending_encoded = {}
@@ -596,12 +624,39 @@ def generate_etiss_core(
         )
         model_obj = copy.deepcopy(model_obj)
         model_obj.sets[set_name].register_banks["X"] = main_reg
+        # HLS exports are self-contained: dropping RV32I inheritance must not
+        # leave fused memory accesses or branch targets without state symbols.
+        referenced_state = set()
+        for instruction in model_obj.sets[set_name].instructions.values():
+            pending = [instruction.operation]
+            while pending:
+                node = pending.pop()
+                if isinstance(node, (behav.NamedReference, behav.IndexedReference)):
+                    referenced_state.add(getattr(node.reference, "name", None))
+                if isinstance(node, behav.BaseNode):
+                    for value in vars(node).values():
+                        if isinstance(value, behav.BaseNode):
+                            pending.append(value)
+                        elif isinstance(value, (list, tuple)):
+                            pending.extend(child for child in value if isinstance(child, behav.BaseNode))
+        if "MEM" in referenced_state:
+            model_obj.sets[set_name].memories["MEM"] = arch.Memory(
+                "MEM", type_info.TypeKind.UINT, 8, 1 << xlen,
+                {attribute_info.MemoryAttribute.IS_MAIN_MEM: []},
+            )
+        if "PC" in referenced_state:
+            model_obj.sets[set_name].register_banks["PC"] = arch.Register(
+                "PC", type_info.TypeKind.UINT, xlen,
+                {attribute_info.RegisterAttribute.IS_PC: []},
+            )
         model_obj.sets[set_name].extension = []
         hls_unique_instr_names = len(set_names) > 1
         if hls_unique_instr_names:
             assert add_mnemonic_prefix
             for instr_def in model_obj.sets[set_name].instructions.values():
                 instr_def.name = instr_def.mnemonic.upper().replace(".", "_")
+        from .hls_immediates import normalize_hls_immediates
+        normalize_hls_immediates(model_obj.sets[set_name], xlen)
         set_hls_cdsl_code = gen_cdsl_code(model_obj, with_includes=False, legacy=True)
         with open(set_hls_out_cdsl_file, "w") as f:
             f.write(set_hls_includes_code)
@@ -688,6 +743,7 @@ def handle(args):
         encoding_manifest=args.encoding_manifest,
         encoding_opcodes=args.encoding_opcode,
         encoding_reservations=args.encoding_reserve,
+        encoding_interface=args.encoding_interface,
     )
     if sess is not None:
         sess.save()
@@ -723,6 +779,8 @@ def get_parser():
     parser.add_argument("--base-extensions", type=str, default="i,m,a,f,d,c,zifencei")
     parser.add_argument("--auto-encoding", action="store_true", default=True)
     parser.add_argument("--encoding-policy", choices=["auto", "cfu"], default="auto")
+    parser.add_argument("--encoding-interface", choices=["generic", "scaiev2"], default="generic",
+                        help="Apply interface discriminator constraints before shared allocation")
     parser.add_argument("--encoding-manifest", type=str, default=None,
                         help="Auto: input planner manifest; CFU: persistent CFU ledger")
     parser.add_argument("--encoding-opcode", action="append", type=lambda value: int(value, 0),
