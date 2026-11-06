@@ -92,6 +92,8 @@ isaac_toolkit
 
 ## Usage
 
+[ELF/CDFG basic-block count validation](docs/bb_cdfg_validation.md) runs before Memgraph profile-weight annotation.
+
 ### Prerequisites
 
 Install (optional) APT Requirements:

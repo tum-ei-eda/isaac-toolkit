@@ -16,11 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import io
 import sys
 import argparse
 from pathlib import Path
-from collections import defaultdict
 
 import pandas as pd
 from elftools.elf.elffile import ELFFile
@@ -37,214 +35,64 @@ logger = get_logger()
 
 
 def parse_elf(elf_path):
-    GISEL = True  # TODO: make arg
-    func_to_addrs = defaultdict(list)
-    with open(elf_path, "rb") as f:
-        elffile = ELFFile(f)
-        if elffile['e_type'] == 'ET_REL':
-            raise ValueError('BB address maps must be decoded from a linked ELF, not an unrelocated object')
-        if not elffile.little_endian:
-            raise NotImplementedError('Big-endian BB address maps are not supported')
+    """Read fixed BB IDs from linked RISC-V ELFs produced by LLVM 19–22."""
+    from isaac_toolkit.utils.llvm_bb_addr_map import decode_bb_addr_map
 
-        # extract disassembly to count instructions per bb
-        # see https://isleem.medium.com/create-your-own-disassembler-in-python-pefile-capstone-754f863b2e1c
-        code = elffile.get_section_by_name(".text")
-        ops = code.data()
-        begin = code["sh_addr"]
-        sz = code["sh_size"]
-        end = begin + sz
-        xlen = elffile.elfclass
-        assert xlen is not None
-
-        mode = CS_MODE_RISCV32 if xlen == 32 else CS_MODE_RISCV64
-        md = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
-        # md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
-        # valid_pcs = set(x.address for x in md.disasm(ops, addr))
-        valid_pcs = set()
-        while True:
-            temp = [(x.address, x.size) for x in md.disasm(ops, begin)]
-            valid_pcs_ = set(pc for pc, size in temp)
-            if not temp:
-                raise ValueError(f"Cannot disassemble ELF .text at {begin:#x}; instruction counts are not trustworthy")
-            last = temp[-1]
-            last_pc, last_size = last
-            begin = max(last_pc, begin) + last_size
-            valid_pcs.update(valid_pcs_)
-            if begin >= end:
-                break
-
-        section = elffile.get_section_by_name(".symtab")
-        addr_bytes = int(xlen / 8)
-
-        if not section:
-            pass
-            # print('  No symbol table found. Perhaps this ELF has been stripped?')  # TODO: make err?
-
-        if isinstance(section, SymbolTableSection):
-            num_symbols = section.num_symbols()
-            # print("  It's a symbol section with %s symbols" % num_symbols)
-            for i in range(num_symbols):
-                sym = section.get_symbol(i)
-                if sym["st_info"]["type"] != "STT_FUNC":
-                    continue
-                # print(i, sym.entry, sym.name)
-                name = sym.name
-                # print("name", name)
-                # assert name not in func_to_addr, f"Conflict! {name} already in map: {func_to_addr}"
-                func_to_addrs[name].append((sym["st_value"], sym["st_size"]))
-
-        addr_to_func = {}
-        aliases = defaultdict(list)
-        for func_name, funcs in func_to_addrs.items():
-            for func in funcs:
-                func_addr, func_sz = func
-                # print(func_name, ":", func_sz,  hex(func_addr), "-", hex(func_addr + func_sz))
-                if func_addr in addr_to_func:
-                    if addr_to_func[func_addr] != func_name:
-                        aliases[func_name].append(addr_to_func[func_addr])
-                else:
-                    addr_to_func[func_addr] = func_name
-        llvm_bb_addr_map_raw = elffile.get_section_by_name(".llvm_bb_addr_map")
-        assert llvm_bb_addr_map_raw is not None, "Missing: .llvm_bb_addr_map"
-        llvm_bb_addr_map_raw = llvm_bb_addr_map_raw.data()
-
-        symbol_sizes = {}
-        for entries in func_to_addrs.values():
-            for address, size in entries:
-                symbol_sizes[address] = max(symbol_sizes.get(address, 0), size)
-
-        def read_uleb(reader):
-            value = 0
-            for shift in range(0, 64, 7):
-                byte = reader.read(1)
-                if not byte:
-                    raise ValueError("Truncated ULEB128 in BB address map")
-                byte = byte[0]
-                if shift == 63 and byte > 1:
-                    raise ValueError("Oversized ULEB128 in BB address map")
-                value |= (byte & 0x7f) << shift
-                if not byte & 0x80:
-                    return value
-            raise ValueError("Oversized ULEB128 in BB address map")
-
-        def decode_map(data, addr_to_func):
-            ret = {}
-            unknown_count = 0
-            with io.BytesIO(data) as reader:
-                while reader.tell() < len(data):
-                    # print("reader", reader)
-                    # print("dir(reader)", dir(reader))
-                    version = int.from_bytes(reader.read(1), byteorder="little")
-                    # print("version", version)
-                    # assert version == 2
-                    if version != 2:
-                        raise NotImplementedError(f"LLVM_BB_ADDR_MAP version {version}")
-                        # print("!")
-                        # print(reader.read(100))
-                    features = int.from_bytes(reader.read(1), byteorder="little")
-                    # print("features", features)
-                    if features != 0:
-                        raise NotImplementedError(f"Unsupported BB address map features: {features:#x}")
-                    address_data = reader.read(addr_bytes)
-                    if len(address_data) != addr_bytes:
-                        raise ValueError("Truncated BB address map function address")
-                    func_addr = int.from_bytes(address_data, byteorder="little")
-                    # print("func_addr", func_addr)
-                    func_name = addr_to_func.get(func_addr, None)
-                    # print("func_name", func_name)
-                    # assert func_name is not None
-                    if func_name is None:
-                        func_name = f"unknown_func_{unknown_count}"
-                        unknown_count += 1
-                    # TODO: leb128?
-                    # num_bbs = int.from_bytes(reader.read(1), byteorder="little")
-                    num_bbs = read_uleb(reader)
-                    # print("num_bbs", num_bbs)
-                    # assert num_bbs > 0
-                    if GISEL:
-                        tmp = {}
-                    else:
-                        tmp = [None] * num_bbs
-                    cur = func_addr
-                    for i in range(num_bbs):
-                        # print("i", i)
-                        # bb_id = int.from_bytes(reader.read(1), byteorder="little")
-                        bb_id = read_uleb(reader)
-                        if not GISEL:
-                            assert bb_id < num_bbs
-                        start_offset = read_uleb(reader)
-                        # print("start_offset", start_offset)
-                        assert start_offset >= 0
-                        block_size = read_uleb(reader)
-                        assert block_size >= 0
-                        # TODO: leb128?
-                        # metadata = int.from_bytes(reader.read(1), byteorder="little")
-                        # metadata = read_uleb(reader)
-                        _ = read_uleb(reader)
-                        # print("metadata", metadata)
-                        # TODO: decode metadata (is_return, is_call, ...)
-                        # rest = reader.read(1000)
-                        # print("rest", rest)
-                        cur += start_offset
-                        # Version 2 stores padding relative to the previous end,
-                        # followed by a size, not an end offset.
-                        sz = block_size
-                        assert sz >= 0
-                        start = cur
-                        end = cur + sz
-                        if symbol_sizes.get(func_addr, 0) and end > func_addr + symbol_sizes[func_addr]:
-                            raise ValueError(f"BB {bb_id} exceeds function {func_name}'s symbol range")
-                        if start < code["sh_addr"] or end > code["sh_addr"] + code["sh_size"]:
-                            raise ValueError(f"BB {bb_id} of {func_name} lies outside .text")
-                        if sz > 0:
-                            pcs = [pc for pc in range(start, end, 2) if pc in valid_pcs]
-                            # valid_pcs_sorted = sorted(list(valid_pcs))
-                            # end_pc_idx = valid_pcs_sorted.index(pcs[-1])
-                            # end_pc = valid_pcs_sorted[end_pc_idx]
-                            # end_pc_next = valid_pcs_sorted[end_pc_idx+1]
-                            # end_pc_next_next = valid_pcs_sorted[end_pc_idx+2]
-                            num_instrs = len(pcs)
-                        else:
-                            num_instrs = 0
-                        cur += sz
-                        if GISEL:
-                            if str(bb_id) in tmp:
-                                raise ValueError(f"Duplicate BB ID {bb_id} in {func_name}")
-                            tmp[str(bb_id)] = (start, end, sz, num_instrs)
-                        else:
-                            tmp[bb_id] = (start, end, sz, num_instrs)
-                    if func_name in ret:
-                        raise ValueError(f"Ambiguous BB map for function {func_name}")
-                    ret[func_name] = tmp
-            return ret
-
-        llvm_bb_addr_map = decode_map(llvm_bb_addr_map_raw, addr_to_func)
-        # print("llvm_bb_addr_map", llvm_bb_addr_map)
-        VERBOSE = False
-        if VERBOSE:
-            for func_name in func_to_addrs.keys():
-                print(f"{func_name}:")
-                bbs = llvm_bb_addr_map.get(func_name, None)
-                # PRINT_MISSING = False
-                PRINT_MISSING = True
-                if bbs is None:
-                    if PRINT_MISSING:
-                        logger.debug("> no bb addr info found")
-                    continue
-                if GISEL:
-                    bbs = dict(sorted(bbs.items(), key=lambda x: int(x[0]))).values()
-                for i, bb in enumerate(bbs):
-                    start, end, sz, num_instrs = bb
-                    logger.debug(
-                        f"> bb{i}",
-                        ":",
-                        hex(start),
-                        "-",
-                        hex(end),
-                        f"(len={sz}B, num={num_instrs})",
-                    )
-                    # print()
-    return llvm_bb_addr_map
+    with open(elf_path, "rb") as stream:
+        elf = ELFFile(stream)
+        if elf["e_type"] == "ET_REL":
+            raise ValueError("BB address maps require a linked ELF, not an unrelocated object")
+        if not elf.little_endian:
+            raise NotImplementedError("Big-endian BB address maps are not supported")
+        if elf["e_machine"] != "EM_RISCV":
+            raise ValueError("BB instruction counting currently requires a RISC-V ELF")
+        sections = [section for section in elf.iter_sections()
+                    if section["sh_flags"] & 4 and section["sh_type"] == "SHT_PROGBITS"]
+        code_bytes = {id(section): section.data() for section in sections}
+        symbols = elf.get_section_by_name(".symtab")
+        if not isinstance(symbols, SymbolTableSection):
+            raise ValueError("BB identity matching requires the ELF symbol table")
+        functions = {}
+        for symbol in symbols.iter_symbols():
+            if symbol["st_info"]["type"] == "STT_FUNC" and symbol["st_shndx"] != "SHN_UNDEF":
+                address = symbol["st_value"]
+                previous_name, previous_size = functions.get(address, (symbol.name, 0))
+                functions[address] = (previous_name, max(previous_size, symbol["st_size"]))
+        maps = [section for section in elf.iter_sections()
+                if section.name == ".llvm_bb_addr_map" or section["sh_type"] == "SHT_LLVM_BB_ADDR_MAP"]
+        if not maps:
+            raise ValueError("Missing .llvm_bb_addr_map")
+        mode = CS_MODE_RISCV32 if elf.elfclass == 32 else CS_MODE_RISCV64
+        disassembler = Cs(CS_ARCH_RISCV, mode | CS_MODE_RISCVC)
+        result = {}
+        for section in maps:
+            for record in decode_bb_addr_map(section.data(), elf.elfclass // 8):
+                func_address = record["ranges"][0][0]
+                if func_address not in functions:
+                    raise ValueError(f"No function symbol for BB map address {func_address:#x}")
+                name, func_size = functions[func_address]
+                if name in result:
+                    raise ValueError(f"Ambiguous BB map for function {name}")
+                blocks = {}
+                for base, entries in record["ranges"]:
+                    for bb_id, start, size in entries:
+                        end = start + size
+                        # Split cold ranges need not lie inside the entry symbol.
+                        if len(record["ranges"]) == 1 and func_size and end > func_address + func_size:
+                            raise ValueError(f"BB {bb_id} exceeds function {name}'s symbol range")
+                        containing = [sec for sec in sections if sec["sh_addr"] <= start
+                                      and end <= sec["sh_addr"] + sec["sh_size"]]
+                        if len(containing) != 1:
+                            raise ValueError(f"BB {bb_id} of {name} has no unique executable section")
+                        sec = containing[0]
+                        offset = start - sec["sh_addr"]
+                        code = code_bytes[id(sec)][offset:offset + size]
+                        instructions = list(disassembler.disasm(code, start))
+                        if sum(insn.size for insn in instructions) != size:
+                            raise ValueError(f"Cannot fully disassemble BB {bb_id} of {name}; instruction counts are not trustworthy")
+                        blocks[str(bb_id)] = (start, end, size, len(instructions))
+                result[name] = blocks
+        return result
 
 
 def analyze_llvm_bbs(sess: Session, force: bool = False):
