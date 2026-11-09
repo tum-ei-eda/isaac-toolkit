@@ -92,6 +92,18 @@ isaac_toolkit
 
 ## Usage
 
+### HLS cores without a destination-read port
+
+`generate_etiss_core --hls-core-discards-x0-writes` removes canonical
+`if (rd != 0) X[rd] = ...` guards from the private HLS model when the target
+core itself suppresses writes to x0. This prevents HLS from introducing an
+`RdRD` port to preserve the previous destination. Genuine destination reads
+are rejected. The compiler and simulator models retain their guards and the
+instruction encodings are unchanged. The option is off by default; verify the
+core's x0 write suppression before enabling it. A per-set
+`*.hls_core_contract.json` records the setting and removed guards.
+
+
 [ELF/CDFG basic-block count validation](docs/bb_cdfg_validation.md) runs before Memgraph profile-weight annotation.
 
 ### Prerequisites

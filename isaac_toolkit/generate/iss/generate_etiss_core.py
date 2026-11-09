@@ -317,6 +317,7 @@ def generate_etiss_core(
     encoding_opcodes=None,
     encoding_reservations=(),
     encoding_interface="generic",
+    hls_core_discards_x0_writes=False,
 ):
     from m2isar.backends.coredsl2.writer import gen_cdsl_code
 
@@ -657,6 +658,15 @@ def generate_etiss_core(
                 instr_def.name = instr_def.mnemonic.upper().replace(".", "_")
         from .hls_immediates import normalize_hls_immediates
         normalize_hls_immediates(model_obj.sets[set_name], xlen)
+        normalized = []
+        if hls_core_discards_x0_writes:
+            from .hls_registers import normalize_hls_zero_write_guards
+            normalized = normalize_hls_zero_write_guards(model_obj.sets[set_name])
+        (gen_dir / f"{set_name}.hls_core_contract.json").write_text(json.dumps({
+            "core_discards_x0_writes": bool(hls_core_discards_x0_writes),
+            "removed_zero_write_guards": normalized,
+            "genuine_destination_reads_rejected": bool(hls_core_discards_x0_writes),
+        }, indent=2) + "\n")
         set_hls_cdsl_code = gen_cdsl_code(model_obj, with_includes=False, legacy=True)
         with open(set_hls_out_cdsl_file, "w") as f:
             f.write(set_hls_includes_code)
@@ -744,6 +754,7 @@ def handle(args):
         encoding_opcodes=args.encoding_opcode,
         encoding_reservations=args.encoding_reserve,
         encoding_interface=args.encoding_interface,
+        hls_core_discards_x0_writes=args.hls_core_discards_x0_writes,
     )
     if sess is not None:
         sess.save()
@@ -781,6 +792,8 @@ def get_parser():
     parser.add_argument("--encoding-policy", choices=["auto", "cfu"], default="auto")
     parser.add_argument("--encoding-interface", choices=["generic", "scaiev2"], default="generic",
                         help="Apply interface discriminator constraints before shared allocation")
+    parser.add_argument("--hls-core-discards-x0-writes", action="store_true",
+                        help="HLS only: remove canonical x0 write guards; requires core-enforced x0 write suppression")
     parser.add_argument("--encoding-manifest", type=str, default=None,
                         help="Auto: input planner manifest; CFU: persistent CFU ledger")
     parser.add_argument("--encoding-opcode", action="append", type=lambda value: int(value, 0),
