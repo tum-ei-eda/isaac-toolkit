@@ -51,6 +51,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#hls-cores-without-a-destination-read-port">HLS cores without a destination-read port</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#demo">Demo</a></li>
 </ul>
@@ -186,6 +187,18 @@
 </section>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<section id="hls-cores-without-a-destination-read-port">
+<h3>HLS cores without a destination-read port<a class="headerlink" href="#hls-cores-without-a-destination-read-port" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">generate_etiss_core</span> <span class="pre">--hls-core-discards-x0-writes</span></code> removes canonical
+<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">(rd</span> <span class="pre">!=</span> <span class="pre">0)</span> <span class="pre">X[rd]</span> <span class="pre">=</span> <span class="pre">...</span></code> guards from the private HLS model when the target
+core itself suppresses writes to x0. This prevents HLS from introducing an
+<code class="docutils literal notranslate"><span class="pre">RdRD</span></code> port to preserve the previous destination. Genuine destination reads
+are rejected. The compiler and simulator models retain their guards and the
+instruction encodings are unchanged. The option is off by default; verify the
+core’s x0 write suppression before enabling it. A per-set
+<code class="docutils literal notranslate"><span class="pre">*.hls_core_contract.json</span></code> records the setting and removed guards.</p>
+<p><a class="reference internal" href="#docs/bb_cdfg_validation.md"><span class="xref myst">ELF/CDFG basic-block count validation</span></a> runs before Memgraph profile-weight annotation.</p>
+</section>
 <section id="prerequisites">
 <h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h3>
 <p>Install (optional) APT Requirements:

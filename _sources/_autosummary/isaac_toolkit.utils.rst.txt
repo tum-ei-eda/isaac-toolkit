@@ -32,6 +32,7 @@ isaac\_toolkit.utils
    demangle
    filter_index
    graph_utils
+   llvm_bb_addr_map
    names_helper
    nx_converter
    pickle_printer

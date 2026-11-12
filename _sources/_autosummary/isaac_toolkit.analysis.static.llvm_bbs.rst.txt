@@ -29,5 +29,4 @@ isaac\_toolkit.analysis.static.llvm\_bbs
       Session
       SymbolTableSection
       TableArtifact
-      defaultdict
    
