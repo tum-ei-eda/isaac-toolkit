@@ -82,9 +82,15 @@ def retarget_iss_auto(
         if not use_docker:
             image = None
         return retarget_spike_iss(
-            sess, workdir=workdir, label=label, force=force, verbose=verbose,
-            spike_core=demo_config.etiss.core_name, docker_image=image,
-            service_addr=service_addr, service_tag=service_tag,
+            sess,
+            workdir=workdir,
+            label=label,
+            force=force,
+            verbose=verbose,
+            spike_core=demo_config.etiss.core_name,
+            docker_image=image,
+            service_addr=service_addr,
+            service_tag=service_tag,
         )
     if sim != "etiss":
         raise ValueError(f"Unsupported ISS: {sim}")

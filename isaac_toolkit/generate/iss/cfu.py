@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 """CFU-Playground's stateless RV32 R-type encoding contract."""
 
 import hashlib
@@ -44,12 +62,21 @@ def operands(instruction):
         attrs = operand.attributes
         if attribute_info.OperandAttribute.IS_REG not in attrs or attribute_info.OperandAttribute.IS_IMM in attrs:
             raise ValueError(f"{instruction.name}: CFU does not support instruction immediates")
-        reg_class = [getattr(value, "value", value) for value in attrs.get(attribute_info.OperandAttribute.REG_CLASS, [])]
+        reg_class = [
+            getattr(value, "value", value) for value in attrs.get(attribute_info.OperandAttribute.REG_CLASS, [])
+        ]
         reg_type = [getattr(value, "value", value) for value in attrs.get(attribute_info.OperandAttribute.REG_TYPE, [])]
         if operand.size != 5 or reg_class != ["GPR"] or reg_type not in (["s32"], ["i32"], ["u32"]):
             raise ValueError(f"{instruction.name}: CFU requires five-bit GPR indices")
-        directions = [d for d in (attribute_info.OperandAttribute.IN, attribute_info.OperandAttribute.OUT,
-                                  attribute_info.OperandAttribute.INOUT) if d in attrs]
+        directions = [
+            d
+            for d in (
+                attribute_info.OperandAttribute.IN,
+                attribute_info.OperandAttribute.OUT,
+                attribute_info.OperandAttribute.INOUT,
+            )
+            if d in attrs
+        ]
         if directions == [attribute_info.OperandAttribute.IN]:
             inputs.append(name)
         elif directions == [attribute_info.OperandAttribute.OUT]:
@@ -77,18 +104,26 @@ class CFUEncoder:
             self.data = {"schema": 1, "policy": "cfu", "opcode": OPCODE, "xlen": 32, "instructions": {}}
         entries = self.data["instructions"]
         ids = [entry["function_id"] for entry in entries.values()]
-        if (self.data.get("opcode") != OPCODE or self.data.get("xlen") != 32
-                or any(type(i) is not int or not 0 <= i < CAPACITY for i in ids) or len(ids) != len(set(ids))):
+        if (
+            self.data.get("opcode") != OPCODE
+            or self.data.get("xlen") != 32
+            or any(type(i) is not int or not 0 <= i < CAPACITY for i in ids)
+            or len(ids) != len(set(ids))
+        ):
             raise ValueError("Invalid or colliding CFU function IDs")
         for key, entry in entries.items():
             mapping = entry.get("operands", {})
             digest = entry.get("source_sha256", "")
-            if (set(mapping) != {"rd", "rs1", "rs2"} or not isinstance(mapping["rd"], str)
-                    or not mapping["rd"] or any(v is not None and (not isinstance(v, str) or not v)
-                                               for v in mapping.values())
-                    or (mapping["rs1"] is None and mapping["rs2"] is not None)
-                    or not isinstance(digest, str) or len(digest) != 64
-                    or any(c not in "0123456789abcdef" for c in digest)):
+            if (
+                set(mapping) != {"rd", "rs1", "rs2"}
+                or not isinstance(mapping["rd"], str)
+                or not mapping["rd"]
+                or any(v is not None and (not isinstance(v, str) or not v) for v in mapping.values())
+                or (mapping["rs1"] is None and mapping["rs2"] is not None)
+                or not isinstance(digest, str)
+                or len(digest) != 64
+                or any(c not in "0123456789abcdef" for c in digest)
+            ):
                 raise ValueError(f"Malformed persisted CFU instruction: {key}")
             function_id = entry["function_id"]
             mask = MASK | (0x01F00000 if mapping["rs2"] is None else 0)
@@ -104,11 +139,9 @@ class CFUEncoder:
         key = f"{set_name}.{instruction.name}"
         # Generation adds a comment with the current candidate-list index.
         # Filtering changes that index without changing instruction semantics.
-        code = "\n".join(line for line in Path(source).read_text().splitlines()
-                         if not line.lstrip().startswith("//"))
+        code = "\n".join(line for line in Path(source).read_text().splitlines() if not line.lstrip().startswith("//"))
         digest = hashlib.sha256(code.encode()).hexdigest()
-        mapping = {"rd": output, "rs1": inputs[0] if inputs else None,
-                   "rs2": inputs[1] if len(inputs) == 2 else None}
+        mapping = {"rd": output, "rs1": inputs[0] if inputs else None, "rs2": inputs[1] if len(inputs) == 2 else None}
         entries = self.data["instructions"]
         entry = entries.get(key)
         if entry is not None:
@@ -126,7 +159,9 @@ class CFUEncoder:
             arch.BitVal(7, function_id >> 3),
             reg_bitfield(mapping["rs2"]) if mapping["rs2"] else arch.BitVal(5, 0),
             reg_bitfield(mapping["rs1"]) if mapping["rs1"] else arch.BitVal(5, 0),
-            arch.BitVal(3, function_id & 7), reg_bitfield(output), arch.BitVal(7, OPCODE),
+            arch.BitVal(3, function_id & 7),
+            reg_bitfield(output),
+            arch.BitVal(7, OPCODE),
         ]
         instruction.process_encoding()
         expected_mask = MASK | (0x01F00000 if mapping["rs2"] is None else 0)
@@ -134,8 +169,13 @@ class CFUEncoder:
         expected_code = ((function_id >> 3) << 25) | ((function_id & 7) << 12) | OPCODE
         if instruction.mask != expected_mask or instruction.code != expected_code:
             raise ValueError(f"CFU encoding does not match contract: {key}")
-        result = {"function_id": function_id, "source_sha256": digest, "operands": mapping,
-                  "code": expected_code, "mask": expected_mask}
+        result = {
+            "function_id": function_id,
+            "source_sha256": digest,
+            "operands": mapping,
+            "code": expected_code,
+            "mask": expected_mask,
+        }
         if entry is not None and entry != result:
             raise ValueError(f"Malformed persisted CFU encoding: {key}")
         entries[key] = result

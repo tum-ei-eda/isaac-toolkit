@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2026 TUM Department of Electrical and Computer Engineering.
+#
+# This file is part of ISAAC Toolkit.
+# See https://github.com/tum-ei-eda/isaac-toolkit.git for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 """Load CFU-Playground VexRiscv retirement CSV with static-word validation.
 
 The pinned full+cfu+debug configuration and current firmware use RV32IM without
@@ -25,7 +43,7 @@ def read_trace(trace, disassembly, manifest=None, chunk_size=250000):
     entries = CFUEncoder(manifest, allow_new=False).data["instructions"] if manifest else {}
     names = {}
     for address, (word, mnemonic) in static.items():
-        if word & 0x7f == 0x0b:
+        if word & 0x7F == 0x0B:
             matches = [key for key, entry in entries.items() if word & entry["mask"] == entry["code"]]
             if len(matches) != 1:
                 raise ValueError(f"Unmapped custom instruction at 0x{address:x}")
@@ -60,12 +78,15 @@ def read_trace(trace, disassembly, manifest=None, chunk_size=250000):
     return result
 
 
-def load_instr_trace(sess, input_file, disassembly, manifest=None, force=False,
-                     start_func=None, end_func=None):
+def load_instr_trace(sess, input_file, disassembly, manifest=None, force=False, start_func=None, end_func=None):
     frame = read_trace(input_file, disassembly, manifest)
-    attrs = {"simulator": "cfu_playground_verilator", "cpu_arch": "rv32im",
-             "cpu_variant": "full+cfu+debug", "operand_values": "not captured",
-             "by": "isaac_toolkit.frontend.instr_trace.cfu"}
+    attrs = {
+        "simulator": "cfu_playground_verilator",
+        "cpu_arch": "rv32im",
+        "cpu_variant": "full+cfu+debug",
+        "operand_values": "not captured",
+        "by": "isaac_toolkit.frontend.instr_trace.cfu",
+    }
     if start_func:
         attrs["benchmark_start_func"] = start_func
     if end_func:
